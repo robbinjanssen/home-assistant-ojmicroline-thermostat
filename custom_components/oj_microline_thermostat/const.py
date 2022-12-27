@@ -2,7 +2,7 @@
 CONF_CUSTOMER_ID = "customer_id"
 API_TIMEOUT = 30
 DEBOUNCE_COOLDOWN = 10
-DOMAIN = "ojmicroline"
+DOMAIN = "oj_microline_thermostat"
 PLATFORMS = ["climate"]
 
 PRESET_VACATION = "vacation"

@@ -1,11 +1,11 @@
 {
-    "domain": "ojmicroline",
+    "domain": "oj_microline_thermostat",
     "name": "OJ Microline Thermostat",
     "config_flow": true,
     "documentation": "https://github.com/home-assistant-ojmicroline-thermostat",
     "issue_tracker": "https://github.com/home-assistant-ojmicroline-thermostat",
     "requirements": [
-        "git+https://github.com/robbinjanssen/python-ojmicroline-thermostat.git@dev"
+        "git+https://github.com/robbinjanssen/python-ojmicroline-thermostat.git@dev#ojmicroline-thermostat==1.0.0"
     ],
     "dependencies": [],
     "codeowners": [

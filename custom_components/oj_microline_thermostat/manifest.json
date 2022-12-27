@@ -1,0 +1,16 @@
+{
+    "domain": "ojmicroline",
+    "name": "OJ Microline Thermostat",
+    "config_flow": true,
+    "documentation": "https://github.com/home-assistant-ojmicroline-thermostat",
+    "issue_tracker": "https://github.com/home-assistant-ojmicroline-thermostat",
+    "requirements": [
+        "git+https://github.com/issacg/pycoolmaster.git@except_connect#pycoolmaster==0.2.2"
+    ],
+    "dependencies": [],
+    "codeowners": [
+        "@robbinjanssen"
+    ],
+    "iot_class": "cloud_polling",
+    "version": "0.0.0"
+}

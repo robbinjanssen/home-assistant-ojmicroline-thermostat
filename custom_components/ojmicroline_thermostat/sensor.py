@@ -163,6 +163,11 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
             return self.coordinator.data[self.idx].get_target_temperature() / 100
 
         if self.entity_description.key == "sensor_mode":
-            return VENDOR_TO_HA_STATE.get(self.coordinator.data[self.idx].key)
+            return VENDOR_TO_HA_STATE.get(
+                getattr(
+                    self.coordinator.data[self.idx],
+                    self.entity_description.key
+                )
+            )
 
         return getattr(self.coordinator.data[self.idx], self.entity_description.key)

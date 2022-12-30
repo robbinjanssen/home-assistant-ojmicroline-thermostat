@@ -18,22 +18,22 @@ BINARY_SENSOR_TYPES: dict[str, BinarySensorEntityDescription] = {
     "online": BinarySensorEntityDescription(
         name="Online",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        state_key="online",
+        key="online",
     ),
     "heating": BinarySensorEntityDescription(
         name="Heating",
         icon="mdi:fire",
-        state_key="heating",
+        key="heating",
     ),
     "adaptive_mode": BinarySensorEntityDescription(
         name="Adaptive Mode",
         icon="mdi:brain",
-        state_key="adaptive_mode",
+        key="adaptive_mode",
     ),
     "open_window_detection": BinarySensorEntityDescription(
         name="Open Window Detection",
         icon="mdi:window-open",
-        state_key="open_window_detection",
+        key="open_window_detection",
     ),
 }
 
@@ -79,5 +79,5 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
         """Return the status of the binary sensor."""
         return getattr(
             self.coordinator.data[self.idx],
-            self.entity_description.state_key
+            self.entity_description.key
         )

@@ -1,0 +1,26 @@
+{
+    "config": {
+        "flow_title": "{name}",
+        "step": {
+            "user": {
+                "title": "Add your thermostat app credentials.",
+                "data": {
+                    "host": "Host (without https)",
+                    "api_key": "The API key used by the app.",
+                    "username": "Username",
+                    "password": "Password",
+                    "customer_id": "Customer ID"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Invalid authentication",
+            "timeout": "A timeout occured, please try again",
+            "connection_failed": "Connection failed, please try again",
+            "unknown": "Unexpected error"
+        },
+        "abort": {
+            "already_configured": "Your credentials are already configured."
+        }
+    }
+}

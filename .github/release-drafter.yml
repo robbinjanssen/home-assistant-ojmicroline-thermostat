@@ -1,0 +1,60 @@
+---
+name-template: '$RESOLVED_VERSION'
+tag-template: '$RESOLVED_VERSION'
+change-template: '- [#$NUMBER] $TITLE [@$AUTHOR](https://github.com/$AUTHOR)'
+sort-direction: ascending
+
+exclude-labels:
+  - 'skip-changelog'
+
+categories:
+  - title: "🚨 Breaking changes"
+    labels:
+      - "breaking-change"
+  - title: "✨ New features"
+    labels:
+      - "new-feature"
+  - title: "🐛 Bug fixes"
+    labels:
+      - "bugfix"
+  - title: "🚀 Enhancements"
+    labels:
+      - "enhancement"
+      - "refactor"
+      - "performance"
+  - title: "🧰 Maintenance"
+    labels:
+      - "maintenance"
+      - "ci"
+      - "security"
+  - title: "📚 Documentation"
+    labels:
+      - "documentation"
+  - title: "⬆️ Dependency updates"
+    collapse-after: 1
+    labels:
+      - "dependencies"
+
+version-resolver:
+  major:
+    labels:
+      - "major"
+      - "breaking-change"
+  minor:
+    labels:
+      - "minor"
+      - "new-feature"
+  patch:
+    labels:
+      - "bugfix"
+      - "ci"
+      - "dependencies"
+      - "documentation"
+      - "enhancement"
+      - "performance"
+      - "refactor"
+  default: patch
+
+template: |
+  ## What’s changed
+  $CHANGES

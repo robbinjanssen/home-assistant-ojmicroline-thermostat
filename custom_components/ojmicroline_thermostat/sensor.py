@@ -72,25 +72,21 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "boost_end_time": SensorEntityDescription(
         name="Boost End Time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        state_class=SensorStateClass.MEASUREMENT,
         key="boost_end_time",
     ),
     "comfort_end_time": SensorEntityDescription(
         name="Comfort End Time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        state_class=SensorStateClass.MEASUREMENT,
         key="comfort_end_time",
     ),
     "vacation_begin_time": SensorEntityDescription(
         name="Vacation Begin Time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        state_class=SensorStateClass.MEASUREMENT,
         key="vacation_begin_time",
     ),
     "vacation_end_time": SensorEntityDescription(
         name="Vacation End Time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        state_class=SensorStateClass.MEASUREMENT,
         key="vacation_end_time",
     ),
 }

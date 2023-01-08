@@ -1,5 +1,5 @@
 # OJ Microline Thermostat
-This a *custom component* for [Home Assistant](https://www.home-assistant.io/). 
+This a *custom component* for [Home Assistant](https://www.home-assistant.io/).
 
 # Supported Devices
 - OWD5

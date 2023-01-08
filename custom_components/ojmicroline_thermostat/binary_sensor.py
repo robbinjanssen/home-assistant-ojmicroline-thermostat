@@ -11,8 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .models import OJMicrolineEntity
 from .coordinator import OJMicrolineDataUpdateCoordinator
+from .models import OJMicrolineEntity
 
 BINARY_SENSOR_TYPES: dict[str, BinarySensorEntityDescription] = {
     "online": BinarySensorEntityDescription(
@@ -43,11 +43,18 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up all OJ Microline binary sensors for all thermostat."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    """
+    Load all OJMicroline Thermostat binary sensors.
 
+    Args:
+        hass: The HomeAssistant instance.
+        entry: The ConfigEntry containing the user input.
+        async_add_entities: The callback to provide the created entities to.
+    """
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
-    for idx, _resource in coordinator.data.items():
+    for idx, _ in coordinator.data.items():
         for key in BINARY_SENSOR_TYPES:
             entities.append(OJMicrolineBinarySensor(coordinator, idx, key))
 
@@ -65,10 +72,16 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
         idx: str,
         key: str,
     ) -> None:
-        """Call parent init()"""
+        """
+        Initialise the entity.
+
+        Args:
+            coordinator: The data coordinator updating the models.
+            idx: The identifier for this entity.
+            key: The key to get the sensor info from BINARY_SENSOR_TYPES.
+        """
         super().__init__(coordinator, idx)
 
-        """Initialize the sensor."""
         self.entity_description = BINARY_SENSOR_TYPES[key]
 
         self._attr_unique_id = f"{idx}_{key}"
@@ -76,8 +89,10 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return the status of the binary sensor."""
-        return getattr(
-            self.coordinator.data[self.idx],
-            self.entity_description.key
-        )
+        """
+        Return the status of the binary sensor.
+
+        Returns:
+            True if the sensor is on, false if not, unknown if it can't be reached.
+        """
+        return getattr(self.coordinator.data[self.idx], self.entity_description.key)

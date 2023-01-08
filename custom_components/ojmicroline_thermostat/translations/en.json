@@ -15,7 +15,7 @@
         },
         "error": {
             "invalid_auth": "Invalid authentication",
-            "timeout": "A timeout occured, please try again",
+            "timeout": "A timeout occurred, please try again",
             "connection_failed": "Connection failed, please try again",
             "unknown": "Unexpected error"
         },

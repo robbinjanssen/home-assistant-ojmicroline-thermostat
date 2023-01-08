@@ -1,30 +1,24 @@
 """Config flow to configure OJMicroline."""
-import logging
-
-from .const import CONF_CUSTOMER_ID
+from typing import Any, Optional
 
 import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from ojmicroline_thermostat import (
     OJMicroline,
     OJMicrolineAuthException,
-    OJMicrolineTimeoutException,
     OJMicrolineConnectionException,
     OJMicrolineException,
+    OJMicrolineTimeoutException,
 )
-from homeassistant import config_entries
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_API_KEY,
-    CONF_PASSWORD,
-    CONF_USERNAME,
-)
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .const import (
+    CONF_CUSTOMER_ID,
+    CONF_DEFAULT_CUSTOMER_ID,
+    CONF_DEFAULT_HOST,
     DOMAIN,
     INTEGRATION_NAME,
-    CONF_DEFAULT_HOST,
-    CONF_DEFAULT_CUSTOMER_ID,
 )
 
 DATA_SCHEMA = vol.Schema(
@@ -37,27 +31,35 @@ DATA_SCHEMA = vol.Schema(
     }
 )
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class OJMicrolineFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle an OJ Microline config flow."""
 
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
-        """Handle a flow initialized by the user."""
+    async def async_step_user(self, user_input: Optional[dict[str, Any]] = None) -> Any:
+        """
+        Handle a flow initialized by the user.
+
+        Args:
+            user_input: The input received from the user or none.
+
+        Returns:
+            The created config entry or a form to re-enter the user input with errors.
+        """
         errors = {}
         if user_input:
             try:
                 host = user_input[CONF_HOST]
                 username = user_input[CONF_USERNAME]
                 customer_id = user_input[CONF_CUSTOMER_ID]
-                self._async_abort_entries_match({
-                    CONF_HOST: host,
-                    CONF_USERNAME: username,
-                    CONF_CUSTOMER_ID: customer_id,
-                })
+                self._async_abort_entries_match(
+                    {
+                        CONF_HOST: host,
+                        CONF_USERNAME: username,
+                        CONF_CUSTOMER_ID: customer_id,
+                    }
+                )
 
                 api = OJMicroline(
                     host=host,
@@ -78,12 +80,9 @@ class OJMicrolineFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
-                    title=f"{INTEGRATION_NAME} ({username})",
-                    data=user_input
+                    title=f"{INTEGRATION_NAME} ({username})", data=user_input
                 )
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=DATA_SCHEMA,
-            errors=errors
+            step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )

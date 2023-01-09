@@ -44,7 +44,7 @@ To configure the integration, add it using [Home Assistant integrations][ha-add-
 
 Please see [CONTRIBUTING](.github/CONTRIBUTING.md) and [CODE_OF_CONDUCT](.github/CODE_OF_CONDUCT.md) for details.
 
-## References
+## References & Thanks
 
 - https://community.home-assistant.io/t/mwd5-wifi-thermostat-oj-electronics-microtemp/445601
 - https://mdapp.medium.com/the-android-emulator-and-charles-proxy-a-love-story-595c23484e02

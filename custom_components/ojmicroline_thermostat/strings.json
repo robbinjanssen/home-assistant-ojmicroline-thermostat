@@ -22,5 +22,16 @@
         "abort": {
             "already_configured": "[%key:common::config_flow::abort::already_configured_service%]"
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "description": "Set default options when changing the thermostat temperature.",
+                "data": {
+                    "use_comfort_mode": "Set the regulation to comfort mode when changing the temperature.",
+                    "comfort_mode_duration": "The duration in minutes the comfort mode should be enabled."
+                }
+            }
+        }
     }
 }

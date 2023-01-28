@@ -22,5 +22,16 @@
         "abort": {
             "already_configured": "Deze combinatie is al geconfigureerd."
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "description": "Stel de standaard opties in wanneer de temperatuur van de thermostaat wordt gewijzigd.",
+                "data": {
+                    "use_comfort_mode": "Zet de modus naar comfort wanneer de temperatuur wijzigd.",
+                    "comfort_mode_duration": "De totale tijd in minuten dat de comfort mode aan moet staan."
+                }
+            }
+        }
     }
 }

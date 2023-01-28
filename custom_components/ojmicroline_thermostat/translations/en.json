@@ -22,5 +22,16 @@
         "abort": {
             "already_configured": "Your credentials are already configured."
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "description": "Set default options when changing the thermostat temperature.",
+                "data": {
+                    "use_comfort_mode": "Set the regulation to comfort mode when changing the temperature.",
+                    "comfort_mode_duration": "The duration in minutes the comfort mode should be enabled."
+                }
+            }
+        }
     }
 }

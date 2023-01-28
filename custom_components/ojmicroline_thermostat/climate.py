@@ -1,5 +1,7 @@
 """Climate sensors for OJMicroline."""
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from homeassistant.components.climate import (
     ClimateEntity,
@@ -30,7 +32,14 @@ from ojmicroline_thermostat.const import (
     REGULATION_VACATION,
 )
 
-from .const import DOMAIN, MANUFACTURER, PRESET_FROST_PROTECTION, PRESET_VACATION
+from .const import (
+    CONF_COMFORT_MODE_DURATION,
+    CONF_USE_COMFORT_MODE,
+    DOMAIN,
+    MANUFACTURER,
+    PRESET_FROST_PROTECTION,
+    PRESET_VACATION,
+)
 from .coordinator import OJMicrolineDataUpdateCoordinator
 
 MODE_LIST = [HVACMode.HEAT, HVACMode.AUTO]
@@ -72,7 +81,11 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
     for idx, _ in coordinator.data.items():
-        entities.append(OJMicrolineThermostat(coordinator, idx))
+        entities.append(
+            OJMicrolineThermostat(
+                coordinator=coordinator, idx=idx, options=entry.options
+            )
+        )
     async_add_entities(entities)
 
 
@@ -90,17 +103,25 @@ class OJMicrolineThermostat(
     _attr_has_entity_name = True
 
     idx = str
+    options = (Mapping[str, Any],)
 
-    def __init__(self, coordinator: OJMicrolineDataUpdateCoordinator, idx: str) -> None:
+    def __init__(
+        self,
+        coordinator: OJMicrolineDataUpdateCoordinator,
+        idx: str,
+        options: Mapping[str, Any],
+    ) -> None:
         """
         Initialise the entity.
 
         Args:
             coordinator: The data coordinator updating the models.
             idx: The identifier for this entity.
+            options: The options provided by the user.
         """
         super().__init__(coordinator)
         self.idx = idx
+        self.options = options
         self._attr_unique_id = self.idx
 
     @property
@@ -215,10 +236,15 @@ class OJMicrolineThermostat(
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
 
+        regulation_mode = REGULATION_MANUAL
+        if self.options.get(CONF_USE_COMFORT_MODE) is True:
+            regulation_mode = REGULATION_COMFORT
+
         await self.coordinator.api.set_regulation_mode(
-            self.coordinator.data[self.unique_id],
-            REGULATION_COMFORT,
-            int(temperature * 100),
+            resource=self.coordinator.data[self.unique_id],
+            regulation_mode=regulation_mode,
+            temperature=int(temperature * 100),
+            duration=self.options.get(CONF_COMFORT_MODE_DURATION),
         )
         await self.coordinator.async_request_refresh()
 

@@ -2,7 +2,7 @@
 DOMAIN = "ojmicroline_thermostat"
 MANUFACTURER = "OJ Electronics"
 INTEGRATION_NAME = "OJ Microline Thermostat"
-CONFIG_FLOW_VERSION = 2
+CONFIG_FLOW_VERSION = 1
 
 API_TIMEOUT = 30
 UPDATE_INTERVAL = 60

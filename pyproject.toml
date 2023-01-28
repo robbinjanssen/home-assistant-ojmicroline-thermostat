@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "home-assistant-ojmicroline-thermostat"
-version = "1.0.0"
+version = "1.1.0"
 description = "Control your OJ Microline Thermostat using home assistant."
 authors = ["Robbin Janssen <robbinjanssen@gmail.com>"]
 maintainers = ["Robbin Janssen <robbinjanssen@gmail.com>"]

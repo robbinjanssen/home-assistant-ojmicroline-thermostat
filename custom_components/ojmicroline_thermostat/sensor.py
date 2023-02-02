@@ -1,4 +1,4 @@
-"""Support for Xiaomi Aqara sensors."""
+"""Support for OJ Microline Thermostat sensors."""
 from __future__ import annotations
 
 from datetime import datetime

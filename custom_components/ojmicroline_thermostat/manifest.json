@@ -1,16 +1,15 @@
 {
     "domain": "ojmicroline_thermostat",
     "name": "OJ Microline Thermostat",
+    "codeowners": [
+        "@robbinjanssen"
+    ],
     "config_flow": true,
-    "version": "1.1.0",
     "documentation": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat",
+    "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues",
     "requirements": [
         "ojmicroline-thermostat==1.1.0"
     ],
-    "dependencies": [],
-    "codeowners": [
-        "@robbinjanssen"
-    ],
-    "iot_class": "cloud_polling"
+    "version": "1.1.1"
 }

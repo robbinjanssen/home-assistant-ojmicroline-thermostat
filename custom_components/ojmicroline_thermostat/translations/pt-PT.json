@@ -1,0 +1,37 @@
+{
+    "config": {
+        "flow_title": "{name}",
+        "step": {
+            "user": {
+                "title": "Adcionar as tuas credenciais da aplicação de termostato.",
+                "data": {
+                    "host": "Endreço (sem https)",
+                    "api_key": "Chave AP Iusada plaa app.",
+                    "username": "Utilizador",
+                    "password": "Senha",
+                    "customer_id": "ID de Cliente"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Erro na autenticação",
+            "timeout": "Erro de timeout, tente novamente",
+            "connection_failed": "Falha na ligação, tente novamente",
+            "unknown": "Erro desconhecido"
+        },
+        "abort": {
+            "already_configured": "As suas credenciais já se encontram configuradas."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "description": "Selecione as opcções padrão quando est+a a alterar a temperatura do termostato",
+                "data": {
+                    "use_comfort_mode": "Definna para modo conforto quando está a mudar a temperatura.",
+                    "comfort_mode_duration": "Qual a duração que o modo conforto deve durar."
+                }
+            }
+        }
+    }
+}

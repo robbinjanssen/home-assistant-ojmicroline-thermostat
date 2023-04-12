@@ -70,7 +70,7 @@ repos:
         name: Check code for common misspellings
         language: system
         types: [text]
-        exclude: ^poetry\.lock$
+        exclude: ^(poetry\.lock$|custom_components/ojmicroline_thermostat/translations/)
         entry: poetry run codespell
         args: [--ignore-words=.codespell-ignore, --skip=./custom_components/ojmicroline_thermostat/translations]
       - id: debug-statements

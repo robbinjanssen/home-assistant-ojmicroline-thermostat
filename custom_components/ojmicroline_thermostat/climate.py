@@ -101,6 +101,7 @@ class OJMicrolineThermostat(
     )
     _attr_temperature_unit = TEMP_CELSIUS
     _attr_has_entity_name = True
+    _attr_name = None
 
     idx = str
     options = (Mapping[str, Any],)

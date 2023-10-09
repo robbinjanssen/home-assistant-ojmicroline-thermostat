@@ -1031,13 +1031,13 @@ virtualenv = ">=20.10.0"
 
 [[package]]
 name = "pre-commit-hooks"
-version = "4.4.0"
+version = "4.5.0"
 description = "Some out-of-the-box hooks for pre-commit."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "pre_commit_hooks-4.4.0-py2.py3-none-any.whl", hash = "sha256:fc8837335476221ccccda3d176ed6ae29fe58753ce7e8b7863f5d0f987328fc6"},
-    {file = "pre_commit_hooks-4.4.0.tar.gz", hash = "sha256:7011eed8e1a25cde94693da009cba76392194cecc2f3f06c51a44ea6ad6c2af9"},
+    {file = "pre_commit_hooks-4.5.0-py2.py3-none-any.whl", hash = "sha256:b779d5c44ede9b1fda48e2d96b08e9aa5b1d2fdb8903ca09f0dbaca22d529edb"},
+    {file = "pre_commit_hooks-4.5.0.tar.gz", hash = "sha256:ffbe2af1c85ac9a7695866955680b4dee98822638b748a6f3debefad79748c8a"},
 ]
 
 [package.dependencies]
@@ -1602,4 +1602,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b97d7f6d54d1f26e5f1be31410b98f3fe1bd1342e5f14cf15342709a03a6a410"
+content-hash = "71478e013e6bf46cb2824532e463d785e08f5e47ced71edce82a5b71c2c56d5d"

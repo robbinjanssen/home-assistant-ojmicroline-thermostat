@@ -1,4 +1,5 @@
 """Climate sensors for OJMicroline."""
+import asyncio
 import logging
 from collections.abc import Mapping
 from typing import Any
@@ -21,7 +22,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from ojmicroline_thermostat import OJMicrolineException
+from ojmicroline_thermostat import OJMicrolineError
 from ojmicroline_thermostat.const import (
     REGULATION_BOOST,
     REGULATION_COMFORT,
@@ -43,15 +44,6 @@ from .const import (
 from .coordinator import OJMicrolineDataUpdateCoordinator
 
 MODE_LIST = [HVACMode.HEAT, HVACMode.AUTO]
-PRESET_LIST = [
-    PRESET_HOME,
-    PRESET_COMFORT,
-    PRESET_NONE,
-    PRESET_VACATION,
-    PRESET_FROST_PROTECTION,
-    PRESET_BOOST,
-    PRESET_ECO,
-]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +87,6 @@ class OJMicrolineThermostat(
     """OJMicrolineThermostat climate."""
 
     _attr_hvac_modes = MODE_LIST
-    _attr_preset_modes = PRESET_LIST
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TARGET_TEMPERATURE
     )
@@ -103,8 +94,8 @@ class OJMicrolineThermostat(
     _attr_has_entity_name = True
     _attr_name = None
 
-    idx = str
-    options = (Mapping[str, Any],)
+    idx: str
+    options: Mapping[str, Any]
 
     def __init__(
         self,
@@ -141,6 +132,19 @@ class OJMicrolineThermostat(
             sw_version=self.coordinator.data[self.idx].software_version,
             model=self.coordinator.data[self.idx].model,
         )
+
+    @property
+    def preset_modes(self) -> list[str] | None:
+        """
+        Return a list of available preset modes.
+
+        Returns:
+            A list of supported preset modes in string format.
+        """
+        return [
+            VENDOR_TO_HA_STATE[mode]
+            for mode in self.coordinator.data[self.idx].supported_regulation_modes
+        ]
 
     @property
     def preset_mode(self) -> str:
@@ -218,8 +222,8 @@ class OJMicrolineThermostat(
                 self.coordinator.data[self.idx],
                 HA_TO_VENDOR_STATE.get(preset_mode),
             )
-            await self.coordinator.async_request_refresh()
-        except OJMicrolineException as error:
+            await self._async_delayed_request_refresh()
+        except OJMicrolineError as error:
             _LOGGER.error(
                 'Failed setting preset mode "%s" (%s) %s',
                 self.coordinator.data[self.idx].name,
@@ -247,6 +251,21 @@ class OJMicrolineThermostat(
             temperature=int(temperature * 100),
             duration=self.options.get(CONF_COMFORT_MODE_DURATION),
         )
+        await self._async_delayed_request_refresh()
+
+    async def _async_delayed_request_refresh(self):
+        """
+        Refreshing immediately after an API call can return stale data,
+        probably due to DB propagation on the API backend.
+
+        The *ideal* fix would be to switch away from polling; the API
+        does support some sort of HTTP-long-poll notification mechanism.
+
+        As a temporary band-aid, sleep for 2 seconds and then request a
+        refresh. Manual testing indicates this seems to work well enough;
+        1 second was verified to be too short.
+        """
+        await asyncio.sleep(2)
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, _hvac_mode: str) -> bool:
@@ -260,3 +279,4 @@ class OJMicrolineThermostat(
         """
 
         await self.async_set_preset_mode(PRESET_HOME)
+        return True

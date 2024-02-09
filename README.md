@@ -17,13 +17,14 @@ It has been tested and developed on the following models:
 | Model            |
 |------------------|
 | OWD5             |
+| UWG4             |
 
 After installation you can add the thermostat through the integration page. Currently setting a preset mode and temperature is supported. Adjusting
 the HVAC mode will (re)set it to the schedule preset.
 
 ## Requirements
 
-Your thermostat needs to be connected to the internet, you will need the API key and customer ID that is used by the app that you currently use to control your thermostat.
+Your thermostat needs to be connected to the internet. For OWD5 model thermostats you will need the API key and customer ID that is used by the app that you currently use to control your thermostat.
 
 ## HACS installation
 

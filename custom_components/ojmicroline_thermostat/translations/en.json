@@ -3,13 +3,35 @@
         "flow_title": "{name}",
         "step": {
             "user": {
-                "title": "Add your thermostat app credentials.",
                 "data": {
-                    "host": "Host (without https)",
-                    "api_key": "The API key used by the app.",
+                    "model": "Model"
+                },
+                "data_description": {
+                    "model": "The WD5 series includes OWD5 and MWD5; the WG4 series includes UWG4 and AWG4."
+                }
+            },
+            "wd5": {
+                "data": {
                     "username": "Username",
                     "password": "Password",
+                    "api_key": "API Key",
+                    "host": "Host",
                     "customer_id": "Customer ID"
+                },
+                "data_description": {
+                    "api_key": "The API key used by the app.",
+                    "host": "Leave blank to use the default. If specified, omit the https://.",
+                    "customer_id": "Leave blank to use the default."
+                }
+            },
+            "wg4": {
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "host": "Host"
+                },
+                "data_description": {
+                    "host": "Leave blank to use the default. If specified, omit the https://."
                 }
             }
         },

@@ -3,19 +3,18 @@
 import asyncio
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.components.climate.const import (
     PRESET_BOOST,
     PRESET_COMFORT,
     PRESET_ECO,
-    PRESET_HOME,
-    PRESET_NONE,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
@@ -41,18 +40,18 @@ from .const import (
     DOMAIN,
     MANUFACTURER,
     PRESET_FROST_PROTECTION,
+    PRESET_MANUAL,
+    PRESET_SCHEDULE,
     PRESET_VACATION,
 )
 from .coordinator import OJMicrolineDataUpdateCoordinator
 
-MODE_LIST = [HVACMode.HEAT, HVACMode.AUTO]
-
 _LOGGER = logging.getLogger(__name__)
 
 VENDOR_TO_HA_STATE = {
-    REGULATION_SCHEDULE: PRESET_HOME,
+    REGULATION_SCHEDULE: PRESET_SCHEDULE,
     REGULATION_COMFORT: PRESET_COMFORT,
-    REGULATION_MANUAL: PRESET_NONE,
+    REGULATION_MANUAL: PRESET_MANUAL,
     REGULATION_VACATION: PRESET_VACATION,
     REGULATION_FROST_PROTECTION: PRESET_FROST_PROTECTION,
     REGULATION_BOOST: PRESET_BOOST,
@@ -89,13 +88,15 @@ class OJMicrolineThermostat(
 ):
     """OJMicrolineThermostat climate."""
 
-    _attr_hvac_modes = MODE_LIST
+    _attr_hvac_modes: ClassVar[list[HVACMode]] = [HVACMode.HEAT]
+    _attr_hvac_mode = HVACMode.HEAT
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TARGET_TEMPERATURE
     )
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_has_entity_name = True
     _attr_name = None
+    _attr_translation_key = "ojthermostat"
 
     idx: str
     options: Mapping[str, Any]
@@ -154,7 +155,7 @@ class OJMicrolineThermostat(
 
     @property
     def preset_mode(self) -> str:
-        """Return the current preset mode, e.g., home, away.
+        """Return the current preset mode, e.g., schedule, manual.
 
         Returns
         -------
@@ -186,7 +187,7 @@ class OJMicrolineThermostat(
         return self.coordinator.data[self.idx].get_target_temperature() / 100
 
     @property
-    def target_temperature_high(self) -> float:
+    def max_temp(self) -> float:
         """Return max temperature.
 
         Returns
@@ -197,29 +198,31 @@ class OJMicrolineThermostat(
         return self.coordinator.data[self.idx].max_temperature / 100
 
     @property
-    def target_temperature_low(self) -> float:
-        """Return target temperature.
+    def min_temp(self) -> float:
+        """Return min temperature.
 
         Returns
         -------
-            The target temperature in a float format.
+            The min temperature in a float format.
 
         """
         return self.coordinator.data[self.idx].min_temperature / 100
 
     @property
-    def hvac_mode(self) -> HVACMode:
-        """Return the hvac operation ie. heat, cool mode.
+    def hvac_action(self) -> HVACAction | None:
+        """Indicates whether the thermostat is currently heating.
 
         Returns
         -------
-            The HVACMode.
+            The HVACAction.
 
         """
-        if self.coordinator.data[self.idx].heating:
-            return HVACMode.HEAT
-
-        return HVACMode.AUTO
+        thermostat = self.coordinator.data[self.idx]
+        if thermostat.heating:
+            return HVACAction.HEATING
+        if thermostat.online:
+            return HVACAction.IDLE
+        return HVACAction.OFF
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode.
@@ -287,12 +290,11 @@ class OJMicrolineThermostat(
     ) -> bool:
         """Set new hvac mode.
 
-        Always set to schedule as we cannot control the heating.
+        Always ignore; we only support HEATING mode.
 
         Args:
         ----
             hvac_mode: Currently not used.
 
         """
-        await self.async_set_preset_mode(PRESET_HOME)
         return True

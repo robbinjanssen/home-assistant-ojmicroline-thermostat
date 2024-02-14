@@ -60,7 +60,7 @@ async def async_setup_entry(
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
-    for idx in coordinator.data.key():
+    for idx in coordinator.data.keys():  # noqa: SIM118
         for description in BINARY_SENSOR_TYPES:
             # Different models of thermostat support different sensors;
             # skip creating entities if the value is None.

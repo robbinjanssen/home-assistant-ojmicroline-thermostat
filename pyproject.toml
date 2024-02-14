@@ -22,7 +22,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
+ojmicroline-thermostat = { git = "https://github.com/adamjernst/python-ojmicroline-thermostat.git", branch = "main" }
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.7"

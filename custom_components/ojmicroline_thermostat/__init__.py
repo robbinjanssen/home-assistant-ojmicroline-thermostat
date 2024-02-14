@@ -3,7 +3,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import CONF_MODEL, CONFIG_FLOW_VERSION, DOMAIN, MODEL_WD5_SERIES
 from .coordinator import OJMicrolineDataUpdateCoordinator
 
 PLATFORMS = [
@@ -49,3 +49,22 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
+
+
+async def async_migrate_entry(hass, config_entry: ConfigEntry):
+    """Migrate config entries from previous versions."""
+    if config_entry.version > CONFIG_FLOW_VERSION:
+        return False  # Downgrade from future version
+
+    if config_entry.version == 1:
+        # Version 1 only supported WD5; version 2 requires CONF_MODEL
+        config_entry.version = CONFIG_FLOW_VERSION
+        hass.config_entries.async_update_entry(
+            config_entry,
+            data={
+                CONF_MODEL: MODEL_WD5_SERIES,
+                **config_entry.data,
+            },
+        )
+
+    return True

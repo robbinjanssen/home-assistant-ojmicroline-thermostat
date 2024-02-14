@@ -12,9 +12,9 @@
             },
             "wd5": {
                 "data": {
-                    "api_key": "Chave API",
                     "username": "Utilizador",
                     "password": "Senha",
+                    "api_key": "Chave API",
                     "host": "Endreço",
                     "customer_id": "ID de Cliente"
                 },
@@ -28,7 +28,7 @@
                 "data": {
                     "username": "Utilizador",
                     "password": "Senha",
-                    "host": "Endreço"
+                    "host": "Endereço"
                 },
                 "data_description": {
                     "host": "Deixe em branco para usar o padrão. Se especificado, omita https://."

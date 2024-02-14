@@ -2,7 +2,8 @@
     "domain": "ojmicroline_thermostat",
     "name": "OJ Microline Thermostat",
     "codeowners": [
-        "@robbinjanssen"
+        "@robbinjanssen",
+        "@adamjernst"
     ],
     "config_flow": true,
     "documentation": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat",
@@ -11,5 +12,5 @@
     "requirements": [
         "ojmicroline-thermostat==3.1.0"
     ],
-    "version": "2.0.0"
+    "version": "1.2.0"
 }

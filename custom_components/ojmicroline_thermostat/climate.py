@@ -1,4 +1,5 @@
 """Climate sensors for OJMicroline."""
+
 import asyncio
 import logging
 from collections.abc import Mapping
@@ -22,6 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 from ojmicroline_thermostat import OJMicrolineError
 from ojmicroline_thermostat.const import (
     REGULATION_BOOST,
@@ -62,18 +64,19 @@ HA_TO_VENDOR_STATE = {v: k for k, v in VENDOR_TO_HA_STATE.items()}
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """
-    Load all OJMicroline Thermostat devices.
+    """Load all OJMicroline Thermostat devices.
 
     Args:
+    ----
         hass: The HomeAssistant instance.
         entry: The ConfigEntry containing the user input.
         async_add_entities: The callback to provide the created entities to.
+
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
-    for idx, _ in coordinator.data.items():
-        entities.append(
+    for idx in coordinator.data:
+        entities.append(  # noqa: PERF401
             OJMicrolineThermostat(
                 coordinator=coordinator, idx=idx, options=entry.options
             )
@@ -103,13 +106,14 @@ class OJMicrolineThermostat(
         idx: str,
         options: Mapping[str, Any],
     ) -> None:
-        """
-        Initialise the entity.
+        """Initialise the entity.
 
         Args:
+        ----
             coordinator: The data coordinator updating the models.
             idx: The identifier for this entity.
             options: The options provided by the user.
+
         """
         super().__init__(coordinator)
         self.idx = idx
@@ -118,12 +122,13 @@ class OJMicrolineThermostat(
 
     @property
     def device_info(self) -> DeviceInfo:
-        """
-        Set up the device information for this thermostat.
+        """Set up the device information for this thermostat.
 
-        Returns:
+        Returns
+        -------
             The device identifiers to make sure the entity is attached
             to the correct device.
+
         """
         return DeviceInfo(
             identifiers={(DOMAIN, self.idx)},
@@ -135,11 +140,12 @@ class OJMicrolineThermostat(
 
     @property
     def preset_modes(self) -> list[str] | None:
-        """
-        Return a list of available preset modes.
+        """Return a list of available preset modes.
 
-        Returns:
+        Returns
+        -------
             A list of supported preset modes in string format.
+
         """
         return [
             VENDOR_TO_HA_STATE[mode]
@@ -148,60 +154,65 @@ class OJMicrolineThermostat(
 
     @property
     def preset_mode(self) -> str:
-        """
-        Return the current preset mode, e.g., home, away.
+        """Return the current preset mode, e.g., home, away.
 
-        Returns:
+        Returns
+        -------
             The preset mode in a string format.
+
         """
-        return VENDOR_TO_HA_STATE.get(self.coordinator.data[self.idx].regulation_mode)
+        return VENDOR_TO_HA_STATE.get(self.coordinator.data[self.idx].regulation_mode)  # type: ignore[return-value]
 
     @property
     def current_temperature(self) -> float:
-        """
-        Return current temperature.
+        """Return current temperature.
 
-        Returns:
+        Returns
+        -------
             The current temperature in a float format..
+
         """
         return self.coordinator.data[self.idx].get_current_temperature() / 100
 
     @property
     def target_temperature(self) -> float:
-        """
-        Return target temperature.
+        """Return target temperature.
 
-        Returns:
+        Returns
+        -------
             The target temperature in a float format.
+
         """
         return self.coordinator.data[self.idx].get_target_temperature() / 100
 
     @property
     def target_temperature_high(self) -> float:
-        """
-        Return max temperature.
+        """Return max temperature.
 
-        Returns:
+        Returns
+        -------
             The max temperature in a float format.
+
         """
         return self.coordinator.data[self.idx].max_temperature / 100
 
     @property
     def target_temperature_low(self) -> float:
-        """
-        Return target temperature.
+        """Return target temperature.
 
-        Returns:
+        Returns
+        -------
             The target temperature in a float format.
+
         """
         return self.coordinator.data[self.idx].min_temperature / 100
 
     @property
-    def hvac_mode(self):
-        """
-        Return the hvac operation ie. heat, cool mode.
+    def hvac_mode(self) -> HVACMode:
+        """Return the hvac operation ie. heat, cool mode.
 
-        Returns:
+        Returns
+        -------
             The HVACMode.
 
         """
@@ -211,11 +222,12 @@ class OJMicrolineThermostat(
         return HVACMode.AUTO
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """
-        Set new preset mode.
+        """Set new preset mode.
 
         Args:
+        ----
             preset_mode: The preset mode to set the thermostat to.
+
         """
         try:
             await self.coordinator.api.set_regulation_mode(
@@ -223,20 +235,20 @@ class OJMicrolineThermostat(
                 HA_TO_VENDOR_STATE.get(preset_mode),
             )
             await self._async_delayed_request_refresh()
-        except OJMicrolineError as error:
-            _LOGGER.error(
-                'Failed setting preset mode "%s" (%s) %s',
+        except OJMicrolineError:
+            _LOGGER.exception(
+                'Failed setting preset mode "%s" (%s)',
                 self.coordinator.data[self.idx].name,
                 preset_mode,
-                error,
             )
 
-    async def async_set_temperature(self, **kwargs) -> None:
-        """
-        Set new temperature.
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        """Set new temperature.
 
         Args:
+        ----
             **kwargs: All arguments passed to the method.
+
         """
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
@@ -253,8 +265,9 @@ class OJMicrolineThermostat(
         )
         await self._async_delayed_request_refresh()
 
-    async def _async_delayed_request_refresh(self):
-        """
+    async def _async_delayed_request_refresh(self) -> None:
+        """Get delayed data from the coordinator.
+
         Refreshing immediately after an API call can return stale data,
         probably due to DB propagation on the API backend.
 
@@ -269,14 +282,14 @@ class OJMicrolineThermostat(
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, _hvac_mode: str) -> bool:
-        """
-        Set new hvac mode.
+        """Set new hvac mode.
 
         Always set to schedule as we cannot control the heating.
 
         Args:
+        ----
             _hvac_mode: Currently not used.
-        """
 
+        """
         await self.async_set_preset_mode(PRESET_HOME)
         return True

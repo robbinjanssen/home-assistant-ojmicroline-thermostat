@@ -1,10 +1,11 @@
 """Miscellaneous sensors for OJ Microline thermostats."""
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Optional
-
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -12,16 +13,21 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 from ojmicroline_thermostat import Thermostat
 from ojmicroline_thermostat.const import SENSOR_FLOOR, SENSOR_ROOM, SENSOR_ROOM_FLOOR
 
 from .const import DOMAIN, MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
-from .coordinator import OJMicrolineDataUpdateCoordinator
 from .models import OJMicrolineEntity
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import OJMicrolineDataUpdateCoordinator
+
 
 VENDOR_TO_HA_STATE = {
     SENSOR_FLOOR: MODE_FLOOR,
@@ -39,8 +45,7 @@ ValueGetterOverride = Callable[[Thermostat], Any]
 
 @dataclass
 class OJMicrolineSensorInfo:
-    """
-    Describes a sensor for the OJ Microline thermostat.
+    """Describes a sensor for the OJ Microline thermostat.
 
     In addition to a SensorEntityDescription for Home Assistant, it includes a
     Callable that can format the raw value and an optional Callable to fetch
@@ -51,30 +56,31 @@ class OJMicrolineSensorInfo:
     entity_description: SensorEntityDescription
     formatter: ValueFormatter
     # Defaults to getattr on the key if None
-    value_getter: Optional[ValueGetterOverride] = None
+    value_getter: ValueGetterOverride | None = None
 
 
 def _get_value(
     thermostat: Thermostat,
     desc: SensorEntityDescription,
-    value_getter: Optional[ValueGetterOverride],
+    value_getter: ValueGetterOverride | None,
 ) -> Any:
-    """
-    Fetches a value from the thermostat by using the getter override, if any;
-    otherwise it fetches the value using getattr with the description's key.
+    """Fetch a value from the thermostat by using the getter override.
+
+    If it exists, use it, otherwise it fetches the value using getattr
+    with the description's key.
     """
     if value_getter:
         return value_getter(thermostat)
     return getattr(thermostat, desc.key)
 
 
-def _temp_formatter(temp: Any):
-    """A formatter for temperature sensors."""
+def _temp_formatter(temp: Any) -> float:
+    """Format the temperature."""
     return temp / 100
 
 
-def _date_formatter(dt: Any):
-    """A formatter for datetime sensors."""
+def _date_formatter(dt: Any) -> datetime | None:
+    """Format the date."""
     now = datetime.now(dt.tzinfo)
     if now > dt:
         return None
@@ -183,19 +189,19 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """
-    Load all OJMicroline Thermostat sensors.
+    """Load all OJMicroline Thermostat sensors.
 
     Args:
+    ----
         hass: The HomeAssistant instance.
         entry: The ConfigEntry containing the user input.
         async_add_entities: The callback to provide the created entities to.
-    """
 
+    """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
 
-    for idx, _ in coordinator.data.items():
+    for idx in coordinator.data.keys():  # noqa: SIM118
         for info in SENSOR_TYPES:
             # Different models of thermostat support different sensors;
             # skip creating entities if the value is None.
@@ -221,23 +227,24 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
 
     entity_description: SensorEntityDescription
     formatter: ValueFormatter
-    value_getter: Optional[ValueGetterOverride]
+    value_getter: ValueGetterOverride | None
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=too-many-arguments  # noqa: PLR0913
         self,
         coordinator: OJMicrolineDataUpdateCoordinator,
         idx: str,
         entity_description: SensorEntityDescription,
         formatter: ValueFormatter,
-        value_getter: Optional[ValueGetterOverride],
-    ):
-        """
-        Initialise the entity.
+        value_getter: ValueGetterOverride | None,
+    ) -> None:
+        """Initialise the entity.
 
         Args:
+        ----
             coordinator: The data coordinator updating the models.
             idx: The identifier for this entity.
             key: The key to get the sensor info from BINARY_SENSOR_TYPES.
+
         """
         super().__init__(coordinator, idx)
 
@@ -250,21 +257,23 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
 
     @property
     def available(self) -> bool:
-        """
-        Get the availability status.
+        """Get the availability status.
 
-        Returns:
+        Returns
+        -------
             True if the sensor is available, false otherwise.
+
         """
         return self.coordinator.data[self.idx].online
 
     @property
     def native_value(self) -> Any | None:
-        """
-        Return the state of the sensor.
+        """Return the state of the sensor.
 
-        Returns:
+        Returns
+        -------
             The current state value of the sensor.
+
         """
         thermostat = self.coordinator.data[self.idx]
         val = _get_value(thermostat, self.entity_description, self.value_getter)

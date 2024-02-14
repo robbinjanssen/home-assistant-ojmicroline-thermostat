@@ -1,5 +1,6 @@
 """Config flow to configure OJMicroline."""
-from typing import Any, Optional
+
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
@@ -64,7 +65,7 @@ WG4_STEP_SCHEMA = vol.Schema(
 )
 
 
-class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
+class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle an OJ Microline config flow."""
 
     VERSION = CONFIG_FLOW_VERSION
@@ -74,26 +75,30 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: ConfigEntry,
     ) -> OptionsFlow:
-        """
-        Get the options flow for this handler.
+        """Get the options flow for this handler.
 
         Args:
+        ----
             config_entry: The ConfigEntry instance.
 
         Returns:
+        -------
             The created config flow.
+
         """
         return OJMicrolineOptionsFlowHandler(config_entry)
 
-    async def async_step_user(self, user_input: Optional[dict[str, Any]] = None) -> Any:
-        """
-        Handle a flow initialized by the user.
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Handle a flow initialized by the user.
 
         Args:
+        ----
             user_input: The input received from the user or none.
 
         Returns:
+        -------
             The created config entry or a form to re-enter the user input with errors.
+
         """
         if user_input:
             if user_input[CONF_MODEL] == MODEL_WD5_SERIES:
@@ -104,16 +109,19 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
             data_schema=USER_STEP_SCHEMA,
         )
 
-    async def async_step_wg4(self, user_input: Optional[dict[str, Any]] = None) -> Any:
-        """
-        Step that gathers information for WG4-series thermostats, creating a
-        config entry if successful.
+    async def async_step_wg4(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Step that gathers information for WG4-series thermostats.
+
+        The result is a config entry if successful.
 
         Args:
+        ----
             user_input: The input received from the user or none.
 
         Returns:
+        -------
             The created config entry or a form to re-enter the user input with errors.
+
         """
         errors: dict[str, str] = {}
         if user_input:
@@ -130,16 +138,19 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
             step_id="wg4", data_schema=WG4_STEP_SCHEMA, errors=errors
         )
 
-    async def async_step_wd5(self, user_input: Optional[dict[str, Any]] = None) -> Any:
-        """
-        Step that gathers information for WD5-series thermostats, creating a
-        config entry if successful.
+    async def async_step_wd5(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Step that gathers information for WD5-series thermostats.
+
+        The result is a config entry if successful.
 
         Args:
+        ----
             user_input: The input received from the user or none.
 
         Returns:
+        -------
             The created config entry or a form to re-enter the user input with errors.
+
         """
         errors: dict[str, str] = {}
         if user_input:
@@ -158,9 +169,9 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def _async_try_create_entry(
         self, data: dict[str, Any], errors: dict[str, str]
-    ) -> Optional[FlowResult]:
-        """
-        Validates the config entry data and logs in to the API.
+    ) -> FlowResult | None:
+        """Validate the config entry data and logs in to the API.
+
         If successful, calls async_create_entry and returns the FlowResult.
         Otherwise, stores an error in the errors dict and returns None.
         """
@@ -197,25 +208,28 @@ class OJMicrolineOptionsFlowHandler(OptionsFlow):
     """Handle options."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
-        """
-        Initialize options flow.
+        """Initialize options flow.
 
         Args:
+        ----
             config_entry: The ConfigEntry instance.
+
         """
         self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """
-        Handle a flow initialized by the user.
+        """Handle a flow initialized by the user.
 
         Args:
+        ----
             user_input: The input received from the user or none.
 
         Returns:
+        -------
             The created config entry.
+
         """
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)

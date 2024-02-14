@@ -1,4 +1,5 @@
 """Constants for the OJMicroline component."""
+
 DOMAIN = "ojmicroline_thermostat"
 MANUFACTURER = "OJ Electronics"
 INTEGRATION_NAME = "OJ Microline Thermostat"

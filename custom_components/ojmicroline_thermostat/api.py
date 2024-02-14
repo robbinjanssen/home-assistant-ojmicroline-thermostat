@@ -2,26 +2,19 @@
 
 from typing import Any
 
-from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from ojmicroline_thermostat import OJMicroline, WD5API, WG4API
+from ojmicroline_thermostat import WD5API, WG4API, OJMicroline
 
-from .const import (
-    CONF_MODEL,
-    CONF_CUSTOMER_ID,
-    MODEL_WD5_SERIES,
-    MODEL_WG4_SERIES,
-)
+from .const import CONF_CUSTOMER_ID, CONF_MODEL, MODEL_WD5_SERIES, MODEL_WG4_SERIES
 
 
 def oj_microline_from_config_entry_data(
     data: dict[str, Any], hass: HomeAssistant
 ) -> OJMicroline:
-    """
-    Constructs an OJMicroline object from the given config entry data.
-    """
+    """Construct an OJMicroline object from the given config entry data."""
     return OJMicroline(
         api=_api_from_config_entry_data(data),
         session=async_create_clientsession(hass),
@@ -50,4 +43,5 @@ def _api_from_config_entry_data(data: dict[str, Any]) -> Any:
             password=data[CONF_PASSWORD],
             **extra_args,
         )
-    raise RuntimeError(f"Unknown model {model}")
+    msg = f"Unknown model {model}"
+    raise RuntimeError(msg)

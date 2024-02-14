@@ -1,18 +1,24 @@
 """Miscellaneous binary sensors for OJ Microline thermostats."""
+
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .coordinator import OJMicrolineDataUpdateCoordinator
 from .models import OJMicrolineEntity
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import OJMicrolineDataUpdateCoordinator
 
 BINARY_SENSOR_TYPES: list[BinarySensorEntityDescription] = [
     BinarySensorEntityDescription(
@@ -43,23 +49,23 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """
-    Load all OJMicroline Thermostat binary sensors.
+    """Load all OJMicroline Thermostat binary sensors.
 
     Args:
+    ----
         hass: The HomeAssistant instance.
         entry: The ConfigEntry containing the user input.
         async_add_entities: The callback to provide the created entities to.
-    """
 
+    """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
-    for idx, _ in coordinator.data.items():
+    for idx in coordinator.data.key():
         for description in BINARY_SENSOR_TYPES:
             # Different models of thermostat support different sensors;
             # skip creating entities if the value is None.
             if getattr(coordinator.data[idx], description.key) is not None:
-                entities.append(OJMicrolineBinarySensor(coordinator, idx, description))
+                entities.append(OJMicrolineBinarySensor(coordinator, idx, description))  # noqa: PERF401
 
     async_add_entities(entities)
 
@@ -75,13 +81,14 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
         idx: str,
         entity_description: BinarySensorEntityDescription,
     ) -> None:
-        """
-        Initialise the entity.
+        """Initialise the entity.
 
         Args:
+        ----
             coordinator: The data coordinator updating the models.
             idx: The identifier for this entity.
             key: The key to get the sensor info from BINARY_SENSOR_TYPES.
+
         """
         super().__init__(coordinator, idx)
 
@@ -92,10 +99,11 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """
-        Return the status of the binary sensor.
+        """Return the status of the binary sensor.
 
-        Returns:
+        Returns
+        -------
             True if the sensor is on, false if not, unknown if it can't be reached.
+
         """
         return getattr(self.coordinator.data[self.idx], self.entity_description.key)

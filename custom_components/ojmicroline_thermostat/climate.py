@@ -281,14 +281,17 @@ class OJMicrolineThermostat(
         await asyncio.sleep(2)
         await self.coordinator.async_request_refresh()
 
-    async def async_set_hvac_mode(self, _hvac_mode: str) -> bool:
+    async def async_set_hvac_mode(
+        self,
+        hvac_mode: str,  # pylint: disable=unused-argument  # noqa: ARG002
+    ) -> bool:
         """Set new hvac mode.
 
         Always set to schedule as we cannot control the heating.
 
         Args:
         ----
-            _hvac_mode: Currently not used.
+            hvac_mode: Currently not used.
 
         """
         await self.async_set_preset_mode(PRESET_HOME)

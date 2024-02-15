@@ -51,6 +51,8 @@ Please see [CONTRIBUTING](.github/CONTRIBUTING.md) and [CODE_OF_CONDUCT](.github
 - https://mdapp.medium.com/the-android-emulator-and-charles-proxy-a-love-story-595c23484e02
 - https://github.com/radubacaran/mwd5
 - https://github.com/klaasnicolaas
+- https://github.com/adamjernst
+- https://github.com/ViPeR5000
 
 [maintainability-shield]: https://api.codeclimate.com/v1/badges/d77f7409eb02e331261b/maintainability
 [maintainability-url]: https://codeclimate.com/github/robbinjanssen/python-ojmicroline-thermostat

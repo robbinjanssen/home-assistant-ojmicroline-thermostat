@@ -3,13 +3,35 @@
         "flow_title": "{name}",
         "step": {
             "user": {
-                "title": "Adcionar as tuas credenciais da aplicação de termostato.",
                 "data": {
-                    "host": "Endreço (sem https)",
-                    "api_key": "Chave AP Iusada plaa app.",
+                    "model": "Modelo"
+                },
+                "data_description": {
+                    "model": "A série WD5 inclui OWD5 e MWD5; a série WG4 inclui UWG4 e AWG4."
+                }
+            },
+            "wd5": {
+                "data": {
                     "username": "Utilizador",
                     "password": "Senha",
+                    "api_key": "Chave API",
+                    "host": "Endreço",
                     "customer_id": "ID de Cliente"
+                },
+                "data_description": {
+                    "api_key": "A chave de API usada pelo aplicativo",
+                    "host": "Deixe em branco para usar o padrão. Se especificado, omita https://.",
+                    "customer_id": "Deixe em branco para usar o padrão."
+                }
+            },
+            "wg4": {
+                "data": {
+                    "username": "Utilizador",
+                    "password": "Senha",
+                    "host": "Endereço"
+                },
+                "data_description": {
+                    "host": "Deixe em branco para usar o padrão. Se especificado, omita https://."
                 }
             }
         },

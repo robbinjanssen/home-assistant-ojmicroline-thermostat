@@ -3,13 +3,35 @@
         "flow_title": "{name}",
         "step": {
             "user": {
-                "title": "Voer hier de thermostaat app gegevens in.",
                 "data": {
-                    "host": "Host (zonder https)",
-                    "api_key": "De API key gebruikt door de app.",
+                    "model": "Model"
+                },
+                "data_description": {
+                    "model": "De WD5-serie betreft de OWD5 en MWD5; de WG4-serie betreft de UWG4 en AWG4."
+                }
+            },
+            "wd5": {
+                "data": {
+                    "api_key": "API Key",
                     "username": "Gebruikersnaam",
                     "password": "Wachtwoord",
+                    "host": "Host",
                     "customer_id": "Customer ID"
+                },
+                "data_description": {
+                    "api_key": "De API key die door de app wordt gebruikt.",
+                    "host": "Laat dit leeg om de standaardwaarde te gebruiken. Indien opgegeven, laat https:// weg.",
+                    "customer_id": "Laat dit leeg om de standaardwaarde te gebruiken."
+                }
+            },
+            "wg4": {
+                "data": {
+                    "username": "Gebruikersnaam",
+                    "password": "Wachtwoord",
+                    "host": "Host"
+                },
+                "data_description": {
+                    "host": "Laat dit leeg om de standaardwaarde te gebruiken. Indien opgegeven, laat https:// weg."
                 }
             }
         },

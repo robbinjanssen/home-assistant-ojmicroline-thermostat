@@ -45,6 +45,22 @@
             "already_configured": "As suas credenciais já se encontram configuradas."
         }
     },
+    "entity": {
+        "climate": {
+            "ojthermostat": {
+                "state_attributes": {
+                    "preset_mode": {
+                        "state": {
+                            "schedule": "Agendar",
+                            "manual": "Manual",
+                            "vacation": "Férias",
+                            "frost_protection": "Proteção contra congelamento"
+                        }
+                    }
+                }
+            }
+        }
+    },
     "options": {
         "step": {
             "init": {

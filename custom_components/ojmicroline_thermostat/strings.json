@@ -45,6 +45,22 @@
             "already_configured": "Your credentials are already configured."
         }
     },
+    "entity": {
+        "climate": {
+            "ojthermostat": {
+                "state_attributes": {
+                    "preset_mode": {
+                        "state": {
+                            "schedule": "Schedule",
+                            "manual": "Manual",
+                            "vacation": "Vacation",
+                            "frost_protection": "Frost Protection"
+                        }
+                    }
+                }
+            }
+        }
+    },
     "options": {
         "step": {
             "init": {

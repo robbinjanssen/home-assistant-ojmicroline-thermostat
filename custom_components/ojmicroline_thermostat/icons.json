@@ -1,0 +1,21 @@
+{
+    "entity": {
+        "climate": {
+            "ojthermostat": {
+                "state_attributes": {
+                    "preset_mode": {
+                        "state": {
+                            "schedule": "mdi:clock-outline",
+                            "manual": "mdi:thermometer",
+                            "vacation": "mdi:umbrella-beach",
+                            "frost_protection": "mdi:snowflake",
+                            "boost": "mdi:rocket-launch",
+                            "comfort": "mdi:sofa",
+                            "eco": "mdi:leaf"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

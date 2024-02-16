@@ -16,8 +16,10 @@ CONF_COMFORT_MODE_DURATION = "comfort_mode_duration"
 MODEL_WD5_SERIES = "WD5 series"
 MODEL_WG4_SERIES = "WG4 series"
 
-PRESET_VACATION = "Vacation"
-PRESET_FROST_PROTECTION = "Frost Protection"
+PRESET_SCHEDULE = "schedule"
+PRESET_MANUAL = "manual"
+PRESET_VACATION = "vacation"
+PRESET_FROST_PROTECTION = "frost_protection"
 
 MODE_FLOOR = "Floor"
 MODE_ROOM = "Room"

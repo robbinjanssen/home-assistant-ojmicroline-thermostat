@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
@@ -16,7 +15,13 @@ from homeassistant.components.sensor import (
 from homeassistant.const import UnitOfTemperature
 
 from ojmicroline_thermostat import Thermostat
-from ojmicroline_thermostat.const import SENSOR_FLOOR, SENSOR_ROOM, SENSOR_ROOM_FLOOR
+from ojmicroline_thermostat.const import (
+    REGULATION_BOOST,
+    REGULATION_COMFORT,
+    SENSOR_FLOOR,
+    SENSOR_ROOM,
+    SENSOR_ROOM_FLOOR,
+)
 
 from .const import DOMAIN, MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
 from .models import OJMicrolineEntity
@@ -47,14 +52,13 @@ ValueGetterOverride = Callable[[Thermostat], Any]
 class OJMicrolineSensorInfo:
     """Describes a sensor for the OJ Microline thermostat.
 
-    In addition to a SensorEntityDescription for Home Assistant, it includes a
-    Callable that can format the raw value and an optional Callable to fetch
-    the raw value (overriding the default behavior of using the entity
-    description's key).
+    In addition to a SensorEntityDescription for Home Assistant, it may
+    include Callables to fetch the raw value (overriding the default behavior
+    of using the entity description's key) and to format the raw value.
     """
 
     entity_description: SensorEntityDescription
-    formatter: ValueFormatter
+    formatter: ValueFormatter | None = None
     # Defaults to getattr on the key if None
     value_getter: ValueGetterOverride | None = None
 
@@ -79,14 +83,6 @@ def _temp_formatter(temp: Any) -> float:
     return temp / 100
 
 
-def _date_formatter(dt: Any) -> datetime | None:
-    """Format the date."""
-    now = datetime.now(dt.tzinfo)
-    if now > dt:
-        return None
-    return dt
-
-
 SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -97,7 +93,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             state_class=SensorStateClass.MEASUREMENT,
             key="temperature_room",
         ),
-        _temp_formatter,
+        formatter=_temp_formatter,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -108,7 +104,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             state_class=SensorStateClass.MEASUREMENT,
             key="temperature_floor",
         ),
-        _temp_formatter,
+        formatter=_temp_formatter,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -119,7 +115,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             state_class=SensorStateClass.MEASUREMENT,
             key="min_temperature",
         ),
-        _temp_formatter,
+        formatter=_temp_formatter,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -130,7 +126,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             state_class=SensorStateClass.MEASUREMENT,
             key="max_temperature",
         ),
-        _temp_formatter,
+        formatter=_temp_formatter,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -140,14 +136,14 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             state_class=SensorStateClass.MEASUREMENT,
             key="temperature_set_point",
         ),
-        _temp_formatter,
-        lambda thermostat: thermostat.get_target_temperature(),
+        formatter=_temp_formatter,
+        value_getter=lambda thermostat: thermostat.get_target_temperature(),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
             name="Sensor Mode", icon="mdi:thermometer-lines", key="sensor_mode"
         ),
-        VENDOR_TO_HA_STATE.get,
+        formatter=VENDOR_TO_HA_STATE.get,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -155,7 +151,9 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="boost_end_time",
         ),
-        _date_formatter,
+        value_getter=lambda thermostat: thermostat.boost_end_time
+        if thermostat.regulation_mode == REGULATION_BOOST
+        else None,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -163,7 +161,9 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="comfort_end_time",
         ),
-        _date_formatter,
+        value_getter=lambda thermostat: thermostat.comfort_end_time
+        if thermostat.regulation_mode == REGULATION_COMFORT
+        else None,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -171,7 +171,9 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_begin_time",
         ),
-        _date_formatter,
+        value_getter=lambda thermostat: thermostat.vacation_begin_time
+        if thermostat.vacation_mode
+        else None,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -179,7 +181,9 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_end_time",
         ),
-        _date_formatter,
+        value_getter=lambda thermostat: thermostat.vacation_end_time
+        if thermostat.vacation_mode
+        else None,
     ),
 ]
 
@@ -226,7 +230,7 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
     """Defines an OJ Microline Sensor."""
 
     entity_description: SensorEntityDescription
-    formatter: ValueFormatter
+    formatter: ValueFormatter | None
     value_getter: ValueGetterOverride | None
 
     def __init__(  # pylint: disable=too-many-arguments  # noqa: PLR0913
@@ -234,7 +238,7 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
         coordinator: OJMicrolineDataUpdateCoordinator,
         idx: str,
         entity_description: SensorEntityDescription,
-        formatter: ValueFormatter,
+        formatter: ValueFormatter | None,
         value_getter: ValueGetterOverride | None,
     ) -> None:
         """Initialise the entity.
@@ -277,4 +281,6 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
         """
         thermostat = self.coordinator.data[self.idx]
         val = _get_value(thermostat, self.entity_description, self.value_getter)
-        return self.formatter(val)
+        if self.formatter is not None:
+            return self.formatter(val)
+        return val

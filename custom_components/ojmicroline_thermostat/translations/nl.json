@@ -45,6 +45,22 @@
             "already_configured": "Deze combinatie is al geconfigureerd."
         }
     },
+    "entity": {
+        "climate": {
+            "ojthermostat": {
+                "state_attributes": {
+                    "preset_mode": {
+                        "state": {
+                            "schedule": "Schema",
+                            "manual": "Handmatig",
+                            "vacation": "Vakantie",
+                            "frost_protection": "Vorstbescherming"
+                        }
+                    }
+                }
+            }
+        }
+    },
     "options": {
         "step": {
             "init": {

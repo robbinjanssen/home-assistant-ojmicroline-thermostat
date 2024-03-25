@@ -554,7 +554,7 @@ yarl = ">=1.6.0"
 type = "git"
 url = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git"
 reference = "main"
-resolved_reference = "ed09dc360f05dccf6e64d03df3fce19ed6b2dd1e"
+resolved_reference = "7ff5acd10c23ddcce0e8e4815119e470de2fc620"
 
 [[package]]
 name = "pathspec"

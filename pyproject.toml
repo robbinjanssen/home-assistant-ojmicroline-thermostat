@@ -23,7 +23,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
 ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
-voluptuous = "^0.14.2"
+voluptuous = "^0.15.0"
 
 [tool.poetry.group.dev.dependencies]
 codespell = "2.3.0"

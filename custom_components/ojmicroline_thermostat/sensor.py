@@ -233,7 +233,7 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
     formatter: ValueFormatter | None
     value_getter: ValueGetterOverride | None
 
-    def __init__(  # pylint: disable=too-many-arguments  # noqa: PLR0913
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         coordinator: OJMicrolineDataUpdateCoordinator,
         idx: str,

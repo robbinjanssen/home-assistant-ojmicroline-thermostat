@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.13"
+python = ">=3.13,<3.14"
 ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
 voluptuous = "^0.15.0"
 

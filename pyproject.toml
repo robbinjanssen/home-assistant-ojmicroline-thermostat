@@ -99,7 +99,7 @@ ignored-modules = [
 ]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 lint.select = ["ALL"]
 lint.ignore = [
   "ANN401",  # Opinioated warning on disallowing dynamically typed expressions

@@ -575,10 +575,10 @@ files = [
 
 [[package]]
 name = "ojmicroline-thermostat"
-version = "3.1.0"
+version = "3.2.0"
 description = "Asynchronous Python client controlling an OJ Microline Thermostat."
 optional = false
-python-versions = "^3.9"
+python-versions = "^3.11"
 files = []
 develop = false
 
@@ -590,7 +590,7 @@ yarl = ">=1.6.0"
 type = "git"
 url = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git"
 reference = "main"
-resolved_reference = "e543582b6c85709d7c94fa13bc1b1cf6335b3a53"
+resolved_reference = "fdb108a0c8cd5c115a88d9bf39176acd85418d09"
 
 [[package]]
 name = "pathspec"

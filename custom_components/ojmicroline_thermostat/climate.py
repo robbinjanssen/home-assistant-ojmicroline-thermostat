@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping  # pylint: disable=import-error
 from typing import Any, ClassVar
 
 from homeassistant.components.climate import (

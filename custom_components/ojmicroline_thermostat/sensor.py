@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable  # pylint: disable=import-error
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 

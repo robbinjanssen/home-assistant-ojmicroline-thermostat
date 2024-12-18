@@ -33,7 +33,7 @@ pre-commit-hooks = "5.0.0"
 pylint = "3.2.7"
 ruff = "0.8.3"
 yamllint = "1.35.1"
-async-timeout = "4.0.3"
+async-timeout = "5.0.1"
 
 [tool.mypy]
 # Specify the target platform details in config, so your developers are

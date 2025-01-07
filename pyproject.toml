@@ -1,4 +1,5 @@
 [tool.poetry]
+package-mode = false
 name = "home-assistant-ojmicroline-thermostat"
 version = "1.2.0"
 description = "Control your OJ Microline Thermostat using home assistant."
@@ -20,9 +21,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
+
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
-ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
+ojmicroline-thermostat = { git = "https://github.com/TorStava/python-ojmicroline-thermostat.git", branch = "torstava/energy" }
 voluptuous = "^0.15.0"
 
 [tool.poetry.group.dev.dependencies]

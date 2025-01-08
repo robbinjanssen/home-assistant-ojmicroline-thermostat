@@ -10,7 +10,7 @@
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues",
     "requirements": [
-        "ojmicroline-thermostat==3.1.0"
+        "git+https://github.com/TorStava/python-ojmicroline-thermostat.git@torstava/energy#ojmicroline-thermostat==3.2.1"
     ],
     "version": "1.2.0"
 }

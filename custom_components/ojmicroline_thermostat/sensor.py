@@ -142,9 +142,10 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     OJMicrolineSensorInfo(
         SensorEntityDescription(
             name="Energy Usage",
-            native_unit_of_measurement=UnitOfEnergy.KILOWATT_HOURS,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
+            key="energy_usage",
         ),
         value_getter=lambda thermostat: thermostat.get_current_energy(),
     ),

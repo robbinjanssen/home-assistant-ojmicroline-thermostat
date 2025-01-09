@@ -603,7 +603,7 @@ files = [
 
 [[package]]
 name = "ojmicroline-thermostat"
-version = "3.2.0"
+version = "3.3.0"
 description = "Asynchronous Python client controlling an OJ Microline Thermostat."
 optional = false
 python-versions = "^3.11"
@@ -617,9 +617,9 @@ yarl = ">=1.6.0"
 
 [package.source]
 type = "git"
-url = "https://github.com/TorStava/python-ojmicroline-thermostat.git"
-reference = "torstava/energy"
-resolved_reference = "eb5e5a952062c34234afc9762699e83537a20c2d"
+url = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git"
+reference = "main"
+resolved_reference = "1a00b7873b8ca0e5d75b1f5c21559fc26952ec9c"
 
 [[package]]
 name = "pathspec"
@@ -1144,4 +1144,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "0075738f280861efe01c7725eb885b01d93f89d31edbfd0638b17bb8c878e469"
+content-hash = "b34c6ad7629365b5d06531d7d665fc3938ed151ce9db55898c5080288c0a9b48"

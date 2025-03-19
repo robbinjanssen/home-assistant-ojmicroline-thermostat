@@ -19,6 +19,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+packages = [
+    { include = "custom_components" },
+]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"

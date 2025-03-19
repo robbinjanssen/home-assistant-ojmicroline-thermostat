@@ -256,9 +256,14 @@ class OJMicrolineThermostat(
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
 
-        regulation_mode = REGULATION_MANUAL
-        if self.options.get(CONF_USE_COMFORT_MODE) is True:
-            regulation_mode = REGULATION_COMFORT
+        regulation_mode = self.coordinator.data[self.idx].regulation_mode
+
+        if regulation_mode not in {REGULATION_MANUAL, REGULATION_COMFORT}:
+            regulation_mode = (
+                REGULATION_COMFORT
+                if self.options.get(CONF_USE_COMFORT_MODE)
+                else REGULATION_MANUAL
+            )
 
         await self.coordinator.api.set_regulation_mode(
             resource=self.coordinator.data[self.unique_id],

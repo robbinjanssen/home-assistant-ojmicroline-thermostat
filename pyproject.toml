@@ -24,7 +24,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.14"
+python = ">=3.14,<3.15"
 ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
 voluptuous = "^0.16.0"
 

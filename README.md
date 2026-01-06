@@ -18,6 +18,7 @@ It has been tested and developed on the following models:
 |------------------|
 | OWD5             |
 | UWG4             |
+| WCD5             |
 
 After installation you can add the thermostat through the integration page. Currently setting a preset mode and temperature is supported. Adjusting
 the HVAC mode will (re)set it to the schedule preset.

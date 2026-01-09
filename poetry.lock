@@ -165,7 +165,6 @@ files = [
 
 [package.dependencies]
 frozenlist = ">=1.1.0"
-typing-extensions = {version = ">=4.2", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "astroid"
@@ -1368,5 +1367,5 @@ propcache = ">=0.2.1"
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.12,<3.14"
-content-hash = "5570d901e495cccac1bb7273fa1fb6cb97d43d5255da50254bebf3b6f26cc5a0"
+python-versions = ">=3.14,<3.15"
+content-hash = "9f4abbe926ba0073e325810e576363682c199856b99c4dd94ef9c540993cd52a"

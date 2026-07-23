@@ -10,11 +10,16 @@ UPDATE_INTERVAL = 60
 
 CONF_MODEL = "model"
 CONF_CUSTOMER_ID = "customer_id"
+CONF_APPLICATION = "application"
 CONF_USE_COMFORT_MODE = "use_comfort_mode"
 CONF_COMFORT_MODE_DURATION = "comfort_mode_duration"
 
 MODEL_WD5_SERIES = "WD5 series"
 MODEL_WG4_SERIES = "WG4 series"
+
+# The application code sent on WG4 login. Standard WG4 thermostats use 2
+# (the library default); Danfoss LX (lxwifi.danfoss.us) requires 4.
+DEFAULT_WG4_APPLICATION = 2
 
 PRESET_SCHEDULE = "schedule"
 PRESET_MANUAL = "manual"

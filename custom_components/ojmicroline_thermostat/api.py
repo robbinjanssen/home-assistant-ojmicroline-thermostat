@@ -8,7 +8,14 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from ojmicroline_thermostat import WD5API, WG4API, OJMicroline
 
-from .const import CONF_CUSTOMER_ID, CONF_MODEL, MODEL_WD5_SERIES, MODEL_WG4_SERIES
+from .const import (
+    CONF_APPLICATION,
+    CONF_CUSTOMER_ID,
+    CONF_MODEL,
+    DEFAULT_WG4_APPLICATION,
+    MODEL_WD5_SERIES,
+    MODEL_WG4_SERIES,
+)
 
 
 def oj_microline_from_config_entry_data(
@@ -41,6 +48,7 @@ def _api_from_config_entry_data(data: dict[str, Any]) -> Any:
         return WG4API(
             username=data[CONF_USERNAME],
             password=data[CONF_PASSWORD],
+            application=data.get(CONF_APPLICATION, DEFAULT_WG4_APPLICATION),
             **extra_args,
         )
     msg = f"Unknown model {model}"

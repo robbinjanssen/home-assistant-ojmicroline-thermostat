@@ -28,10 +28,12 @@
                 "data": {
                     "username": "Username",
                     "password": "Password",
-                    "host": "Host"
+                    "host": "Host",
+                    "application": "Application code"
                 },
                 "data_description": {
-                    "host": "Leave blank to use the default. If specified, omit the https://."
+                    "host": "Leave blank to use the default. If specified, omit the https://.",
+                    "application": "The application code sent on login. Standard WG4 thermostats use 2 (the default); Danfoss LX (lxwifi.danfoss.us) requires 4."
                 }
             }
         },

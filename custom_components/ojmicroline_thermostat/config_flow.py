@@ -18,11 +18,13 @@ from ojmicroline_thermostat.const import COMFORT_DURATION
 
 from .api import oj_microline_from_config_entry_data
 from .const import (
+    CONF_APPLICATION,
     CONF_COMFORT_MODE_DURATION,
     CONF_CUSTOMER_ID,
     CONF_MODEL,
     CONF_USE_COMFORT_MODE,
     CONFIG_FLOW_VERSION,
+    DEFAULT_WG4_APPLICATION,
     DOMAIN,
     INTEGRATION_NAME,
     MODEL_WD5_SERIES,
@@ -37,6 +39,7 @@ DATA_SCHEMA = vol.Schema(
         CONF_HOST: str,
         CONF_CUSTOMER_ID: int,
         CONF_API_KEY: str,
+        vol.Optional(CONF_APPLICATION): int,
     }
 )
 
@@ -61,6 +64,7 @@ WG4_STEP_SCHEMA = vol.Schema(
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
         CONF_HOST: str,
+        vol.Optional(CONF_APPLICATION, default=DEFAULT_WG4_APPLICATION): int,
     }
 )
 

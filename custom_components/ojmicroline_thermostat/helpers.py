@@ -10,6 +10,7 @@ helpers recover the original wall clock time.
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.util import dt as dt_util
@@ -17,8 +18,6 @@ from homeassistant.util import dt as dt_util
 from ojmicroline_thermostat.const import WD5_DATETIME_FORMAT
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from ojmicroline_thermostat import Thermostat
 
 WD5_MODEL = "OWD5"
@@ -48,7 +47,20 @@ def wd5_local_time(value: datetime | None) -> datetime | None:
     return wall_clock.replace(tzinfo=dt_util.get_default_time_zone())
 
 
+def wd5_date(value: datetime | None) -> date | None:
+    """Return the date of a library datetime as the API sent it."""
+    wall_clock = wd5_wall_clock(value)
+    return None if wall_clock is None else wall_clock.date()
+
+
 def format_wd5(value: datetime | None) -> str | None:
     """Format a library datetime for sending it back to the API unchanged."""
     wall_clock = wd5_wall_clock(value)
     return None if wall_clock is None else wall_clock.strftime(WD5_DATETIME_FORMAT)
+
+
+def format_wd5_date(value: date) -> str:
+    """Format a date as midnight wall clock time for the API."""
+    return datetime(value.year, value.month, value.day).strftime(  # noqa: DTZ001
+        WD5_DATETIME_FORMAT
+    )

@@ -7,6 +7,14 @@ CONFIG_FLOW_VERSION = 2
 
 API_TIMEOUT = 30
 UPDATE_INTERVAL = 60
+# Polling interval while push updates are connected (WD5 series).
+PUSH_UPDATE_INTERVAL = 300
+# Rate limiting: energy usage changes slowly, so fetch it (one request per
+# thermostat) at most this often, and space out extra refresh requests.
+ENERGY_UPDATE_INTERVAL = 1800
+REFRESH_COOLDOWN = 30
+# "Action" value in pushed thermostat data for an update (1 = add, 3 = remove).
+PUSH_ACTION_UPDATE = 2
 
 CONF_MODEL = "model"
 CONF_CUSTOMER_ID = "customer_id"
@@ -29,3 +37,12 @@ PRESET_FROST_PROTECTION = "frost_protection"
 MODE_FLOOR = "Floor"
 MODE_ROOM = "Room"
 MODE_ROOM_FLOOR = "Room/Floor"
+
+SERVICE_SET_VACATION = "set_vacation"
+SERVICE_CANCEL_VACATION = "cancel_vacation"
+SERVICE_SET_SCHEDULE = "set_schedule"
+ATTR_START_DATE = "start_date"
+ATTR_END_DATE = "end_date"
+ATTR_DAYS = "days"
+ATTR_EVENTS = "events"
+ATTR_TIME = "time"

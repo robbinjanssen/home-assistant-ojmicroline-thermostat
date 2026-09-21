@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import UnitOfEnergy, UnitOfTemperature
+from homeassistant.util import dt as dt_util
 
 from ojmicroline_thermostat import Thermostat
 from ojmicroline_thermostat.const import (
@@ -26,6 +27,7 @@ from ojmicroline_thermostat.const import (
 from .const import DOMAIN, MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
 from .helpers import is_wd5, wd5_local_time
 from .models import OJMicrolineEntity
+from .schedule import current_setpoint, schedule_attributes
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -229,7 +231,7 @@ async def async_setup_entry(
 
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = []
+    entities: list[SensorEntity] = []
 
     for idx in coordinator.data.keys():  # noqa: SIM118
         for info in SENSOR_TYPES:
@@ -251,6 +253,9 @@ async def async_setup_entry(
                         info.value_getter,
                     )
                 )
+
+        if coordinator.data[idx].schedule is not None:
+            entities.append(OJMicrolineScheduleSensor(coordinator, idx))
 
     async_add_entities(entities)
 
@@ -313,3 +318,34 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
         if self.formatter is not None:
             return self.formatter(val)
         return val
+
+
+class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
+    """The weekly schedule of a WD5-series thermostat's group.
+
+    The state is the temperature the schedule prescribes right now; the
+    attributes list each weekday's events.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "schedule"
+    _attr_icon = "mdi:calendar-clock"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator: OJMicrolineDataUpdateCoordinator, idx: str) -> None:
+        """Initialise the entity."""
+        super().__init__(coordinator, idx)
+        self._attr_unique_id = f"{idx}_schedule"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the temperature the schedule prescribes now."""
+        schedule = self.coordinator.data[self.idx].schedule
+        return None if schedule is None else current_setpoint(schedule, dt_util.now())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the active events per weekday."""
+        schedule = self.coordinator.data[self.idx].schedule
+        return None if schedule is None else schedule_attributes(schedule)

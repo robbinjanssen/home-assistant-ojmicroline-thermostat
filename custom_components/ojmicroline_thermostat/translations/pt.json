@@ -59,6 +59,24 @@
                     }
                 }
             }
+        },
+        "sensor": {
+            "schedule": {
+                "name": "Horário"
+            }
+        },
+        "date": {
+            "vacation_begin": {
+                "name": "Início das férias"
+            },
+            "vacation_end": {
+                "name": "Fim das férias"
+            }
+        },
+        "switch": {
+            "vacation": {
+                "name": "Férias"
+            }
         }
     },
     "options": {

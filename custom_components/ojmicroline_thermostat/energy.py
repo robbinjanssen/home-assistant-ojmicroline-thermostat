@@ -105,6 +105,7 @@ def _metadata(thermostat: Thermostat) -> StatisticMetaData:
         "unit_of_measurement": UnitOfEnergy.KILO_WATT_HOUR,
     }
     try:
+        # pylint: disable-next=import-outside-toplevel
         from homeassistant.components.recorder.models import (  # noqa: PLC0415
             StatisticMeanType,
         )
@@ -158,7 +159,7 @@ class EnergyStatistics:
             except OJMicrolineError as error:
                 _LOGGER.debug("Could not update energy statistics: %s", error)
 
-    async def _async_import_locked(
+    async def _async_import_locked(  # pylint: disable=too-many-locals
         self, thermostat: Thermostat, today_hours: list[float]
     ) -> None:
         stat_id = statistic_id(thermostat)
@@ -235,7 +236,7 @@ class EnergyStatistics:
             return None
         return float(total) - float(found[0].get("state") or 0.0)
 
-    async def _async_backfill(
+    async def _async_backfill(  # pylint: disable=too-many-locals
         self, thermostat: Thermostat, today: date, today_hours: list[float]
     ) -> dict[datetime, float]:
         """Return the kWh per period start for the available history."""

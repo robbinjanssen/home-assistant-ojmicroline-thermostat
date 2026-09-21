@@ -14,7 +14,7 @@ from homeassistant.loader import async_get_integration
 from .const import CONF_MODEL, CONFIG_FLOW_VERSION, DOMAIN, MODEL_WD5_SERIES
 from .coordinator import OJMicrolineDataUpdateCoordinator
 
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)  # pylint: disable=invalid-name
 
 CARD_URL = f"/{DOMAIN}/ojmicroline-schedule-card.js"
 CARD_PATH = Path(__file__).parent / "frontend" / "ojmicroline-schedule-card.js"
@@ -28,7 +28,7 @@ PLATFORMS = [
 ]
 
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa: ARG001
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa: ARG001 # pylint: disable=unused-argument
     """Serve the bundled schedule card and load it in the frontend.
 
     Args:

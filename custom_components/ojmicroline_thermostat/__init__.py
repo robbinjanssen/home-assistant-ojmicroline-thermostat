@@ -1,17 +1,53 @@
 """OJMicroline Thermostat platform configuration."""
 
+from pathlib import Path
+
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .const import CONF_MODEL, CONFIG_FLOW_VERSION, DOMAIN, MODEL_WD5_SERIES
 from .coordinator import OJMicrolineDataUpdateCoordinator
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)  # pylint: disable=invalid-name
+
+CARD_URL = f"/{DOMAIN}/ojmicroline-schedule-card.js"
+CARD_PATH = Path(__file__).parent / "frontend" / "ojmicroline-schedule-card.js"
 
 PLATFORMS = [
     Platform.CLIMATE,
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
+    Platform.DATE,
+    Platform.SWITCH,
 ]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa: ARG001 # pylint: disable=unused-argument
+    """Serve the bundled schedule card and load it in the frontend.
+
+    Args:
+    ----
+        hass: The HomeAssistant instance.
+        config: The configuration (unused; the integration is UI-only).
+
+    Returns:
+    -------
+        Return true after setting up.
+
+    """
+    integration = await async_get_integration(hass, DOMAIN)
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False)]
+    )
+    # The version busts browser caches after an update.
+    add_extra_js_url(hass, f"{CARD_URL}?v={integration.version}")
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -31,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     coordinator = OJMicrolineDataUpdateCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
+    coordinator.async_start_push(entry)
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

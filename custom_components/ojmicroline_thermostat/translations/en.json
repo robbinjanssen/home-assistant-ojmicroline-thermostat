@@ -61,6 +61,24 @@
                     }
                 }
             }
+        },
+        "sensor": {
+            "schedule": {
+                "name": "Schedule"
+            }
+        },
+        "date": {
+            "vacation_begin": {
+                "name": "Vacation begin"
+            },
+            "vacation_end": {
+                "name": "Vacation end"
+            }
+        },
+        "switch": {
+            "vacation": {
+                "name": "Vacation"
+            }
         }
     },
     "options": {
@@ -71,6 +89,53 @@
                     "use_comfort_mode": "Set the regulation to comfort mode when changing the temperature.",
                     "comfort_mode_duration": "The duration in minutes the comfort mode should be enabled."
                 }
+            }
+        }
+    },
+    "services": {
+        "set_vacation": {
+            "name": "Set vacation",
+            "description": "Schedule a vacation for the thermostat's group (WD5 series). The vacation runs from 00:00 on the start date until 00:00 on the end date; if it has already started, vacation mode is activated immediately.",
+            "fields": {
+                "start_date": {
+                    "name": "Start date",
+                    "description": "The first day of the vacation."
+                },
+                "end_date": {
+                    "name": "End date",
+                    "description": "The day normal regulation resumes (at 00:00)."
+                }
+            }
+        },
+        "cancel_vacation": {
+            "name": "Cancel vacation",
+            "description": "Cancel the scheduled or active vacation for the thermostat's group (WD5 series). An active vacation returns to schedule or manual mode, whichever was used last."
+        },
+        "set_schedule": {
+            "name": "Set schedule",
+            "description": "Set the events of one or more weekdays in the thermostat group's weekly schedule (WD5 series). Up to 6 events per day, on the quarter hour, at least 15 minutes apart; a time earlier than the previous one is after midnight (03:00 at the latest).",
+            "fields": {
+                "days": {
+                    "name": "Days",
+                    "description": "The weekdays to change."
+                },
+                "events": {
+                    "name": "Events",
+                    "description": "The day's events in order, each with a time (HH:MM) and a temperature (5-40 °C)."
+                }
+            }
+        }
+    },
+    "selector": {
+        "weekday": {
+            "options": {
+                "monday": "Monday",
+                "tuesday": "Tuesday",
+                "wednesday": "Wednesday",
+                "thursday": "Thursday",
+                "friday": "Friday",
+                "saturday": "Saturday",
+                "sunday": "Sunday"
             }
         }
     }

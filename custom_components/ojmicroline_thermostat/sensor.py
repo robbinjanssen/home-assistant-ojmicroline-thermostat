@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import UnitOfEnergy, UnitOfTemperature
+from homeassistant.util import dt as dt_util
 
 from ojmicroline_thermostat import Thermostat
 from ojmicroline_thermostat.const import (
@@ -24,7 +25,9 @@ from ojmicroline_thermostat.const import (
 )
 
 from .const import DOMAIN, MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
+from .helpers import is_wd5, target_temperature, wd5_local_time
 from .models import OJMicrolineEntity
+from .schedule import current_setpoint, schedule_attributes
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -76,6 +79,13 @@ def _get_value(
     if value_getter:
         return value_getter(thermostat)
     return getattr(thermostat, desc.key)
+
+
+def _mode_time(thermostat: Thermostat, value: Any, *, active: bool) -> Any:
+    """Return a mode's begin/end time while that mode is active."""
+    if not active:
+        return None
+    return wd5_local_time(value) if is_wd5(thermostat) else value
 
 
 def _temp_formatter(temp: Any) -> float:
@@ -137,7 +147,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             key="temperature_set_point",
         ),
         formatter=_temp_formatter,
-        value_getter=lambda thermostat: thermostat.get_target_temperature(),
+        value_getter=target_temperature,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -161,9 +171,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="boost_end_time",
         ),
-        value_getter=lambda thermostat: thermostat.boost_end_time
-        if thermostat.regulation_mode == REGULATION_BOOST
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.boost_end_time,
+            active=thermostat.regulation_mode == REGULATION_BOOST,
+        ),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -171,9 +183,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="comfort_end_time",
         ),
-        value_getter=lambda thermostat: thermostat.comfort_end_time
-        if thermostat.regulation_mode == REGULATION_COMFORT
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.comfort_end_time,
+            active=thermostat.regulation_mode == REGULATION_COMFORT,
+        ),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -181,9 +195,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_begin_time",
         ),
-        value_getter=lambda thermostat: thermostat.vacation_begin_time
-        if thermostat.vacation_mode
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.vacation_begin_time,
+            active=bool(thermostat.vacation_mode),
+        ),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -191,9 +207,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_end_time",
         ),
-        value_getter=lambda thermostat: thermostat.vacation_end_time
-        if thermostat.vacation_mode
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.vacation_end_time,
+            active=bool(thermostat.vacation_mode),
+        ),
     ),
 ]
 
@@ -213,16 +231,19 @@ async def async_setup_entry(
 
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = []
+    entities: list[SensorEntity] = []
 
     for idx in coordinator.data.keys():  # noqa: SIM118
         for info in SENSOR_TYPES:
             # Different models of thermostat support different sensors;
-            # skip creating entities if the value is None.
-            val = _get_value(
-                coordinator.data[idx], info.entity_description, info.value_getter
-            )
-            if val is not None:
+            # skip creating entities if the value is None. The raw attribute
+            # is checked too, so that sensors that only have a value in a
+            # certain mode (e.g. comfort end time) exist regardless of the
+            # mode the thermostat happens to be in at startup.
+            thermostat = coordinator.data[idx]
+            raw = getattr(thermostat, info.entity_description.key, None)
+            val = _get_value(thermostat, info.entity_description, info.value_getter)
+            if raw is not None or val is not None:
                 entities.append(
                     OJMicrolineSensor(
                         coordinator,
@@ -232,6 +253,9 @@ async def async_setup_entry(
                         info.value_getter,
                     )
                 )
+
+        if coordinator.data[idx].schedule is not None:
+            entities.append(OJMicrolineScheduleSensor(coordinator, idx))
 
     async_add_entities(entities)
 
@@ -294,3 +318,34 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
         if self.formatter is not None:
             return self.formatter(val)
         return val
+
+
+class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
+    """The weekly schedule of a WD5-series thermostat's group.
+
+    The state is the temperature the schedule prescribes right now; the
+    attributes list each weekday's events.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "schedule"
+    _attr_icon = "mdi:calendar-clock"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator: OJMicrolineDataUpdateCoordinator, idx: str) -> None:
+        """Initialise the entity."""
+        super().__init__(coordinator, idx)
+        self._attr_unique_id = f"{idx}_schedule"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the temperature the schedule prescribes now."""
+        schedule = self.coordinator.data[self.idx].schedule
+        return None if schedule is None else current_setpoint(schedule, dt_util.now())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the active events per weekday."""
+        schedule = self.coordinator.data[self.idx].schedule
+        return None if schedule is None else schedule_attributes(schedule)

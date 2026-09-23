@@ -11,16 +11,17 @@ helpers recover the original wall clock time.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from ojmicroline_thermostat.const import WD5_DATETIME_FORMAT
+from ojmicroline_thermostat.const import REGULATION_SCHEDULE, WD5_DATETIME_FORMAT
 
 if TYPE_CHECKING:
     from ojmicroline_thermostat import Thermostat
 
 WD5_MODEL = "OWD5"
+DAY_SECONDS = 86400
 
 
 def is_wd5(thermostat: Thermostat) -> bool:
@@ -64,3 +65,50 @@ def format_wd5_date(value: date) -> str:
     return datetime(value.year, value.month, value.day).strftime(  # noqa: DTZ001
         WD5_DATETIME_FORMAT
     )
+
+
+def target_temperature(thermostat: Thermostat) -> int:
+    """Return the target temperature in 1/100 °C.
+
+    In schedule mode the library compares a WD5 thermostat's schedule with
+    the UTC time instead of the local time, so the target lags by the time
+    zone offset (two hours in Central European summer time).
+    """
+    if (
+        is_wd5(thermostat)
+        and thermostat.regulation_mode == REGULATION_SCHEDULE
+        and thermostat.schedule
+    ):
+        scheduled = scheduled_temperature(thermostat.schedule, dt_util.now())
+        if scheduled is not None:
+            return scheduled
+    return thermostat.get_target_temperature()
+
+
+def scheduled_temperature(schedule: dict[str, Any], now: datetime) -> int | None:
+    """Return the temperature (1/100 °C) a WD5 schedule prescribes at a local time."""
+    events: dict[int, list[tuple[int, int]]] = {}
+    for day in schedule["Days"]:
+        # WeekDayGrpNo 1 is Monday; 7 (or 0) is Sunday.
+        weekday = (day["WeekDayGrpNo"] - 1) % 7
+        events[weekday] = []
+        for event in day["Events"]:
+            if not event["Active"]:
+                continue
+            hours, minutes, seconds = (int(part) for part in event["Clock"].split(":"))
+            start = hours * 3600 + minutes * 60 + seconds
+            if event.get("EventIsOnNextDay"):
+                start += DAY_SECONDS
+            events[weekday].append((start, event["Temperature"]))
+
+    today = now.weekday()
+    now_seconds = now.hour * 3600 + now.minute * 60 + now.second
+    timeline = [
+        (start - DAY_SECONDS, temperature)
+        for start, temperature in events.get((today - 1) % 7, [])
+    ] + events.get(today, [])
+    current = None
+    for start, temperature in sorted(timeline):
+        if start <= now_seconds:
+            current = temperature
+    return current

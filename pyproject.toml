@@ -80,6 +80,8 @@ good-names = ["_", "ex", "fp", "i", "id", "j", "k", "on", "Run", "T"]
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = [
+  # Home Assistant entities implement the async variants of these methods.
+  "abstract-method",
   "too-few-public-methods",
   "too-many-positional-arguments",
   "duplicate-code",

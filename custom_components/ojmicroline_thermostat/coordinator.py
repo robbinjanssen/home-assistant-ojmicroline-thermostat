@@ -172,6 +172,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
         # Polling is still needed for energy usage and as a fallback, but
         # can be much less frequent while push updates are coming in.
         seconds = PUSH_UPDATE_INTERVAL if connected else UPDATE_INTERVAL
+        # pylint: disable-next=attribute-defined-outside-init
         self.update_interval = timedelta(seconds=seconds)
         if connected:
             # Catch up on anything missed while disconnected.
@@ -187,10 +188,13 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
                 if isinstance(value, list)
             },
         )
+        # "data" is defined by DataUpdateCoordinator, which pylint cannot see.
+        # pylint: disable=access-member-before-definition
         if not self.data:
             return
 
         data = dict(self.data)
+        # pylint: enable=access-member-before-definition
         changed = False
         # Group changes (mode, setpoints, schedule) apply to every thermostat
         # in the group; fetch everything again rather than guessing.
@@ -230,7 +234,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
         if changed:
             # Unlike async_set_updated_data this keeps the polling schedule,
             # so energy usage keeps being refreshed.
-            self.data = data
+            self.data = data  # pylint: disable=attribute-defined-outside-init
             self.async_update_listeners()
         if needs_refresh:
             self.hass.async_create_task(self.async_request_refresh())

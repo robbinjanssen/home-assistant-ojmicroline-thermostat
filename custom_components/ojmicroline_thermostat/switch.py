@@ -51,11 +51,11 @@ class OJMicrolineVacationSwitch(OJMicrolineEntity, SwitchEntity):
         """Return whether the vacation is enabled."""
         return bool(self.coordinator.data[self.idx].vacation_mode)
 
-    async def async_turn_on(self, **kwargs: Any) -> None:  # noqa: ARG002
+    async def async_turn_on(self, **kwargs: Any) -> None:  # noqa: ARG002 # pylint: disable=unused-argument
         """Enable the vacation period."""
         await self._async_set(enabled=True)
 
-    async def async_turn_off(self, **kwargs: Any) -> None:  # noqa: ARG002
+    async def async_turn_off(self, **kwargs: Any) -> None:  # noqa: ARG002 # pylint: disable=unused-argument
         """Disable the vacation period."""
         await self._async_set(enabled=False)
 

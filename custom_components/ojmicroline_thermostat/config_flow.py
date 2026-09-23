@@ -77,7 +77,7 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: ConfigEntry,  # noqa: ARG004
+        config_entry: ConfigEntry,  # noqa: ARG004 # pylint: disable=unused-argument
     ) -> OptionsFlow:
         """Get the options flow for this handler.
 

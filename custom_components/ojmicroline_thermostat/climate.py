@@ -45,6 +45,7 @@ from .const import (
     PRESET_VACATION,
 )
 from .coordinator import OJMicrolineDataUpdateCoordinator
+from .helpers import target_temperature
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -184,7 +185,7 @@ class OJMicrolineThermostat(
             The target temperature in a float format.
 
         """
-        return self.coordinator.data[self.idx].get_target_temperature() / 100
+        return target_temperature(self.coordinator.data[self.idx]) / 100
 
     @property
     def max_temp(self) -> float:
@@ -233,9 +234,9 @@ class OJMicrolineThermostat(
 
         """
         try:
-            await self.coordinator.api.set_regulation_mode(
+            await self.coordinator.async_set_regulation_mode(
                 self.coordinator.data[self.idx],
-                HA_TO_VENDOR_STATE.get(preset_mode),
+                HA_TO_VENDOR_STATE[preset_mode],
             )
             await self._async_delayed_request_refresh()
         except OJMicrolineError:
@@ -265,10 +266,10 @@ class OJMicrolineThermostat(
                 else REGULATION_MANUAL
             )
 
-        await self.coordinator.api.set_regulation_mode(
-            resource=self.coordinator.data[self.unique_id],
-            regulation_mode=regulation_mode,
-            temperature=int(temperature * 100),
+        await self.coordinator.async_set_regulation_mode(
+            self.coordinator.data[self.idx],
+            regulation_mode,
+            temperature=round(temperature * 100),
             duration=self.options.get(CONF_COMFORT_MODE_DURATION),
         )
         await self._async_delayed_request_refresh()

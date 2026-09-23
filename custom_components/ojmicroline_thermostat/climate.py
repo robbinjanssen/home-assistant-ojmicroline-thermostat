@@ -45,6 +45,7 @@ from .const import (
     PRESET_VACATION,
 )
 from .coordinator import OJMicrolineDataUpdateCoordinator
+from .helpers import target_temperature
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -184,7 +185,7 @@ class OJMicrolineThermostat(
             The target temperature in a float format.
 
         """
-        return self.coordinator.data[self.idx].get_target_temperature() / 100
+        return target_temperature(self.coordinator.data[self.idx]) / 100
 
     @property
     def max_temp(self) -> float:

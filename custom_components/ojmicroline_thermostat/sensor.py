@@ -24,7 +24,7 @@ from ojmicroline_thermostat.const import (
 )
 
 from .const import DOMAIN, MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
-from .helpers import is_wd5, wd5_local_time
+from .helpers import is_wd5, target_temperature, wd5_local_time
 from .models import OJMicrolineEntity
 
 if TYPE_CHECKING:
@@ -145,7 +145,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             key="temperature_set_point",
         ),
         formatter=_temp_formatter,
-        value_getter=lambda thermostat: thermostat.get_target_temperature(),
+        value_getter=target_temperature,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(

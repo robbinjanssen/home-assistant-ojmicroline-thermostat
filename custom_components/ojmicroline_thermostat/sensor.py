@@ -24,6 +24,7 @@ from ojmicroline_thermostat.const import (
 )
 
 from .const import DOMAIN, MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
+from .helpers import is_wd5, target_temperature, wd5_local_time
 from .models import OJMicrolineEntity
 
 if TYPE_CHECKING:
@@ -76,6 +77,13 @@ def _get_value(
     if value_getter:
         return value_getter(thermostat)
     return getattr(thermostat, desc.key)
+
+
+def _mode_time(thermostat: Thermostat, value: Any, *, active: bool) -> Any:
+    """Return a mode's begin/end time while that mode is active."""
+    if not active:
+        return None
+    return wd5_local_time(value) if is_wd5(thermostat) else value
 
 
 def _temp_formatter(temp: Any) -> float:
@@ -137,7 +145,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             key="temperature_set_point",
         ),
         formatter=_temp_formatter,
-        value_getter=lambda thermostat: thermostat.get_target_temperature(),
+        value_getter=target_temperature,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -161,9 +169,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="boost_end_time",
         ),
-        value_getter=lambda thermostat: thermostat.boost_end_time
-        if thermostat.regulation_mode == REGULATION_BOOST
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.boost_end_time,
+            active=thermostat.regulation_mode == REGULATION_BOOST,
+        ),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -171,9 +181,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="comfort_end_time",
         ),
-        value_getter=lambda thermostat: thermostat.comfort_end_time
-        if thermostat.regulation_mode == REGULATION_COMFORT
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.comfort_end_time,
+            active=thermostat.regulation_mode == REGULATION_COMFORT,
+        ),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -181,9 +193,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_begin_time",
         ),
-        value_getter=lambda thermostat: thermostat.vacation_begin_time
-        if thermostat.vacation_mode
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.vacation_begin_time,
+            active=bool(thermostat.vacation_mode),
+        ),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -191,9 +205,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_end_time",
         ),
-        value_getter=lambda thermostat: thermostat.vacation_end_time
-        if thermostat.vacation_mode
-        else None,
+        value_getter=lambda thermostat: _mode_time(
+            thermostat,
+            thermostat.vacation_end_time,
+            active=bool(thermostat.vacation_mode),
+        ),
     ),
 ]
 
@@ -218,11 +234,14 @@ async def async_setup_entry(
     for idx in coordinator.data.keys():  # noqa: SIM118
         for info in SENSOR_TYPES:
             # Different models of thermostat support different sensors;
-            # skip creating entities if the value is None.
-            val = _get_value(
-                coordinator.data[idx], info.entity_description, info.value_getter
-            )
-            if val is not None:
+            # skip creating entities if the value is None. The raw attribute
+            # is checked too, so that sensors that only have a value in a
+            # certain mode (e.g. comfort end time) exist regardless of the
+            # mode the thermostat happens to be in at startup.
+            thermostat = coordinator.data[idx]
+            raw = getattr(thermostat, info.entity_description.key, None)
+            val = _get_value(thermostat, info.entity_description, info.value_getter)
+            if raw is not None or val is not None:
                 entities.append(
                     OJMicrolineSensor(
                         coordinator,

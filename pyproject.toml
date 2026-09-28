@@ -24,7 +24,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.14"
+python = ">=3.12,<3.15"
 ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
 voluptuous = "^0.16.0"
 
@@ -43,7 +43,7 @@ async-timeout = "5.0.1"
 # free to run mypy on Windows, Linux, or macOS and get consistent
 # results.
 platform = "linux"
-python_version = "3.11"
+python_version = "3.14"
 
 # flake8-mypy expects the two following for sensible formatting
 show_column_numbers = true

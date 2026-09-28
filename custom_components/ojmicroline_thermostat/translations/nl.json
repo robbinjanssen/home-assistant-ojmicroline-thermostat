@@ -59,6 +59,24 @@
                     }
                 }
             }
+        },
+        "sensor": {
+            "schedule": {
+                "name": "Schema"
+            }
+        },
+        "date": {
+            "vacation_begin": {
+                "name": "Vakantie begin"
+            },
+            "vacation_end": {
+                "name": "Vakantie einde"
+            }
+        },
+        "switch": {
+            "vacation": {
+                "name": "Vakantie"
+            }
         }
     },
     "options": {
@@ -69,6 +87,53 @@
                     "use_comfort_mode": "Zet de modus naar comfort wanneer de temperatuur wijzigd.",
                     "comfort_mode_duration": "De totale tijd in minuten dat de comfort mode aan moet staan."
                 }
+            }
+        }
+    },
+    "services": {
+        "set_vacation": {
+            "name": "Vakantie instellen",
+            "description": "Plan een vakantie voor de groep van de thermostaat (WD5-serie). De vakantie loopt van 00:00 op de begindatum tot 00:00 op de einddatum; is die al begonnen, dan wordt de vakantiestand meteen actief.",
+            "fields": {
+                "start_date": {
+                    "name": "Begindatum",
+                    "description": "De eerste dag van de vakantie."
+                },
+                "end_date": {
+                    "name": "Einddatum",
+                    "description": "De dag waarop de normale regeling hervat (om 00:00)."
+                }
+            }
+        },
+        "cancel_vacation": {
+            "name": "Vakantie annuleren",
+            "description": "Annuleer de geplande of actieve vakantie voor de groep van de thermostaat (WD5-serie). Een actieve vakantie keert terug naar schema of handmatig, afhankelijk van wat het laatst gebruikt werd."
+        },
+        "set_schedule": {
+            "name": "Schema instellen",
+            "description": "Stel de momenten in van één of meer weekdagen in het weekschema van de thermostaatgroep (WD5-serie). Tot 6 momenten per dag, per kwartier, minstens 15 minuten uit elkaar; een tijd vóór de vorige valt na middernacht (uiterlijk 03:00).",
+            "fields": {
+                "days": {
+                    "name": "Dagen",
+                    "description": "De weekdagen die je wilt aanpassen."
+                },
+                "events": {
+                    "name": "Momenten",
+                    "description": "De momenten van de dag op volgorde, elk met een tijd (UU:MM) en een temperatuur (5-40 °C)."
+                }
+            }
+        }
+    },
+    "selector": {
+        "weekday": {
+            "options": {
+                "monday": "Maandag",
+                "tuesday": "Dinsdag",
+                "wednesday": "Woensdag",
+                "thursday": "Donderdag",
+                "friday": "Vrijdag",
+                "saturday": "Zaterdag",
+                "sunday": "Zondag"
             }
         }
     }

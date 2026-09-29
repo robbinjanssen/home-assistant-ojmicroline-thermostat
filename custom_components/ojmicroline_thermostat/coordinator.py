@@ -53,8 +53,13 @@ from .push import WD5PushClient
 _LOGGER = logging.getLogger(__name__)
 
 
-class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
+class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermostat]]):
     """Define an object to fetch data."""
+
+    # Declared here because Home Assistant is not installed when pylint runs
+    # in CI, so it cannot see the attributes DataUpdateCoordinator defines.
+    data: dict[str, Thermostat]
+    update_interval: timedelta | None
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Class to manage fetching OJ Microline data.
@@ -172,7 +177,6 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
         # Polling is still needed for energy usage and as a fallback, but
         # can be much less frequent while push updates are coming in.
         seconds = PUSH_UPDATE_INTERVAL if connected else UPDATE_INTERVAL
-        # pylint: disable-next=attribute-defined-outside-init
         self.update_interval = timedelta(seconds=seconds)
         if connected:
             # Catch up on anything missed while disconnected.
@@ -188,13 +192,10 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
                 if isinstance(value, list)
             },
         )
-        # "data" is defined by DataUpdateCoordinator, which pylint cannot see.
-        # pylint: disable=access-member-before-definition
         if not self.data:
             return
 
         data = dict(self.data)
-        # pylint: enable=access-member-before-definition
         changed = False
         # Group changes (mode, setpoints, schedule) apply to every thermostat
         # in the group; fetch everything again rather than guessing.
@@ -234,7 +235,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
         if changed:
             # Unlike async_set_updated_data this keeps the polling schedule,
             # so energy usage keeps being refreshed.
-            self.data = data  # pylint: disable=attribute-defined-outside-init
+            self.data = data
             self.async_update_listeners()
         if needs_refresh:
             self.hass.async_create_task(self.async_request_refresh())

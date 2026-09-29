@@ -7,7 +7,7 @@ CONFIG_FLOW_VERSION = 2
 
 API_TIMEOUT = 30
 UPDATE_INTERVAL = 60
-# Polling interval while push updates are connected (WD5 series).
+# Polling interval while push updates are active (WD5 and WG4 series).
 PUSH_UPDATE_INTERVAL = 300
 # Rate limiting: energy usage changes slowly, so fetch it (one request per
 # thermostat) at most this often, and space out extra refresh requests.

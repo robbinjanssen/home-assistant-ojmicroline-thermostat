@@ -1,13 +1,22 @@
-"""Energy usage of WD5-series thermostats.
+"""Energy usage of WD5 and WG4-series thermostats.
 
-The energy usage API (as used by the apps' statistics screen) returns, newest
-first:
+The WD5 energy usage API (as used by the apps' statistics screen) returns,
+newest first:
 
 - view type 1, date D + 1: the kWh per local hour of day D;
 - view type 2, date D, history H: the kWh per day for the (H + 1) * 7 days
   before D;
 - view type 4, date = today + 1 month - 1 year: the kWh per month for the last
   12 months, including the current one.
+
+The WG4 energy usage API (as used by the "Energy Use" page of
+mythermostat.info) returns, newest first:
+
+- view "day", date D: the kWh per local hour of day D;
+- view "week", date D, history H: the kWh per day of the calendar week
+  (starting on Sunday) containing D and the H weeks before (at most 10);
+- view "year", date Y, history H: the kWh per month of the year Y and the H
+  years before.
 
 This module turns that into today's usage for the energy sensor, and imports
 the history into long-term statistics (one per thermostat) for the energy
@@ -33,6 +42,7 @@ from homeassistant.const import UnitOfEnergy
 from homeassistant.util import dt as dt_util
 
 from ojmicroline_thermostat import OJMicrolineError, Thermostat
+from ojmicroline_thermostat.wg4 import week_index
 
 from .const import DOMAIN
 
@@ -131,10 +141,46 @@ class EnergyStatistics:
 
     async def async_hourly(self, thermostat: Thermostat, day: date) -> list[float]:
         """Return the kWh per local hour of a day, oldest first."""
+        if self._coordinator.wg4_api is not None:
+            hours = await self._coordinator.async_fetch_wg4_energy(
+                thermostat, "day", day.isoformat(), 0
+            )
+        else:
+            hours = _usage(
+                await self._coordinator.async_fetch_energy(
+                    thermostat, VIEW_HOURS, day + timedelta(days=1), 0
+                )
+            )
+        return list(reversed(hours))
+
+    async def _async_daily(self, thermostat: Thermostat, today: date) -> list[float]:
+        """Return the kWh per day of the last weeks, starting with today."""
+        if self._coordinator.wg4_api is not None:
+            days = await self._coordinator.async_fetch_wg4_energy(
+                thermostat, "week", today.isoformat(), DAILY_HISTORY
+            )
+            return days[week_index(today) :]
+
         response = await self._coordinator.async_fetch_energy(
-            thermostat, VIEW_HOURS, day + timedelta(days=1), 0
+            thermostat, VIEW_DAYS, today + timedelta(days=1), DAILY_HISTORY
         )
-        return list(reversed(_usage(response)))
+        return _usage(response)
+
+    async def _async_monthly(self, thermostat: Thermostat, today: date) -> list[float]:
+        """Return the kWh per month of the last 12 months, starting with this one."""
+        if self._coordinator.wg4_api is not None:
+            months = await self._coordinator.async_fetch_wg4_energy(
+                thermostat, "year", str(today.year), 1
+            )
+            # This and the previous year are listed from December back to
+            # January.
+            current = 12 - today.month
+            return months[current : current + 12]
+
+        response = await self._coordinator.async_fetch_energy(
+            thermostat, VIEW_MONTHS, _year_view_date(today), 0
+        )
+        return _usage(response)
 
     async def async_today(self, thermostat: Thermostat) -> list[float]:
         """Return today's kWh per hour so far."""
@@ -252,10 +298,7 @@ class EnergyStatistics:
         first_hourly_day = today - timedelta(days=HOURLY_DAYS - 1)
 
         # The weeks before that per day.
-        response = await self._coordinator.async_fetch_energy(
-            thermostat, VIEW_DAYS, today + timedelta(days=1), DAILY_HISTORY
-        )
-        daily = _usage(response)
+        daily = await self._async_daily(thermostat, today)
         first_day = today - timedelta(days=len(daily) - 1)
         for offset, usage in enumerate(daily):
             day = today - timedelta(days=offset)
@@ -265,13 +308,7 @@ class EnergyStatistics:
         # The months before that per month; the month the daily values start
         # in gets the remainder of its total.
         month = _month_start(today)
-        response = await self._coordinator.async_fetch_energy(
-            thermostat,
-            VIEW_MONTHS,
-            _year_view_date(today),
-            0,
-        )
-        for usage in _usage(response):
+        for usage in await self._async_monthly(thermostat, today):
             if month < _month_start(first_day):
                 points[_local_midnight(month)] = usage
             elif month == _month_start(first_day):

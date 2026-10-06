@@ -22,6 +22,7 @@ from homeassistant.util import dt as dt_util
 
 from ojmicroline_thermostat import (
     WD5API,
+    WG4API,
     OJMicrolineAuthError,
     OJMicrolineError,
     Thermostat,
@@ -47,7 +48,7 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .energy import EnergyStatistics
-from .helpers import format_wd5, format_wd5_date, is_wd5
+from .helpers import format_wd5, format_wd5_date
 from .push import WD5PushClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,6 +80,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
         self._energy_updated: float | None = None
         self.wd5_api: WD5API | None = (
             model_api if isinstance(model_api, WD5API) else None
+        )
+        self.wg4_api: WG4API | None = (
+            model_api if isinstance(model_api, WG4API) else None
         )
         self.api = oj_microline_from_api(model_api, hass)
         self.energy = EnergyStatistics(hass, self)
@@ -143,14 +147,14 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
             previous = (self.data or {}).get(thermostat.serial_number)
             if not refresh_energy and previous is not None:
                 thermostat.energy = previous.energy
-            elif is_wd5(thermostat):
-                # Today's usage per local hour; the library's own request uses
-                # the UTC date, so it shows yesterday's total until 02:00.
+            else:
+                # Today's usage per local hour, which is also imported into
+                # the energy statistics. (For WD5-series thermostats, the
+                # library's own request uses the UTC date, so it shows
+                # yesterday's total until 02:00.)
                 today = await self.energy.async_today(thermostat)
                 thermostat.energy = [round(sum(today), 4)]
                 self.energy.schedule_import(thermostat, today)
-            else:
-                thermostat.energy = await api.get_energy_usage(thermostat)
         if refresh_energy:
             self._energy_updated = now
         return thermostats
@@ -392,6 +396,20 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
                 "History": history,
             },
         )
+
+    async def async_fetch_wg4_energy(
+        self, thermostat: Thermostat, view: str, day: str, history: int
+    ) -> list[float]:
+        """Fetch energy usage, newest first (WG4 series only).
+
+        See WG4API.fetch_energy_usage for the arguments.
+        """
+        api = self.wg4_api
+        if api is None:
+            msg = "This is only supported on WG4-series thermostats."
+            raise OJMicrolineError(msg)
+        await self.api.login()
+        return await api.fetch_energy_usage(thermostat, view, day, history)
 
     async def async_set_regulation_mode(
         self,

@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfEnergy, UnitOfTemperature
+from homeassistant.const import UnitOfEnergy, UnitOfPower, UnitOfTemperature
 from homeassistant.util import dt as dt_util
 
 from ojmicroline_thermostat import Thermostat
@@ -158,6 +158,16 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             key="energy_usage",
         ),
         value_getter=lambda thermostat: thermostat.get_current_energy(),
+    ),
+    OJMicrolineSensorInfo(
+        SensorEntityDescription(
+            name="Power",
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            key="power",
+        ),
+        value_getter=lambda thermostat: thermostat.get_current_power(),
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(

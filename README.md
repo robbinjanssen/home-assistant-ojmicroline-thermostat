@@ -52,6 +52,12 @@ For every WD5-series thermostat the integration imports the energy usage history
 
 The "Energy Usage" sensor shows today's usage (from local midnight). Use either the statistic or the sensor in the energy dashboard, not both, or the usage is counted twice.
 
+## Energy and power (WG4 series)
+
+For WG4-series thermostats, the "Energy Usage" sensor shows today's usage (from midnight in the thermostat's time zone), as listed on the "Energy Use" page of mythermostat.info. The usage of each hour is added once that hour has ended. Unlike for WD5-series thermostats, no history is imported.
+
+The "Power" sensor shows the power draw of the floor heating: the load of the heating element (as measured by the thermostat, or as set during installation) while the thermostat is heating, and 0 W otherwise.
+
 ## Schedule and vacation (WD5 series)
 
 Every WD5-series thermostat gets these extra entities. Like in the apps, schedule and vacation settings belong to the thermostat's group.

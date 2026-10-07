@@ -51,6 +51,22 @@
                 "data_description": {
                     "username": "The account you use in the OJ Microline app."
                 }
+            },
+            "reconfigure": {
+                "title": "Reconfigure",
+                "description": "Change the settings of your OJ Microline account.",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "api_key": "API Key",
+                    "host": "Host",
+                    "customer_id": "Customer ID",
+                    "application": "Application code"
+                },
+                "data_description": {
+                    "host": "Leave blank to use the default. If specified, omit the https://.",
+                    "customer_id": "Leave blank to use the default."
+                }
             }
         },
         "error": {

@@ -91,10 +91,10 @@ async def test_set_preset_mode(
     assert len(_update_requests(setup_integration)) == 1
 
 
-async def test_set_comfort_keeps_target_temperature(
+async def test_set_comfort_uses_stored_temperature(
     hass: HomeAssistant, setup_integration: AiohttpClientMocker
 ) -> None:
-    """Test switching to comfort keeps the current target temperature (#280)."""
+    """Test switching to comfort sends the thermostat's comfort temperature."""
     await hass.services.async_call(
         CLIMATE_DOMAIN,
         SERVICE_SET_PRESET_MODE,
@@ -106,4 +106,50 @@ async def test_set_comfort_keeps_target_temperature(
     assert len(requests) == 1
     body = requests[0][2]
     assert body["RegulationMode"] == 2
-    assert body["ComfortTemperature"] == 2600
+    assert body["ComfortTemperature"] == 2500
+
+
+async def test_set_comfort_uses_configured_temperature(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    setup_integration: AiohttpClientMocker,
+) -> None:
+    """Test the configured comfort temperature takes precedence."""
+    hass.config_entries.async_update_entry(
+        mock_config_entry, options={"comfort_temperature": 22.5}
+    )
+    # The options flow reloads the entry, which applies the options.
+    await hass.config_entries.async_reload(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_PRESET_MODE,
+        {ATTR_ENTITY_ID: "climate.roomname", ATTR_PRESET_MODE: "comfort"},
+        blocking=True,
+    )
+
+    requests = _update_requests(setup_integration)
+    assert requests[-1][2]["ComfortTemperature"] == 2250
+
+
+async def test_preset_shown_right_away(
+    hass: HomeAssistant, setup_integration: AiohttpClientMocker
+) -> None:
+    """Test the new preset is shown without waiting for a refresh."""
+    assert setup_integration
+    state = hass.states.get("climate.roomname")
+    assert state is not None
+    assert state.attributes["preset_mode"] != "comfort"
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_PRESET_MODE,
+        {ATTR_ENTITY_ID: "climate.roomname", ATTR_PRESET_MODE: "comfort"},
+        blocking=True,
+    )
+
+    state = hass.states.get("climate.roomname")
+    assert state is not None
+    assert state.attributes["preset_mode"] == "comfort"
+    assert state.attributes[ATTR_TEMPERATURE] == 25.0

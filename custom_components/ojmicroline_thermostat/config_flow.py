@@ -10,9 +10,18 @@ from homeassistant.config_entries import (
     OptionsFlow,
     OptionsFlowWithReload,
 )
-from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import (
+    CONF_API_KEY,
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    UnitOfTemperature,
+)
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -30,6 +39,7 @@ from .api import oj_microline_from_config_entry_data
 from .const import (
     CONF_APPLICATION,
     CONF_COMFORT_MODE_DURATION,
+    CONF_COMFORT_TEMPERATURE,
     CONF_CUSTOMER_ID,
     CONF_MODEL,
     CONF_USE_COMFORT_MODE,
@@ -415,6 +425,23 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
                             CONF_COMFORT_MODE_DURATION, COMFORT_DURATION
                         ),
                     ): probatio.All(probatio.Coerce(int), probatio.Range(min=1)),
+                    # Empty: use the comfort temperature stored in the thermostat.
+                    probatio.Optional(
+                        CONF_COMFORT_TEMPERATURE,
+                        description={
+                            "suggested_value": self.config_entry.options.get(
+                                CONF_COMFORT_TEMPERATURE
+                            )
+                        },
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=5,
+                            max=40,
+                            step=0.5,
+                            unit_of_measurement=UnitOfTemperature.CELSIUS,
+                            mode=NumberSelectorMode.BOX,
+                        )
+                    ),
                 }
             ),
         )

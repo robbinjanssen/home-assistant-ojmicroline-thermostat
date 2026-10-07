@@ -21,6 +21,7 @@ CONF_CUSTOMER_ID = "customer_id"
 CONF_APPLICATION = "application"
 CONF_USE_COMFORT_MODE = "use_comfort_mode"
 CONF_COMFORT_MODE_DURATION = "comfort_mode_duration"
+CONF_COMFORT_TEMPERATURE = "comfort_temperature"
 
 MODEL_WD5_SERIES = "WD5 series"
 MODEL_WG4_SERIES = "WG4 series"

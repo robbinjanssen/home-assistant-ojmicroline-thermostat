@@ -70,6 +70,42 @@
         "sensor": {
             "schedule": {
                 "name": "Schema"
+            },
+            "temperature_room": {
+                "name": "Temperatuur kamer"
+            },
+            "temperature_floor": {
+                "name": "Temperatuur vloer"
+            },
+            "min_temperature": {
+                "name": "Temperatuurbereik min"
+            },
+            "max_temperature": {
+                "name": "Temperatuurbereik max"
+            },
+            "temperature_set_point": {
+                "name": "Ingestelde temperatuur"
+            },
+            "energy_usage": {
+                "name": "Energieverbruik"
+            },
+            "power": {
+                "name": "Vermogen"
+            },
+            "sensor_mode": {
+                "name": "Sensormodus"
+            },
+            "boost_end_time": {
+                "name": "Eindtijd boost"
+            },
+            "comfort_end_time": {
+                "name": "Eindtijd comfort"
+            },
+            "vacation_begin_time": {
+                "name": "Begintijd vakantie"
+            },
+            "vacation_end_time": {
+                "name": "Eindtijd vakantie"
             }
         },
         "date": {
@@ -83,6 +119,20 @@
         "switch": {
             "vacation": {
                 "name": "Vakantie"
+            }
+        },
+        "binary_sensor": {
+            "online": {
+                "name": "Online"
+            },
+            "heating": {
+                "name": "Verwarmen"
+            },
+            "adaptive_mode": {
+                "name": "Adaptieve modus"
+            },
+            "open_window_detection": {
+                "name": "Open-raamdetectie"
             }
         }
     },

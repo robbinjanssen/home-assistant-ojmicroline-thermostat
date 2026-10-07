@@ -72,6 +72,42 @@
         "sensor": {
             "schedule": {
                 "name": "Schedule"
+            },
+            "temperature_room": {
+                "name": "Temperature room"
+            },
+            "temperature_floor": {
+                "name": "Temperature floor"
+            },
+            "min_temperature": {
+                "name": "Temperature range min"
+            },
+            "max_temperature": {
+                "name": "Temperature range max"
+            },
+            "temperature_set_point": {
+                "name": "Temperature set point"
+            },
+            "energy_usage": {
+                "name": "Energy usage"
+            },
+            "power": {
+                "name": "Power"
+            },
+            "sensor_mode": {
+                "name": "Sensor mode"
+            },
+            "boost_end_time": {
+                "name": "Boost end time"
+            },
+            "comfort_end_time": {
+                "name": "Comfort end time"
+            },
+            "vacation_begin_time": {
+                "name": "Vacation begin time"
+            },
+            "vacation_end_time": {
+                "name": "Vacation end time"
             }
         },
         "date": {
@@ -85,6 +121,20 @@
         "switch": {
             "vacation": {
                 "name": "Vacation"
+            }
+        },
+        "binary_sensor": {
+            "online": {
+                "name": "Online"
+            },
+            "heating": {
+                "name": "Heating"
+            },
+            "adaptive_mode": {
+                "name": "Adaptive mode"
+            },
+            "open_window_detection": {
+                "name": "Open window detection"
             }
         }
     },

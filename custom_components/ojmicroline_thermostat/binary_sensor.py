@@ -20,22 +20,22 @@ if TYPE_CHECKING:
 
 BINARY_SENSOR_TYPES: list[BinarySensorEntityDescription] = [
     BinarySensorEntityDescription(
-        name="Online",
+        translation_key="online",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         key="online",
     ),
     BinarySensorEntityDescription(
-        name="Heating",
+        translation_key="heating",
         icon="mdi:fire",
         key="heating",
     ),
     BinarySensorEntityDescription(
-        name="Adaptive Mode",
+        translation_key="adaptive_mode",
         icon="mdi:brain",
         key="adaptive_mode",
     ),
     BinarySensorEntityDescription(
-        name="Open Window Detection",
+        translation_key="open_window_detection",
         icon="mdi:window-open",
         key="open_window_detection",
     ),
@@ -93,7 +93,6 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
         self.entity_description = entity_description
 
         self._attr_unique_id = f"{idx}_{entity_description.key}"
-        self._attr_name = f"{coordinator.data[idx].name} {entity_description.name}"
 
     @property
     def is_on(self) -> bool | None:

@@ -95,7 +95,7 @@ def _temp_formatter(temp: Any) -> float:
 SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Temperature Room",
+            translation_key="temperature_room",
             icon="mdi:home-thermometer",
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
@@ -106,7 +106,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Temperature Floor",
+            translation_key="temperature_floor",
             icon="mdi:heating-coil",
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
@@ -117,7 +117,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Temperature Range Min",
+            translation_key="min_temperature",
             icon="mdi:thermometer-chevron-down",
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
@@ -128,7 +128,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Temperature Range Max",
+            translation_key="max_temperature",
             icon="mdi:thermometer-chevron-up",
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
@@ -139,7 +139,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Temperature Set Point",
+            translation_key="temperature_set_point",
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             state_class=SensorStateClass.MEASUREMENT,
@@ -150,7 +150,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Energy Usage",
+            translation_key="energy_usage",
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
@@ -160,7 +160,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Power",
+            translation_key="power",
             native_unit_of_measurement=UnitOfPower.WATT,
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
@@ -170,13 +170,15 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Sensor Mode", icon="mdi:thermometer-lines", key="sensor_mode"
+            translation_key="sensor_mode",
+            icon="mdi:thermometer-lines",
+            key="sensor_mode",
         ),
         formatter=VENDOR_TO_HA_STATE.get,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Boost End Time",
+            translation_key="boost_end_time",
             device_class=SensorDeviceClass.TIMESTAMP,
             key="boost_end_time",
         ),
@@ -188,7 +190,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Comfort End Time",
+            translation_key="comfort_end_time",
             device_class=SensorDeviceClass.TIMESTAMP,
             key="comfort_end_time",
         ),
@@ -200,7 +202,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Vacation Begin Time",
+            translation_key="vacation_begin_time",
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_begin_time",
         ),
@@ -212,7 +214,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
-            name="Vacation End Time",
+            translation_key="vacation_end_time",
             device_class=SensorDeviceClass.TIMESTAMP,
             key="vacation_end_time",
         ),
@@ -300,7 +302,6 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
         self.value_getter = value_getter
 
         self._attr_unique_id = f"{idx}_{self.entity_description.key}"
-        self._attr_name = f"{coordinator.data[idx].name} {self.entity_description.name}"
 
     @property
     def available(self) -> bool:

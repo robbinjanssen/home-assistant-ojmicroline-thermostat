@@ -70,6 +70,42 @@
         "sensor": {
             "schedule": {
                 "name": "Horário"
+            },
+            "temperature_room": {
+                "name": "Temperatura ambiente"
+            },
+            "temperature_floor": {
+                "name": "Temperatura do pavimento"
+            },
+            "min_temperature": {
+                "name": "Temperatura mínima"
+            },
+            "max_temperature": {
+                "name": "Temperatura máxima"
+            },
+            "temperature_set_point": {
+                "name": "Temperatura definida"
+            },
+            "energy_usage": {
+                "name": "Consumo de energia"
+            },
+            "power": {
+                "name": "Potência"
+            },
+            "sensor_mode": {
+                "name": "Modo do sensor"
+            },
+            "boost_end_time": {
+                "name": "Fim do boost"
+            },
+            "comfort_end_time": {
+                "name": "Fim do conforto"
+            },
+            "vacation_begin_time": {
+                "name": "Início das férias"
+            },
+            "vacation_end_time": {
+                "name": "Fim das férias"
             }
         },
         "date": {
@@ -83,6 +119,20 @@
         "switch": {
             "vacation": {
                 "name": "Férias"
+            }
+        },
+        "binary_sensor": {
+            "online": {
+                "name": "Online"
+            },
+            "heating": {
+                "name": "Aquecimento"
+            },
+            "adaptive_mode": {
+                "name": "Modo adaptativo"
+            },
+            "open_window_detection": {
+                "name": "Deteção de janela aberta"
             }
         }
     },

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from ojmicroline_thermostat import WD5API, WG4API, OJMicroline
+from ojmicroline_thermostat import WD5API, WG4API, WG5API, OJMicroline
 
 from .const import (
     CONF_APPLICATION,
@@ -14,6 +14,7 @@ from .const import (
     DEFAULT_WG4_APPLICATION,
     MODEL_WD5_SERIES,
     MODEL_WG4_SERIES,
+    MODEL_WG5_SERIES,
 )
 
 if TYPE_CHECKING:
@@ -56,6 +57,12 @@ def api_from_config_entry_data(data: Mapping[str, Any]) -> Any:
             username=data[CONF_USERNAME],
             password=data[CONF_PASSWORD],
             application=data.get(CONF_APPLICATION, DEFAULT_WG4_APPLICATION),
+            **extra_args,
+        )
+    if model == MODEL_WG5_SERIES:
+        return WG5API(
+            username=data[CONF_USERNAME],
+            password=data[CONF_PASSWORD],
             **extra_args,
         )
     msg = f"Unknown model {model}"

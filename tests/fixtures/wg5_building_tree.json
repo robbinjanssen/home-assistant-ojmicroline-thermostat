@@ -1,0 +1,22 @@
+{
+  "data": {
+    "zones": [
+      {
+        "thermostats": [
+          {
+            "id": "2cb3e6c5-8cf8-4e7e-943a-42618c34a506",
+            "name": "Bathroom"
+          }
+        ],
+        "id": "ae85d8fc-1b4a-445a-bdf1-05f970fc3da4",
+        "name": "Default"
+      }
+    ],
+    "id": "57dc7778-4ed3-4382-9e89-5cf2e0bc0f8a",
+    "name": "My Home"
+  },
+  "status": {
+    "code": "OK",
+    "traceId": "6835247adfb2e0d1ef8679cce39f1606"
+  }
+}

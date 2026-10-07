@@ -1,0 +1,20 @@
+{
+  "page": {
+    "total": 1,
+    "totalPages": 1,
+    "size": 50,
+    "number": 0
+  },
+  "data": [
+    {
+      "isDefault": true,
+      "userId": "87c522ce-f45f-4993-bf2a-74677d7114f9",
+      "id": "57dc7778-4ed3-4382-9e89-5cf2e0bc0f8a",
+      "name": "My Home"
+    }
+  ],
+  "status": {
+    "code": "OK",
+    "traceId": "bb18845ebf596416875793381d5bb28c"
+  }
+}

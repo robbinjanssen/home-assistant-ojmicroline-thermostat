@@ -1,0 +1,40 @@
+{
+  "data": {
+    "id": "2cb3e6c5-8cf8-4e7e-943a-42618c34a506",
+    "zoneId": "ae85d8fc-1b4a-445a-bdf1-05f970fc3da4",
+    "name": "Bathroom",
+    "createdDate": "2026-04-05T11:29:17Z",
+    "currentTemperature": 19,
+    "currentTemperatureFahrenheit": 66,
+    "minimumPossibleSetPoint": 5,
+    "maximumPossibleSetPoint": 40,
+    "isOnline": true,
+    "isAdaptiveHeatingActive": false,
+    "errorFlags": "NoErrors",
+    "hasError": false,
+    "isOpenWindowDetected": false,
+    "isHeatRelayActive": true,
+    "isFrostProtectionEnabled": true,
+    "frostProtectionTemperature": 5,
+    "isFollowingZone": false,
+    "mode": {
+      "isInStandby": false,
+      "isAwayActive": false,
+      "fallbackMode": "Manual",
+      "manualSetpoint": 27.78,
+      "changeTimestamp": "2026-04-13T23:40:43Z"
+    },
+    "scheduleData": {
+      "scheduleId": "f9aac20b-4e45-415b-9f56-e53014ee8639",
+      "scheduleName": "Default Schedule",
+      "currentSetPoint": 23
+    },
+    "sensorApplication": "Floor",
+    "setpoint": 27.78,
+    "changeTimestamp": "2026-04-13T23:40:43Z"
+  },
+  "status": {
+    "code": "OK",
+    "traceId": "3bbdb398bee4254f0801119ffe38a07c"
+  }
+}

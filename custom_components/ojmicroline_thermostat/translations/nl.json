@@ -7,7 +7,7 @@
                     "model": "Model"
                 },
                 "data_description": {
-                    "model": "De WD5-serie betreft de OWD5 en MWD5; de WG4-serie betreft de UWG4 en AWG4."
+                    "model": "De WD5-serie omvat OWD5 en MWD5; de WG4-serie omvat UWG4 en AWG4; de WG5-serie omvat UWG5."
                 }
             },
             "wd5": {
@@ -39,6 +39,15 @@
                 "description": "De OJ Microline API heeft het wachtwoord voor {username} geweigerd. Voer het huidige wachtwoord in.",
                 "data": {
                     "password": "Wachtwoord"
+                }
+            },
+            "wg5": {
+                "data": {
+                    "username": "Gebruikersnaam",
+                    "password": "Wachtwoord"
+                },
+                "data_description": {
+                    "username": "Het account dat je in de OJ Microline-app gebruikt."
                 }
             }
         },

@@ -156,3 +156,26 @@ async def test_options_reload(
     await hass.async_block_till_done()
 
     assert mock_config_entry.runtime_data is not coordinator
+
+
+@pytest.mark.usefixtures("mock_wg5_api")
+async def test_create_wg5_entry(hass: HomeAssistant) -> None:
+    """Test creating an entry for a WG5-series (UWG5) account."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"model": "WG5 series"}
+    )
+    assert result["step_id"] == "wg5"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"username": "user@example.com", "password": "pw"}
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {
+        "model": "WG5 series",
+        "username": "user@example.com",
+        "password": "pw",
+    }

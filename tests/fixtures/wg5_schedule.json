@@ -1,0 +1,61 @@
+{
+  "data": {
+    "baseTemperature": 23,
+    "schedules": [
+      {
+        "days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "schedules": [
+          {
+            "start": "06:00:00",
+            "end": "09:00:00",
+            "temperature": 28
+          },
+          {
+            "start": "17:00:00",
+            "end": "23:00:00",
+            "temperature": 28
+          }
+        ]
+      },
+      {
+        "days": [
+          "Saturday"
+        ],
+        "schedules": [
+          {
+            "start": "08:00:00",
+            "end": "23:00:00",
+            "temperature": 28
+          }
+        ]
+      },
+      {
+        "days": [
+          "Sunday"
+        ],
+        "schedules": [
+          {
+            "start": "08:00:00",
+            "end": "23:00:00",
+            "temperature": 28
+          }
+        ]
+      }
+    ],
+    "scheduleType": "WorkingDaysAndHolidaysSeparately",
+    "id": "f9aac20b-4e45-415b-9f56-e53014ee8639",
+    "name": "Default Schedule",
+    "creationDate": "2026-04-05T11:26:36Z",
+    "defaultScheduleType": "FloorSensor"
+  },
+  "status": {
+    "code": "OK",
+    "traceId": "a5d720e9638ffae0e4fe322a7242fb1c"
+  }
+}

@@ -14,11 +14,12 @@ It has been tested and developed on the following models:
 
 ## Supported models
 
-| Model            |
-|------------------|
-| OWD5             |
-| UWG4             |
-| WCD5             |
+| Model            | Series |
+|------------------|--------|
+| OWD5             | WD5    |
+| WCD5             | WD5    |
+| UWG4             | WG4    |
+| UWG5             | WG5 (experimental, not tested with a real thermostat yet) |
 
 After installation you can add the thermostat through the integration page. Currently setting a preset mode and temperature is supported. Adjusting
 the HVAC mode will (re)set it to the schedule preset.
@@ -42,7 +43,7 @@ Install this integration by copying all files in `/custom_components/ojmicroline
 
 [![ha_badge][ha-add-shield]][ha-add-url]
 
-To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you enter the customer ID, API key, username and password.
+To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (and for the WD5 series also the customer ID and API key).
 
 ## Live updates (WD5 and WG4 series)
 

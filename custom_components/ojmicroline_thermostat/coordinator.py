@@ -5,7 +5,7 @@ import logging
 from dataclasses import replace
 from datetime import date, timedelta
 from time import monotonic
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import async_timeout
 from homeassistant.config_entries import ConfigEntry
@@ -51,11 +51,19 @@ from .energy import EnergyStatistics
 from .helpers import format_wd5, format_wd5_date
 from .push import WD5PushClient
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 _LOGGER = logging.getLogger(__name__)
 
 
-class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
+class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermostat]]):
     """Define an object to fetch data."""
+
+    # Declared here because Home Assistant is not installed when pylint runs
+    # in CI, so it cannot see the attributes DataUpdateCoordinator defines.
+    data: dict[str, Thermostat]
+    update_interval: timedelta | None
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Class to manage fetching OJ Microline data.
@@ -86,6 +94,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.api = oj_microline_from_api(model_api, hass)
         self.energy = EnergyStatistics(hass, self)
+        self._unsubscribe_push: Callable[[], None] | None = None
 
     async def _async_update_data(self) -> dict[str, Thermostat]:
         """Fetch data from API endpoint.
@@ -159,24 +168,76 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
             self._energy_updated = now
         return thermostats
 
+    @callback
     def async_start_push(self, entry: ConfigEntry) -> None:
-        """Start receiving push updates (WD5 series only)."""
-        if self.wd5_api is None:
+        """Start receiving push updates, if the thermostat series supports them.
+
+        WD5 uses the notification hub in push.py. Other series use the
+        library's subscription, which long-polls in a background task and
+        retries failures itself. Either way the work is tied to the config
+        entry: it is stopped when the entry unloads, so reloading or
+        removing the entry never leaks a subscription.
+        """
+        if self.wd5_api is not None:
+            WD5PushClient(
+                self.hass,
+                async_get_clientsession(self.hass),
+                self.wd5_api,
+                self._async_handle_push_message,
+                self._async_handle_push_connection,
+            ).start(entry)
             return
-        WD5PushClient(
-            self.hass,
-            async_get_clientsession(self.hass),
-            self.wd5_api,
-            self._async_handle_push_message,
-            self._async_handle_push_connection,
-        ).start(entry)
+
+        if not self._model_api.supports_notifications:
+            return
+        if self._unsubscribe_push is not None:
+            return
+        try:
+            self._unsubscribe_push = self.api.subscribe(
+                self._async_handle_push_thermostat
+            )
+        except OJMicrolineError as err:
+            _LOGGER.warning("Push updates unavailable, polling instead: %s", err)
+            return
+        entry.async_on_unload(self.async_stop_push)
+        self.update_interval = timedelta(seconds=PUSH_UPDATE_INTERVAL)
+
+    @callback
+    def async_stop_push(self) -> None:
+        """Stop the library's push subscription, if any."""
+        unsubscribe, self._unsubscribe_push = self._unsubscribe_push, None
+        if unsubscribe is not None:
+            unsubscribe()
+            self.update_interval = timedelta(seconds=UPDATE_INTERVAL)
+
+    @callback
+    def _async_handle_push_thermostat(self, thermostat: Thermostat) -> None:
+        """Merge a thermostat pushed by the library into the coordinator data.
+
+        The library delivers every thermostat when it (re)subscribes and a
+        single thermostat for each change afterwards.
+        """
+        if not self.data:
+            return
+        current = self.data.get(thermostat.serial_number)
+        if current is None:
+            # Added thermostat; polling picks it up.
+            self.hass.async_create_task(self.async_request_refresh())
+            return
+        _LOGGER.debug("Push update received for %s", thermostat.serial_number)
+        # Pushed data has no energy usage; keep the polled value.
+        thermostat.energy = current.energy
+        data = dict(self.data)
+        data[thermostat.serial_number] = thermostat
+        # Unlike async_set_updated_data this keeps the polling schedule.
+        self.data = data
+        self.async_update_listeners()
 
     @callback
     def _async_handle_push_connection(self, connected: bool) -> None:  # noqa: FBT001
         # Polling is still needed for energy usage and as a fallback, but
         # can be much less frequent while push updates are coming in.
         seconds = PUSH_UPDATE_INTERVAL if connected else UPDATE_INTERVAL
-        # pylint: disable-next=attribute-defined-outside-init
         self.update_interval = timedelta(seconds=seconds)
         if connected:
             # Catch up on anything missed while disconnected.
@@ -192,13 +253,10 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
                 if isinstance(value, list)
             },
         )
-        # "data" is defined by DataUpdateCoordinator, which pylint cannot see.
-        # pylint: disable=access-member-before-definition
         if not self.data:
             return
 
         data = dict(self.data)
-        # pylint: enable=access-member-before-definition
         changed = False
         # Group changes (mode, setpoints, schedule) apply to every thermostat
         # in the group; fetch everything again rather than guessing.
@@ -238,7 +296,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator):
         if changed:
             # Unlike async_set_updated_data this keeps the polling schedule,
             # so energy usage keeps being refreshed.
-            self.data = data  # pylint: disable=attribute-defined-outside-init
+            self.data = data
             self.async_update_listeners()
         if needs_refresh:
             self.hass.async_create_task(self.async_request_refresh())

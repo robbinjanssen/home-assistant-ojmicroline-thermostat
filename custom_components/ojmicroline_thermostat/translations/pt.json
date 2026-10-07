@@ -167,7 +167,11 @@
                 "description": "Selecione as opcções padrão quando est+a a alterar a temperatura do termostato",
                 "data": {
                     "use_comfort_mode": "Definna para modo conforto quando está a mudar a temperatura.",
-                    "comfort_mode_duration": "Qual a duração que o modo conforto deve durar."
+                    "comfort_mode_duration": "Qual a duração que o modo conforto deve durar.",
+                    "comfort_temperature": "Temperatura de conforto"
+                },
+                "data_description": {
+                    "comfort_temperature": "A temperatura usada ao mudar para a predefinição de conforto. Deixe em branco para usar a temperatura de conforto guardada no termóstato."
                 }
             }
         }

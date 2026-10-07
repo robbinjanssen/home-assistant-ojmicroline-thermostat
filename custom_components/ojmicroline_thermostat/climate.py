@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 import probatio
@@ -41,6 +42,7 @@ from .const import (
     ATTR_START_DATE,
     ATTR_TIME,
     CONF_COMFORT_MODE_DURATION,
+    CONF_COMFORT_TEMPERATURE,
     CONF_USE_COMFORT_MODE,
     DOMAIN,
     MANUFACTURER,
@@ -62,6 +64,8 @@ if TYPE_CHECKING:
 
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from ojmicroline_thermostat import Thermostat
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -287,20 +291,16 @@ class OJMicrolineThermostat(
         """
         thermostat = self.coordinator.data[self.idx]
         regulation_mode = HA_TO_VENDOR_STATE[preset_mode]
+        # Always send a temperature for these presets: without one, the WG4
+        # API stores an empty temperature and the thermostat falls back to an
+        # unrelated value (issue #280).
         temperature = None
-        if regulation_mode in {REGULATION_MANUAL, REGULATION_COMFORT}:
-            # Keep the current target temperature. Without one, the API
-            # stores an empty manual/comfort temperature and the thermostat
-            # falls back to an unrelated value (issue #280).
+        if regulation_mode == REGULATION_MANUAL:
             temperature = target_temperature(thermostat)
+        elif regulation_mode == REGULATION_COMFORT:
+            temperature = self._comfort_temperature(thermostat)
         try:
-            await self.coordinator.async_set_regulation_mode(
-                thermostat,
-                regulation_mode,
-                temperature=temperature,
-                duration=self.options.get(CONF_COMFORT_MODE_DURATION),
-            )
-            await self._async_delayed_request_refresh()
+            await self._async_set_regulation_mode(regulation_mode, temperature)
         except OJMicrolineError:
             _LOGGER.exception(
                 'Failed setting preset mode "%s" (%s)',
@@ -328,13 +328,57 @@ class OJMicrolineThermostat(
                 else REGULATION_MANUAL
             )
 
+        await self._async_set_regulation_mode(regulation_mode, round(temperature * 100))
+
+    def _comfort_temperature(self, thermostat: Thermostat) -> int:
+        """Return the temperature to use for the comfort preset, in 1/100 °C.
+
+        The configured comfort temperature, otherwise the comfort temperature
+        stored in the thermostat, and as a last resort the current target.
+        """
+        if (configured := self.options.get(CONF_COMFORT_TEMPERATURE)) is not None:
+            return round(float(configured) * 100)
+        stored: int | None = thermostat.comfort_temperature
+        return stored or target_temperature(thermostat)
+
+    async def _async_set_regulation_mode(
+        self, regulation_mode: int, temperature: int | None
+    ) -> None:
+        """Set the regulation mode and show it right away.
+
+        The new mode is applied to the coordinator data immediately, so the
+        state does not wait for the API, and the refresh that confirms it
+        runs in the background.
+
+        Raises
+        ------
+            OJMicrolineError: The API refused the update.
+
+        """
+        thermostat = self.coordinator.data[self.idx]
         await self.coordinator.async_set_regulation_mode(
-            self.coordinator.data[self.idx],
+            thermostat,
             regulation_mode,
-            temperature=round(temperature * 100),
+            temperature=temperature,
             duration=self.options.get(CONF_COMFORT_MODE_DURATION),
         )
-        await self._async_delayed_request_refresh()
+
+        changes: dict[str, Any] = {"regulation_mode": regulation_mode}
+        if temperature is not None:
+            if regulation_mode == REGULATION_MANUAL:
+                changes["manual_temperature"] = temperature
+            elif regulation_mode == REGULATION_COMFORT:
+                changes["comfort_temperature"] = temperature
+            if thermostat.set_point_temperature is not None:
+                changes["set_point_temperature"] = temperature
+        self.coordinator.async_set_updated_data(
+            {**self.coordinator.data, self.idx: replace(thermostat, **changes)}
+        )
+        self.coordinator.config_entry.async_create_background_task(
+            self.hass,
+            self._async_delayed_request_refresh(),
+            f"Refresh {thermostat.name} after an update",
+        )
 
     async def async_set_vacation(self, start_date: date, end_date: date) -> None:
         """Schedule a vacation for this thermostat's group.

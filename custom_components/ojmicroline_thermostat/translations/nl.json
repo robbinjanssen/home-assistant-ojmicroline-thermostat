@@ -167,7 +167,11 @@
                 "description": "Stel de standaard opties in wanneer de temperatuur van de thermostaat wordt gewijzigd.",
                 "data": {
                     "use_comfort_mode": "Zet de modus naar comfort wanneer de temperatuur wijzigd.",
-                    "comfort_mode_duration": "De totale tijd in minuten dat de comfort mode aan moet staan."
+                    "comfort_mode_duration": "De totale tijd in minuten dat de comfort mode aan moet staan.",
+                    "comfort_temperature": "Comforttemperatuur"
+                },
+                "data_description": {
+                    "comfort_temperature": "De temperatuur bij het overschakelen naar de comfort-preset. Laat leeg om de comforttemperatuur uit de thermostaat te gebruiken."
                 }
             }
         }

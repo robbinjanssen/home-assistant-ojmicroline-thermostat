@@ -82,3 +82,24 @@ async def test_set_presets(
         )
 
     assert _group_updates(mock_wd5_api) == len(presets)
+
+
+async def test_set_comfort_uses_stored_temperature(
+    hass: HomeAssistant, climate_entity_id: str, mock_wd5_api: AiohttpClientMocker
+) -> None:
+    """Test switching to comfort sends the thermostat's comfort setpoint."""
+    assert climate_entity_id == "climate.gang"
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_PRESET_MODE,
+        {ATTR_ENTITY_ID: climate_entity_id, ATTR_PRESET_MODE: "comfort"},
+        blocking=True,
+    )
+
+    updates = [
+        call[2]
+        for call in mock_wd5_api.mock_calls
+        if call[1].path == "/api/Group/UpdateGroup"
+    ]
+    assert updates[-1]["SetGroup"]["ComfortSetpoint"] == 2300

@@ -169,7 +169,11 @@
                 "description": "Set default options when changing the thermostat temperature.",
                 "data": {
                     "use_comfort_mode": "Set the regulation to comfort mode when changing the temperature.",
-                    "comfort_mode_duration": "The duration in minutes the comfort mode should be enabled."
+                    "comfort_mode_duration": "The duration in minutes the comfort mode should be enabled.",
+                    "comfort_temperature": "Comfort temperature"
+                },
+                "data_description": {
+                    "comfort_temperature": "The temperature used when switching to the comfort preset. Leave empty to use the comfort temperature stored in the thermostat."
                 }
             }
         }

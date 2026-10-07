@@ -23,6 +23,7 @@ from ojmicroline_thermostat import (
     WG4API,
     OJMicrolineAuthError,
     OJMicrolineError,
+    OJMicrolineUnauthorizedError,
     Thermostat,
 )
 from ojmicroline_thermostat.const import (
@@ -50,20 +51,19 @@ from .helpers import format_wd5, format_wd5_date
 from .push import WD5PushClient
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
     from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
+type OJMicrolineConfigEntry = ConfigEntry["OJMicrolineDataUpdateCoordinator"]
+
 
 class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermostat]]):
     """Define an object to fetch data."""
 
-    # Declared here because Home Assistant is not installed when pylint runs
-    # in CI, so it cannot see the attributes DataUpdateCoordinator defines.
-    data: dict[str, Thermostat]
-    update_interval: timedelta | None
+    config_entry: OJMicrolineConfigEntry
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Class to manage fetching OJ Microline data.
@@ -77,6 +77,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=entry,
             name=DOMAIN,
             update_interval=timedelta(seconds=UPDATE_INTERVAL),
             request_refresh_debouncer=Debouncer(
@@ -124,6 +125,21 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         except OJMicrolineError as error:
             raise UpdateFailed(error) from error
 
+    async def _async_with_session[T](self, call: Callable[[], Awaitable[T]]) -> T:
+        """Log in and run the call, logging in again once if the session expired.
+
+        The API can invalidate a session before it is due to expire, after
+        which requests fail with HTTP 401 until a new session is created.
+        """
+        await self.api.login()
+        try:
+            return await call()
+        except OJMicrolineUnauthorizedError:
+            _LOGGER.debug("The OJ Microline API rejected the session, logging in again")
+            self._model_api.invalidate_session()
+            await self.api.login()
+            return await call()
+
     async def _async_fetch_thermostats(self) -> list[Thermostat]:
         """Fetch the thermostats, reusing recent energy usage where possible.
 
@@ -135,15 +151,16 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         if not isinstance(api, SessionOJMicrolineAPI):
             return await self.api.get_thermostats()
 
-        await self.api.login()
-        data = await api.request(
-            api.get_thermostats_path,
-            method="GET",
-            params={
-                # pylint: disable-next=protected-access
-                "sessionid": api._session_id,  # noqa: SLF001
-                **api.get_thermostats_params(),
-            },
+        data = await self._async_with_session(
+            lambda: api.request(
+                api.get_thermostats_path,
+                method="GET",
+                params={
+                    # pylint: disable-next=protected-access
+                    "sessionid": api._session_id,  # noqa: SLF001
+                    **api.get_thermostats_params(),
+                },
+            )
         )
         thermostats = api.parse_thermostats_response(data)
 
@@ -440,19 +457,20 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         if api is None:
             msg = "Energy usage history is only supported on WD5-series thermostats."
             raise OJMicrolineError(msg)
-        await self.api.login()
-        return await api.request(
-            api.get_energy_usage_path,
-            method="POST",
-            # pylint: disable-next=protected-access
-            params={"sessionid": api._session_id},  # noqa: SLF001
-            body={
-                **api.get_thermostats_params(),
-                "ThermostatID": thermostat.serial_number,
-                "ViewType": view_type,
-                "DateTime": day.isoformat(),
-                "History": history,
-            },
+        return await self._async_with_session(
+            lambda: api.request(
+                api.get_energy_usage_path,
+                method="POST",
+                # pylint: disable-next=protected-access
+                params={"sessionid": api._session_id},  # noqa: SLF001
+                body={
+                    **api.get_thermostats_params(),
+                    "ThermostatID": thermostat.serial_number,
+                    "ViewType": view_type,
+                    "DateTime": day.isoformat(),
+                    "History": history,
+                },
+            )
         )
 
     async def async_fetch_wg4_energy(
@@ -466,8 +484,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         if api is None:
             msg = "This is only supported on WG4-series thermostats."
             raise OJMicrolineError(msg)
-        await self.api.login()
-        return await api.fetch_energy_usage(thermostat, view, day, history)
+        return await self._async_with_session(
+            lambda: api.fetch_energy_usage(thermostat, view, day, history)
+        )
 
     async def async_set_regulation_mode(
         self,
@@ -536,13 +555,14 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             group["BoostEndTime"] = format_wd5(thermostat.boost_end_time)
         group.update(changes or {})
 
-        await self.api.login()
-        response = await api.request(
-            api.update_regulation_mode_path,
-            method="POST",
-            # pylint: disable-next=protected-access
-            params={"sessionid": api._session_id},  # noqa: SLF001
-            body=body,
+        response = await self._async_with_session(
+            lambda: api.request(
+                api.update_regulation_mode_path,
+                method="POST",
+                # pylint: disable-next=protected-access
+                params={"sessionid": api._session_id},  # noqa: SLF001
+                body=body,
+            )
         )
         if not api.parse_update_regulation_mode_response(response):
             msg = "Unable to update the thermostat group."

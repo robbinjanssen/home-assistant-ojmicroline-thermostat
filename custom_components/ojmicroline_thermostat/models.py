@@ -13,6 +13,8 @@ from .coordinator import OJMicrolineDataUpdateCoordinator
 class OJMicrolineEntity(CoordinatorEntity[OJMicrolineDataUpdateCoordinator], Entity):
     """Defines an OJ Microline Entity."""
 
+    _attr_has_entity_name = True
+
     idx: str
 
     def __init__(self, coordinator: OJMicrolineDataUpdateCoordinator, idx: str) -> None:
@@ -37,4 +39,7 @@ class OJMicrolineEntity(CoordinatorEntity[OJMicrolineDataUpdateCoordinator], Ent
             to the correct device.
 
         """
-        return DeviceInfo(identifiers={(DOMAIN, self.idx)})
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.idx)},
+            name=self.coordinator.data[self.idx].name,
+        )

@@ -1,6 +1,6 @@
 """Tests for the OJ Microline Thermostat climate entities."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from homeassistant.components.climate import (
@@ -41,7 +41,7 @@ async def setup_integration_fixture(
     return mock_wg4_api
 
 
-def _update_requests(aioclient_mock: AiohttpClientMocker) -> list[object]:
+def _update_requests(aioclient_mock: AiohttpClientMocker) -> list[Any]:
     return [
         call
         for call in aioclient_mock.mock_calls
@@ -89,3 +89,21 @@ async def test_set_preset_mode(
     )
 
     assert len(_update_requests(setup_integration)) == 1
+
+
+async def test_set_comfort_keeps_target_temperature(
+    hass: HomeAssistant, setup_integration: AiohttpClientMocker
+) -> None:
+    """Test switching to comfort keeps the current target temperature (#280)."""
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_PRESET_MODE,
+        {ATTR_ENTITY_ID: "climate.roomname", ATTR_PRESET_MODE: "comfort"},
+        blocking=True,
+    )
+
+    requests = _update_requests(setup_integration)
+    assert len(requests) == 1
+    body = requests[0][2]
+    assert body["RegulationMode"] == 2
+    assert body["ComfortTemperature"] == 2600

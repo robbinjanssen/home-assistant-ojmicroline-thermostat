@@ -12,13 +12,10 @@ from homeassistant.util import dt as dt_util
 
 from ojmicroline_thermostat import OJMicrolineError
 
-from .const import DOMAIN
-
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from .coordinator import OJMicrolineDataUpdateCoordinator
+    from .coordinator import OJMicrolineConfigEntry
 
 TO_REDACT = {CONF_API_KEY, CONF_PASSWORD, CONF_USERNAME}
 
@@ -34,10 +31,10 @@ ENERGY_PROBES = [
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    _hass: HomeAssistant, entry: OJMicrolineConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: OJMicrolineDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     today = dt_util.now().date()
 
     thermostats = {}

@@ -104,6 +104,16 @@ WG4_STEP_SCHEMA = probatio.Schema(
 )
 
 
+STEP_SCHEMAS = {
+    MODEL_WD5_SERIES: WD5_STEP_SCHEMA,
+    MODEL_WG4_SERIES: WG4_STEP_SCHEMA,
+    MODEL_WG5_SERIES: WG5_STEP_SCHEMA,
+}
+
+# The keys that distinguish one account from another.
+ACCOUNT_KEYS = (CONF_MODEL, CONF_HOST, CONF_USERNAME)
+
+
 class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle an OJ Microline config flow."""
 
@@ -248,9 +258,7 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
         data = DATA_SCHEMA(data)
         # Disallow duplicate entries, only considering model/host/username as
         # distinguishing keys.
-        self._async_abort_entries_match(
-            {k: data[k] for k in data if k in [CONF_MODEL, CONF_HOST, CONF_USERNAME]}
-        )
+        self._async_abort_entries_match({k: data[k] for k in data if k in ACCOUNT_KEYS})
         if (error := await self._async_validate_login(data)) is not None:
             errors["base"] = error
             return None
@@ -278,6 +286,49 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
         except OJMicrolineError:
             return "unknown"
         return None
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change the account settings of an existing entry.
+
+        Args:
+        ----
+            user_input: The input received from the user or none.
+
+        Returns:
+        -------
+            An abort result after updating the entry or a form with errors.
+
+        """
+        entry = self._get_reconfigure_entry()
+        model = entry.data[CONF_MODEL]
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            # Optional fields that were cleared are left out, so their
+            # defaults apply again.
+            data = DATA_SCHEMA({CONF_MODEL: model, **user_input})
+            account = {k: data.get(k) for k in ACCOUNT_KEYS}
+            for other in self._async_current_entries(include_ignore=False):
+                if other.entry_id != entry.entry_id and account == {
+                    k: other.data.get(k) for k in ACCOUNT_KEYS
+                }:
+                    return self.async_abort(reason="already_configured")
+            if (error := await self._async_validate_login(data)) is None:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    title=f"{INTEGRATION_NAME} ({data[CONF_USERNAME]})",
+                    data=data,
+                )
+            errors["base"] = error
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_SCHEMAS[model], user_input or entry.data
+            ),
+            errors=errors,
+        )
 
     async def async_step_reauth(
         self,

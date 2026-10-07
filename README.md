@@ -45,6 +45,8 @@ Install this integration by copying all files in `/custom_components/ojmicroline
 
 To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (and for the WD5 series also the customer ID and API key).
 
+To change these settings later, for example after changing your password or to use another host, choose **Reconfigure** in the integration's menu.
+
 ## Live updates (WD5 and WG4 series)
 
 WD5-series thermostats receive live updates through the same notification service the OJ Microline and SWATT apps use, so changes made on the thermostat or in the app show up in Home Assistant within seconds. While this connection is up, the integration polls only every 5 minutes (for energy usage and as a fallback); when it drops, polling returns to every minute and the connection is retried automatically.

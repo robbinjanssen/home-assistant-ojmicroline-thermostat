@@ -49,6 +49,22 @@
                 "data_description": {
                     "username": "A conta que utiliza na aplicação OJ Microline."
                 }
+            },
+            "reconfigure": {
+                "title": "Reconfigurar",
+                "description": "Altere as definições da sua conta OJ Microline.",
+                "data": {
+                    "username": "Nome de utilizador",
+                    "password": "Palavra-passe",
+                    "api_key": "Chave de API",
+                    "host": "Anfitrião",
+                    "customer_id": "ID de cliente",
+                    "application": "Código da aplicação"
+                },
+                "data_description": {
+                    "host": "Deixe em branco para usar o valor predefinido. Se indicar um, omita o https://.",
+                    "customer_id": "Deixe em branco para usar o valor predefinido."
+                }
             }
         },
         "error": {

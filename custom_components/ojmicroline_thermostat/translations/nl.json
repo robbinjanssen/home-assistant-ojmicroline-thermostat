@@ -49,6 +49,22 @@
                 "data_description": {
                     "username": "Het account dat je in de OJ Microline-app gebruikt."
                 }
+            },
+            "reconfigure": {
+                "title": "Opnieuw configureren",
+                "description": "Wijzig de instellingen van je OJ Microline-account.",
+                "data": {
+                    "username": "Gebruikersnaam",
+                    "password": "Wachtwoord",
+                    "api_key": "API-sleutel",
+                    "host": "Host",
+                    "customer_id": "Klant-ID",
+                    "application": "Applicatiecode"
+                },
+                "data_description": {
+                    "host": "Laat leeg voor de standaardwaarde. Laat https:// weg als je een host opgeeft.",
+                    "customer_id": "Laat leeg voor de standaardwaarde."
+                }
             }
         },
         "error": {

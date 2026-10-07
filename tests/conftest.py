@@ -150,3 +150,60 @@ def mock_wd5_api(aioclient_mock: AiohttpClientMocker) -> Generator[AiohttpClient
     )
     with patch("custom_components.ojmicroline_thermostat.push.WD5PushClient.start"):
         yield aioclient_mock
+
+
+WG5_IDENTITY = "https://identity.ojmicroline.com"
+WG5_HOST = "https://user-api.ojmicroline.com"
+WG5_BUILDING = "57dc7778-4ed3-4382-9e89-5cf2e0bc0f8a"
+WG5_THERMOSTAT = "2cb3e6c5-8cf8-4e7e-943a-42618c34a506"
+WG5_SCHEDULE = "f9aac20b-4e45-415b-9f56-e53014ee8639"
+WG5_DATA = {"model": "WG5 series", "username": "user@example.com", "password": "pw"}
+
+
+@pytest.fixture
+def mock_wg5_config_entry() -> MockConfigEntry:
+    """Return a config entry for a WG5-series account."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="OJ Microline Thermostat (user@example.com)",
+        version=2,
+        data=WG5_DATA,
+        entry_id="01JOJMICROLINEWG5",
+    )
+
+
+@pytest.fixture
+def mock_wg5_api(aioclient_mock: AiohttpClientMocker) -> AiohttpClientMocker:
+    """Respond to the requests of a WG5-series account."""
+    json_headers = {"Content-Type": "application/json"}
+    aioclient_mock.post(
+        f"{WG5_IDENTITY}/connect/token",
+        text=load_fixture("wg5_token.json"),
+        headers=json_headers,
+    )
+    for path, fixture in (
+        ("buildings", "wg5_buildings.json"),
+        (f"buildings/{WG5_BUILDING}/tree", "wg5_building_tree.json"),
+        (f"thermostats/{WG5_THERMOSTAT}/control", "wg5_thermostat_control.json"),
+        (f"thermostats/{WG5_THERMOSTAT}", "wg5_thermostat_detail.json"),
+        (f"schedules/{WG5_SCHEDULE}", "wg5_schedule.json"),
+    ):
+        aioclient_mock.get(
+            f"{WG5_HOST}/{path}", text=load_fixture(fixture), headers=json_headers
+        )
+    aioclient_mock.get(
+        f"{WG5_HOST}/awaymode/{WG5_BUILDING}",
+        json={"status": {"code": "OK"}},
+        headers=json_headers,
+    )
+    aioclient_mock.post(
+        f"{WG5_HOST}/energy/usage/building/{WG5_BUILDING}",
+        text=load_fixture("wg5_energy.json"),
+        headers=json_headers,
+    )
+    aioclient_mock.put(
+        f"{WG5_HOST}/thermostats/{WG5_THERMOSTAT}/mode",
+        json={"status": {"code": "OK"}},
+        headers=json_headers,
+    )
+    return aioclient_mock

@@ -1,0 +1,110 @@
+{
+  "data": {
+    "id": "2cb3e6c5-8cf8-4e7e-943a-42618c34a506",
+    "name": "Bathroom",
+    "userId": "87c522ce-f45f-4993-bf2a-74677d7114f9",
+    "zoneId": "ae85d8fc-1b4a-445a-bdf1-05f970fc3da4",
+    "zoneName": "Default",
+    "buildingId": "57dc7778-4ed3-4382-9e89-5cf2e0bc0f8a",
+    "buildingName": "My Home",
+    "isOnline": true,
+    "hasError": false,
+    "hasUpdates": true,
+    "errors": "NoErrors",
+    "isFloorSensorAvailable": true,
+    "isAwayActive": false,
+    "serialNumber": "300030132",
+    "isAdaptiveHeatingActive": false,
+    "isOpenWindowDetected": false,
+    "isHeatRelayActive": false,
+    "distributorId": 10031,
+    "plConfigFile": "1047AA103",
+    "thermostatDisplaySettings": {
+      "temperatureUnit": "Fahrenheit",
+      "screensaver": "ActualTemperature",
+      "screenLockEnabled": false,
+      "displayOn": true,
+      "brightnessNormal": 6,
+      "brightnessScreensaver": 3,
+      "changeTimestamp": "2025-08-05T14:13:36Z"
+    },
+    "thermostatHeatingSettings": {
+      "floorLoad": 100,
+      "floorSensorType": "Type10KOhm",
+      "floorSensorOffset": 0,
+      "roomSensorOffset": 0,
+      "isAdaptiveHeatingEnabled": false,
+      "isOpenWindowDetectionEnabled": true,
+      "changeTimestamp": "2026-04-14T01:17:18Z"
+    },
+    "thermostatFloorSensorSettings": {
+      "value15deg": 4714,
+      "value20deg": 3749,
+      "value25deg": 3000,
+      "value30deg": 2417,
+      "changeTimestamp": "2025-08-05T14:13:36Z"
+    },
+    "thermostatRegulationSettings": {
+      "sensorApplication": "Floor",
+      "temperatureLimitMax": 40,
+      "temperatureLimitMin": 5,
+      "floorType": "Tile",
+      "floorProtectionMax": 40,
+      "floorProtectionMin": 0,
+      "frostProtectionTemperature": 5,
+      "frostProtectionEnabled": true,
+      "changeTimestamp": "2026-04-05T04:20:33Z"
+    },
+    "thermostatDateTimeSettings": {
+      "dst": "NorthAmerica",
+      "timeZoneMinutes": -300,
+      "changeTimestamp": "2026-04-05T11:43:35Z"
+    },
+    "thermostatWifiSettings": {
+      "ssid": "TestWifi",
+      "authentication": "Wpa2",
+      "defaultGateway": "192.168.4.1",
+      "netmask": "255.255.252.0",
+      "ipv4": "192.168.4.24",
+      "ipv6": "fe80::223:38ff:fe62:d449",
+      "dhcp": false,
+      "macWifi": "00:23:38:62:D4:49",
+      "macBle": "00:23:38:62:D4:4A",
+      "preferedWifiChannel": 0,
+      "numberOfTimesWifiApConnectWasCalled": 7,
+      "bleState": 1,
+      "changeTimestamp": "2026-04-13T01:38:30Z"
+    },
+    "thermostatReadouts": {
+      "softwareVersionNumber": "1047A108",
+      "productType": "UWG5",
+      "floorTemperature": 19,
+      "floorTemperatureFahrenheit": 67,
+      "roomTemperature": 21,
+      "roomTemperatureFahrenheit": 70,
+      "currentTime": "2026-04-14T01:31:11Z",
+      "distributorId": "10031",
+      "wifiSoftwareVersion": "6.02.00-004"
+    },
+    "mode": {
+      "isInStandby": true,
+      "isAwayActive": false,
+      "fallbackMode": "Auto",
+      "manualSetpoint": 26,
+      "changeTimestamp": "0001-01-01T00:00:00"
+    },
+    "scheduleData": {
+      "scheduleId": "f9aac20b-4e45-415b-9f56-e53014ee8639",
+      "scheduleName": "Default Schedule",
+      "nextEventStartTime": "23:00:00",
+      "nextEventDayOfWeek": "Monday",
+      "nextEventSetPoint": 23,
+      "currentSetPoint": 28
+    },
+    "setpoint": 28
+  },
+  "status": {
+    "code": "OK",
+    "traceId": "d078903141fa63e29fff471c0e3c514f"
+  }
+}

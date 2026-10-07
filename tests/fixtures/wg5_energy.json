@@ -1,0 +1,36 @@
+{
+  "data": {
+    "histogram": [
+      {
+        "consumedWattHours": 150,
+        "cost": 0.015,
+        "bucketStart": "2026-04-13T00:00:00Z"
+      },
+      {
+        "consumedWattHours": 200,
+        "cost": 0.020,
+        "bucketStart": "2026-04-13T01:00:00Z"
+      },
+      {
+        "consumedWattHours": 0,
+        "cost": 0.0,
+        "bucketStart": "2026-04-13T02:00:00Z"
+      }
+    ],
+    "priceSettings": {
+      "isDefault": true,
+      "price": 0.1,
+      "currency": "USD"
+    },
+    "floorLoadSettings": [
+      {
+        "thermostatId": "2cb3e6c5-8cf8-4e7e-943a-42618c34a506",
+        "floorLoad": 100
+      }
+    ]
+  },
+  "status": {
+    "code": "OK",
+    "traceId": "abc123"
+  }
+}

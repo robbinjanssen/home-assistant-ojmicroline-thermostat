@@ -7,7 +7,7 @@
                     "model": "Modelo"
                 },
                 "data_description": {
-                    "model": "A série WD5 inclui OWD5 e MWD5; a série WG4 inclui UWG4 e AWG4."
+                    "model": "A série WD5 inclui OWD5 e MWD5; a série WG4 inclui UWG4 e AWG4; a série WG5 inclui UWG5."
                 }
             },
             "wd5": {
@@ -39,6 +39,15 @@
                 "description": "A API OJ Microline rejeitou a palavra-passe de {username}. Introduza a palavra-passe atual.",
                 "data": {
                     "password": "Palavra-passe"
+                }
+            },
+            "wg5": {
+                "data": {
+                    "username": "Nome de utilizador",
+                    "password": "Palavra-passe"
+                },
+                "data_description": {
+                    "username": "A conta que utiliza na aplicação OJ Microline."
                 }
             }
         },

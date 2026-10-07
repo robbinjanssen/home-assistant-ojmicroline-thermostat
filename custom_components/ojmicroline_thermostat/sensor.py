@@ -265,7 +265,9 @@ async def async_setup_entry(
                     )
                 )
 
-        if coordinator.data[idx].schedule is not None:
+        # Only the WD5 series reports a schedule in the parsed format.
+        thermostat = coordinator.data[idx]
+        if is_wd5(thermostat) and thermostat.schedule is not None:
             entities.append(OJMicrolineScheduleSensor(coordinator, idx))
 
     async_add_entities(entities)

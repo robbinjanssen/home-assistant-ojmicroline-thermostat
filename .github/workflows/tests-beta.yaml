@@ -1,0 +1,42 @@
+---
+name: Tests against Home Assistant beta
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DEFAULT_PYTHON: "3.14"
+
+jobs:
+  pytest:
+    name: Tests (Home Assistant beta)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up uv and Python ${{ env.DEFAULT_PYTHON }}
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Install the latest Home Assistant (beta) test package
+        run: >-
+          uv pip install --upgrade --prerelease=allow
+          pytest-homeassistant-custom-component
+
+      - name: Show the Home Assistant version
+        run: uv run --no-sync python -c "from homeassistant.const import __version__; print(__version__)"
+
+      # --no-sync keeps the beta instead of restoring the locked versions.
+      - name: Run pytest
+        run: uv run --no-sync pytest

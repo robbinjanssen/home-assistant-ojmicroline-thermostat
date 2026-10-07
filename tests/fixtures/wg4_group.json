@@ -1,0 +1,660 @@
+{
+    "Groups": [
+        {
+            "GroupName": "",
+            "GroupId": 0,
+            "AwayMode": false,
+            "Thermostats": [
+                {},
+                {
+                    "SerialNumber": "42424242",
+                    "Room": "RoomName",
+                    "GroupName": "",
+                    "GroupId": -1,
+                    "Temperature": 2200,
+                    "SetPointTemp": 2600,
+                    "RegulationMode": 3,
+                    "VacationEnabled": false,
+                    "VacationBeginDay": "01/01/1970 00:00:00",
+                    "VacationEndDay": "01/01/1970 00:00:00",
+                    "VacationTemperature": 500,
+                    "ComfortTemperature": 2500,
+                    "ComfortEndTime": "28/01/2024 23:29:00 +00:00 +00:00",
+                    "ManualTemperature": 500,
+                    "LastPrimaryModeIsAuto": true,
+                    "Online": true,
+                    "Heating": false,
+                    "EarlyStartOfHeating": false,
+                    "MaxTemp": 4000,
+                    "MinTemp": 500,
+                    "ErrorCode": 0,
+                    "Confirmed": true,
+                    "Email": "user@example.com",
+                    "TZOffset": "-06:00",
+                    "Assigned": true,
+                    "KwhCharge": 0.25,
+                    "LoadMeasuringActive": true,
+                    "LoadManuallySetWatt": 100,
+                    "LoadMeasuredWatt": 1218,
+                    "SWVersion": "1012M203",
+                    "HasBeenAssigned": true,
+                    "DistributerId": 20296,
+                    "Schedules": [
+                        {
+                            "WeekDayGrpNo": 1,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 2,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 3,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 4,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 5,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 6,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 7,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        }
+                    ],
+                    "Support": "Please refer to the manual.</br>For further support</br>contact your installer."
+                },
+                {
+                    "SerialNumber": "42424243",
+                    "Room": "SecondRoom",
+                    "GroupName": "",
+                    "GroupId": -1,
+                    "Temperature": 2001,
+                    "SetPointTemp": 500,
+                    "RegulationMode": 3,
+                    "VacationEnabled": false,
+                    "VacationBeginDay": "01/01/1970 00:00:00",
+                    "VacationEndDay": "01/01/1970 00:00:00",
+                    "VacationTemperature": 500,
+                    "ComfortTemperature": 2500,
+                    "ComfortEndTime": "28/01/2024 23:29:00 +00:00",
+                    "ManualTemperature": 500,
+                    "LastPrimaryModeIsAuto": false,
+                    "Online": true,
+                    "Heating": false,
+                    "EarlyStartOfHeating": false,
+                    "MaxTemp": 4000,
+                    "MinTemp": 500,
+                    "ErrorCode": 0,
+                    "Confirmed": true,
+                    "Email": "user@example.com",
+                    "TZOffset": "-06:00",
+                    "Assigned": true,
+                    "KwhCharge": 0.25,
+                    "LoadMeasuringActive": true,
+                    "LoadManuallySetWatt": 100,
+                    "LoadMeasuredWatt": 320,
+                    "SWVersion": "1012M203",
+                    "HasBeenAssigned": true,
+                    "DistributerId": 20296,
+                    "Schedules": [
+                        {
+                            "WeekDayGrpNo": 1,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 2,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 3,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 4,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 5,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 6,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        },
+                        {
+                            "WeekDayGrpNo": 7,
+                            "Events": [
+                                {
+                                    "ScheduleType": 0,
+                                    "Clock": "06:00:00",
+                                    "TempFloor": 3222,
+                                    "Active": true
+                                },
+                                {
+                                    "ScheduleType": 1,
+                                    "Clock": "09:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 2,
+                                    "Clock": "12:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 3,
+                                    "Clock": "13:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 4,
+                                    "Clock": "17:00:00",
+                                    "TempFloor": 2777,
+                                    "Active": false
+                                },
+                                {
+                                    "ScheduleType": 5,
+                                    "Clock": "23:00:00",
+                                    "TempFloor": 2333,
+                                    "Active": true
+                                }
+                            ]
+                        }
+                    ],
+                    "Support": "Please refer to the manual.</br>For further support</br>contact your installer."
+                }
+            ]
+        }
+    ]
+}

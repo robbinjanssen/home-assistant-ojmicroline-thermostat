@@ -1,0 +1,83 @@
+{
+    "MondayIsFirstDay": false,
+    "EnergyUsage": [
+        {
+            "Usage": [
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 0.0,
+                    "ChargeKWattHour": 0.0
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 0.0,
+                    "ChargeKWattHour": 0.0
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 0.0,
+                    "ChargeKWattHour": 0.0
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 0.0,
+                    "ChargeKWattHour": 0.0
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 1.2,
+                    "ChargeKWattHour": 0.3
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 2.5,
+                    "ChargeKWattHour": 0.625
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 3.1,
+                    "ChargeKWattHour": 0.775
+                }
+            ]
+        },
+        {
+            "Usage": [
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 4.2,
+                    "ChargeKWattHour": 1.05
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 5.3,
+                    "ChargeKWattHour": 1.325
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 6.4,
+                    "ChargeKWattHour": 1.6
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 7.5,
+                    "ChargeKWattHour": 1.875
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 8.6,
+                    "ChargeKWattHour": 2.15
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 9.7,
+                    "ChargeKWattHour": 2.425
+                },
+                {
+                    "Minutes": 0,
+                    "EnergyKWattHour": 10.8,
+                    "ChargeKWattHour": 2.7
+                }
+            ]
+        }
+    ]
+}

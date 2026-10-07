@@ -1,0 +1,64 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEFAULT_PYTHON: "3.14"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up uv and Python ${{ env.DEFAULT_PYTHON }}
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run pre-commit hooks with prek
+        run: uv run prek run --all-files --show-diff-on-failure
+        env:
+          # Commits to main are expected here, the hook guards local commits.
+          SKIP: no-commit-to-branch
+
+  pytest:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up uv and Python ${{ env.DEFAULT_PYTHON }}
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run pytest with coverage
+        run: >-
+          uv run pytest
+          --cov=custom_components.ojmicroline_thermostat
+          --cov-report=term-missing
+          --cov-fail-under=70

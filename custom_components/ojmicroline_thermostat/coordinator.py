@@ -7,8 +7,6 @@ from datetime import date, timedelta
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
-import async_timeout
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -53,6 +51,8 @@ from .push import WD5PushClient
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         """
         try:
-            async with async_timeout.timeout(API_TIMEOUT):
+            async with asyncio.timeout(API_TIMEOUT):
                 thermostats = await self._async_fetch_thermostats()
                 return {resource.serial_number: resource for resource in thermostats}
 
@@ -286,7 +286,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
                 continue
             try:
                 thermostat = Thermostat.from_wd5_json(item)
-            except (KeyError, TypeError, ValueError):
+            except KeyError, TypeError, ValueError:
                 needs_refresh = True
                 continue
             thermostat.energy = current.energy

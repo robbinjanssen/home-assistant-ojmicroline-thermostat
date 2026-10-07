@@ -1,18 +1,21 @@
 """OJMicroline Thermostat platform configuration."""
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
 from .const import CONF_MODEL, CONFIG_FLOW_VERSION, DOMAIN, MODEL_WD5_SERIES
 from .coordinator import OJMicrolineDataUpdateCoordinator
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.typing import ConfigType
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)  # pylint: disable=invalid-name
 
@@ -101,13 +104,13 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
     if config_entry.version == 1:
         # Version 1 only supported WD5; version 2 requires CONF_MODEL
-        config_entry.version = CONFIG_FLOW_VERSION
         hass.config_entries.async_update_entry(
             config_entry,
             data={
                 CONF_MODEL: MODEL_WD5_SERIES,
                 **config_entry.data,
             },
+            version=CONFIG_FLOW_VERSION,
         )
 
     return True

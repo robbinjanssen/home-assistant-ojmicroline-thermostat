@@ -1,6 +1,6 @@
 """Config flow to configure OJMicroline."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import probatio
 from homeassistant.config_entries import (
@@ -8,9 +8,15 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
+    OptionsFlowWithReload,
 )
 from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from ojmicroline_thermostat import (
     OJMicrolineAuthError,
@@ -35,6 +41,9 @@ from .const import (
     MODEL_WG4_SERIES,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 DATA_SCHEMA = probatio.Schema(
     {
         probatio.Required(CONF_MODEL): probatio.In(
@@ -46,6 +55,14 @@ DATA_SCHEMA = probatio.Schema(
         CONF_CUSTOMER_ID: int,
         CONF_API_KEY: str,
         probatio.Optional(CONF_APPLICATION): int,
+    }
+)
+
+REAUTH_SCHEMA = probatio.Schema(
+    {
+        probatio.Required(CONF_PASSWORD): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        ),
     }
 )
 
@@ -188,36 +205,90 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
         Otherwise, stores an error in the errors dict and returns None.
         """
         data = DATA_SCHEMA(data)
+        # Disallow duplicate entries, only considering model/host/username as
+        # distinguishing keys.
+        self._async_abort_entries_match(
+            {k: data[k] for k in data if k in [CONF_MODEL, CONF_HOST, CONF_USERNAME]}
+        )
+        if (error := await self._async_validate_login(data)) is not None:
+            errors["base"] = error
+            return None
+        return self.async_create_entry(
+            title=f"{INTEGRATION_NAME} ({data[CONF_USERNAME]})", data=data
+        )
+
+    async def _async_validate_login(self, data: Mapping[str, Any]) -> str | None:
+        """Log in to the API with the given config entry data.
+
+        Returns
+        -------
+            None if the login succeeded, otherwise the error key.
+
+        """
         try:
-            # Disallow duplicate entries...
-            self._async_abort_entries_match(
-                {
-                    k: data[k]
-                    for k in data
-                    # ... only considering model/host/username as
-                    # distinguishing keys.
-                    if k in [CONF_MODEL, CONF_HOST, CONF_USERNAME]
-                }
-            )
-            api = oj_microline_from_config_entry_data(data, self.hass)
+            api = oj_microline_from_config_entry_data(dict(data), self.hass)
             await api.login()
         except OJMicrolineAuthError:
-            errors["base"] = "invalid_auth"
+            return "invalid_auth"
         except OJMicrolineTimeoutError:
-            errors["base"] = "timeout"
+            return "timeout"
         except OJMicrolineConnectionError:
-            errors["base"] = "connection_failed"
+            return "connection_failed"
         except OJMicrolineError:
-            errors["base"] = "unknown"
-        else:
-            return self.async_create_entry(
-                title=f"{INTEGRATION_NAME} ({data[CONF_USERNAME]})", data=data
-            )
+            return "unknown"
         return None
 
+    async def async_step_reauth(
+        self,
+        entry_data: Mapping[str, Any],  # noqa: ARG002 # pylint: disable=unused-argument
+    ) -> ConfigFlowResult:
+        """Handle a login that was rejected, for example after a password change.
 
-class OJMicrolineOptionsFlowHandler(OptionsFlow):
-    """Handle options."""
+        Args:
+        ----
+            entry_data: The data of the config entry.
+
+        Returns:
+        -------
+            The form to enter the new password.
+
+        """
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the new password and update the config entry.
+
+        Args:
+        ----
+            user_input: The input received from the user or none.
+
+        Returns:
+        -------
+            An abort result after updating the entry or a form with errors.
+
+        """
+        entry = self._get_reauth_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data = {**entry.data, CONF_PASSWORD: user_input[CONF_PASSWORD]}
+            if (error := await self._async_validate_login(data)) is None:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD]}
+                )
+            errors["base"] = error
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=REAUTH_SCHEMA,
+            description_placeholders={"username": entry.data[CONF_USERNAME]},
+            errors=errors,
+        )
+
+
+class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
+    """Handle options; the entry reloads so they apply right away."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

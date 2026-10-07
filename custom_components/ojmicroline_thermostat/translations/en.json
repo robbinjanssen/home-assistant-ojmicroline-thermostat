@@ -35,6 +35,13 @@
                     "host": "Leave blank to use the default. If specified, omit the https://.",
                     "application": "The application code sent on login. Standard WG4 thermostats use 2 (the default); Danfoss LX (lxwifi.danfoss.us) requires 4."
                 }
+            },
+            "reauth_confirm": {
+                "title": "Re-enter the password",
+                "description": "The OJ Microline API rejected the password for {username}. Enter the current password.",
+                "data": {
+                    "password": "Password"
+                }
             }
         },
         "error": {

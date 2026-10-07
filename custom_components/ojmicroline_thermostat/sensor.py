@@ -24,17 +24,16 @@ from ojmicroline_thermostat.const import (
     SENSOR_ROOM_FLOOR,
 )
 
-from .const import DOMAIN, MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
+from .const import MODE_FLOOR, MODE_ROOM, MODE_ROOM_FLOOR
 from .helpers import is_wd5, target_temperature, wd5_local_time
 from .models import OJMicrolineEntity
 from .schedule import current_setpoint, schedule_attributes
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import OJMicrolineDataUpdateCoordinator
+    from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
 
 
 VENDOR_TO_HA_STATE = {
@@ -227,20 +226,20 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
+    _hass: HomeAssistant,
+    entry: OJMicrolineConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Load all OJMicroline Thermostat sensors.
 
     Args:
     ----
-        hass: The HomeAssistant instance.
+        _hass: The HomeAssistant instance.
         entry: The ConfigEntry containing the user input.
         async_add_entities: The callback to provide the created entities to.
 
     """
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     entities: list[SensorEntity] = []
 
     for idx in coordinator.data.keys():  # noqa: SIM118

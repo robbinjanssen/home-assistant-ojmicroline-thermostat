@@ -33,6 +33,13 @@
                 "data_description": {
                     "host": "Deixe em branco para usar o padrão. Se especificado, omita https://."
                 }
+            },
+            "reauth_confirm": {
+                "title": "Introduza novamente a palavra-passe",
+                "description": "A API OJ Microline rejeitou a palavra-passe de {username}. Introduza a palavra-passe atual.",
+                "data": {
+                    "password": "Palavra-passe"
+                }
             }
         },
         "error": {

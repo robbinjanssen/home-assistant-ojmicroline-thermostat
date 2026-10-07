@@ -10,15 +10,13 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 
-from .const import DOMAIN
 from .models import OJMicrolineEntity
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import OJMicrolineDataUpdateCoordinator
+    from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
 
 BINARY_SENSOR_TYPES: list[BinarySensorEntityDescription] = [
     BinarySensorEntityDescription(
@@ -45,20 +43,20 @@ BINARY_SENSOR_TYPES: list[BinarySensorEntityDescription] = [
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
+    _hass: HomeAssistant,
+    entry: OJMicrolineConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Load all OJMicroline Thermostat binary sensors.
 
     Args:
     ----
-        hass: The HomeAssistant instance.
+        _hass: The HomeAssistant instance.
         entry: The ConfigEntry containing the user input.
         async_add_entities: The callback to provide the created entities to.
 
     """
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     entities = []
     for idx in coordinator.data.keys():  # noqa: SIM118
         for description in BINARY_SENSOR_TYPES:

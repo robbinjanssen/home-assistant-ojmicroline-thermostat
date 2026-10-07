@@ -33,6 +33,13 @@
                 "data_description": {
                     "host": "Laat dit leeg om de standaardwaarde te gebruiken. Indien opgegeven, laat https:// weg."
                 }
+            },
+            "reauth_confirm": {
+                "title": "Wachtwoord opnieuw invoeren",
+                "description": "De OJ Microline API heeft het wachtwoord voor {username} geweigerd. Voer het huidige wachtwoord in.",
+                "data": {
+                    "password": "Wachtwoord"
+                }
             }
         },
         "error": {

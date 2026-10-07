@@ -52,7 +52,7 @@ from .const import (
     SERVICE_SET_SCHEDULE,
     SERVICE_SET_VACATION,
 )
-from .coordinator import OJMicrolineDataUpdateCoordinator
+from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
 from .helpers import target_temperature, wd5_date
 from .schedule import SLOTS, WEEKDAYS, ScheduleError, set_days
 
@@ -60,7 +60,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from datetime import date
 
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -79,18 +78,20 @@ HA_TO_VENDOR_STATE = {v: k for k, v in VENDOR_TO_HA_STATE.items()}
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    _hass: HomeAssistant,
+    entry: OJMicrolineConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Load all OJMicroline Thermostat devices.
 
     Args:
     ----
-        hass: The HomeAssistant instance.
+        _hass: The HomeAssistant instance.
         entry: The ConfigEntry containing the user input.
         async_add_entities: The callback to provide the created entities to.
 
     """
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     entities = []
     for idx in coordinator.data:
         entities.append(  # noqa: PERF401
@@ -284,10 +285,20 @@ class OJMicrolineThermostat(
             preset_mode: The preset mode to set the thermostat to.
 
         """
+        thermostat = self.coordinator.data[self.idx]
+        regulation_mode = HA_TO_VENDOR_STATE[preset_mode]
+        temperature = None
+        if regulation_mode in {REGULATION_MANUAL, REGULATION_COMFORT}:
+            # Keep the current target temperature. Without one, the API
+            # stores an empty manual/comfort temperature and the thermostat
+            # falls back to an unrelated value (issue #280).
+            temperature = target_temperature(thermostat)
         try:
             await self.coordinator.async_set_regulation_mode(
-                self.coordinator.data[self.idx],
-                HA_TO_VENDOR_STATE[preset_mode],
+                thermostat,
+                regulation_mode,
+                temperature=temperature,
+                duration=self.options.get(CONF_COMFORT_MODE_DURATION),
             )
             await self._async_delayed_request_refresh()
         except OJMicrolineError:

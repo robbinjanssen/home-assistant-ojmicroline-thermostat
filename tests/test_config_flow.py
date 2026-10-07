@@ -89,3 +89,70 @@ async def test_options_flow(
         "use_comfort_mode": True,
         "comfort_mode_duration": 60,
     }
+
+
+async def test_reauth(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_wg4_api: AiohttpClientMocker,
+) -> None:
+    """Test entering a new password updates and reloads the entry."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    coordinator = mock_config_entry.runtime_data
+
+    result = await mock_config_entry.start_reauth_flow(hass)
+    assert result["step_id"] == "reauth_confirm"
+    assert result["description_placeholders"]["username"] == "user@example.com"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"password": "new-password"}
+    )
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert mock_config_entry.data["password"] == "new-password"
+    assert mock_config_entry.runtime_data is not coordinator
+    assert mock_wg4_api.call_count > 0
+
+
+async def test_reauth_wrong_password(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Test a rejected password keeps the form open."""
+    aioclient_mock.post(
+        f"{WG4_HOST}/api/authenticate/user",
+        json={"ErrorCode": 1},
+        headers={"Content-Type": "application/json"},
+    )
+    mock_config_entry.add_to_hass(hass)
+
+    result = await mock_config_entry.start_reauth_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"password": "still-wrong"}
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}
+    assert mock_config_entry.data["password"] == "pw"
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_options_reload(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test changing the options reloads the entry so they apply right away."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    coordinator = mock_config_entry.runtime_data
+
+    result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        result["flow_id"], {"use_comfort_mode": True, "comfort_mode_duration": 60}
+    )
+    await hass.async_block_till_done()
+
+    assert mock_config_entry.runtime_data is not coordinator

@@ -8,25 +8,23 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
 from .helpers import is_wd5, wd5_date
 from .models import OJMicrolineEntity
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import OJMicrolineDataUpdateCoordinator
+    from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
+    _hass: HomeAssistant,
+    entry: OJMicrolineConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the vacation switches."""
-    coordinator: OJMicrolineDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities(
         OJMicrolineVacationSwitch(coordinator, idx)
         for idx, thermostat in coordinator.data.items()

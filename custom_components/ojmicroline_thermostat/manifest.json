@@ -15,7 +15,7 @@
     "iot_class": "cloud_push",
     "issue_tracker": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues",
     "requirements": [
-        "ojmicroline-thermostat==3.7.0"
+        "ojmicroline-thermostat==3.7.1"
     ],
     "version": "1.5.0"
 }

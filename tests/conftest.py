@@ -173,9 +173,7 @@ def mock_wg5_config_entry() -> MockConfigEntry:
 
 
 @pytest.fixture
-def mock_wg5_api(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
-) -> Generator[AiohttpClientMocker]:
+def mock_wg5_api(aioclient_mock: AiohttpClientMocker) -> AiohttpClientMocker:
     """Respond to the requests of a WG5-series account."""
     json_headers = {"Content-Type": "application/json"}
     aioclient_mock.post(
@@ -208,9 +206,4 @@ def mock_wg5_api(
         json={"status": {"code": "OK"}},
         headers=json_headers,
     )
-    # WG5API logs in with a session of its own instead of the injected one.
-    with patch(
-        "ojmicroline_thermostat.wg5.ClientSession",
-        side_effect=lambda: aioclient_mock.create_session(hass.loop),
-    ):
-        yield aioclient_mock
+    return aioclient_mock

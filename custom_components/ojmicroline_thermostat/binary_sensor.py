@@ -106,4 +106,5 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
             True if the sensor is on, false if not, unknown if it can't be reached.
 
         """
-        return getattr(self.coordinator.data[self.idx], self.entity_description.key)
+        value = getattr(self.coordinator.data[self.idx], self.entity_description.key)
+        return None if value is None else bool(value)

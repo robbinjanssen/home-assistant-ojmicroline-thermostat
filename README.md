@@ -27,6 +27,8 @@ the HVAC mode will (re)set it to the schedule preset.
 
 Your thermostat needs to be connected to the internet. For OWD5 model thermostats you will need the API key and customer ID that is used by the app that you currently use to control your thermostat.
 
+This integration requires Home Assistant 2026.10 or newer.
+
 ## HACS installation
 
 Add this integration using HACS by searching for `OJ Microline Thermostat` on the `Integrations` page.
@@ -107,6 +109,14 @@ data:
 ## Contributing
 
 Please see [CONTRIBUTING](.github/CONTRIBUTING.md) and [CODE_OF_CONDUCT](.github/CODE_OF_CONDUCT.md) for details.
+
+To set up a development environment, install [uv](https://docs.astral.sh/uv/) and run:
+
+```sh
+uv sync
+uv run prek install
+uv run pytest
+```
 
 ## References & Thanks
 

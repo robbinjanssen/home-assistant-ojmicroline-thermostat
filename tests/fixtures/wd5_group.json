@@ -1,0 +1,1448 @@
+{
+    "GroupContents": [
+        {
+            "Action": 0,
+            "GroupId": 50369,
+            "GroupName": "Woonkamer",
+            "Thermostats": [
+                {
+                    "Id": 117006,
+                    "Action": 0,
+                    "SerialNumber": "800747",
+                    "GroupName": "Woonkamer",
+                    "GroupId": 50369,
+                    "CustomerId": 10,
+                    "SWversion": "1013W213",
+                    "Online": true,
+                    "Heating": false,
+                    "RoomTemperature": 1820,
+                    "FloorTemperature": 1968,
+                    "RegulationMode": 1,
+                    "Schedule": {
+                        "Days": [
+                            {
+                                "WeekDayGrpNo": 1,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "11:30:00",
+                                        "Temperature": 1800,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "16:30:00",
+                                        "Temperature": 2351,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "22:00:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "17:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 2,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "08:30:00",
+                                        "Temperature": 1800,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "16:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "22:00:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "17:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 3,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "08:30:00",
+                                        "Temperature": 1800,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "16:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "22:00:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "17:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 4,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "11:30:00",
+                                        "Temperature": 1800,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "14:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "22:00:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "17:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 5,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "08:30:00",
+                                        "Temperature": 1800,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "16:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "22:00:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "17:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 6,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "08:30:00",
+                                        "Temperature": 1800,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:30:00",
+                                        "Temperature": 2150,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "22:00:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "17:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 7,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:30:00",
+                                        "Temperature": 2350,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "08:30:00",
+                                        "Temperature": 1800,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:30:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "22:00:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "17:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            }
+                        ],
+                        "ModifiedDueToVerification": false
+                    },
+                    "ComfortSetpoint": 2000,
+                    "ComfortEndTime": "2022-12-28T15:58:34",
+                    "ManualModeSetpoint": 2350,
+                    "VacationEnabled": false,
+                    "VacationBeginDay": "2022-12-21T00:00:00",
+                    "VacationEndDay": "2022-12-22T00:00:00",
+                    "VacationTemperature": 500,
+                    "LastPrimaryModeIsAuto": true,
+                    "BoostEndTime": "2023-01-02T14:55:01",
+                    "FrostProtectionTemperature": 500,
+                    "ErrorCode": 0,
+                    "ThermostatName": "Woonkamer",
+                    "OpenWindow": false,
+                    "AdaptiveMode": true,
+                    "DaylightSaving": true,
+                    "SensorAppl": 3,
+                    "MinSetpoint": 500,
+                    "MaxSetpoint": 4000,
+                    "TimeZone": 3600,
+                    "DaylightSavingActive": false,
+                    "FloorType": 1
+                }
+            ],
+            "RegulationMode": 1,
+            "Schedule": {
+                "Days": [
+                    {
+                        "WeekDayGrpNo": 1,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "11:30:00",
+                                "Temperature": 1800,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "16:30:00",
+                                "Temperature": 2351,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "22:00:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "17:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 2,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "08:30:00",
+                                "Temperature": 1800,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "16:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "22:00:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "17:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 3,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "08:30:00",
+                                "Temperature": 1800,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "16:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "22:00:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "17:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 4,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "11:30:00",
+                                "Temperature": 1800,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "14:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "22:00:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "17:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 5,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "08:30:00",
+                                "Temperature": 1800,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "16:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "22:00:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "17:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 6,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "08:30:00",
+                                "Temperature": 1800,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:30:00",
+                                "Temperature": 2150,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "22:00:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "17:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 7,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:30:00",
+                                "Temperature": 2350,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "08:30:00",
+                                "Temperature": 1800,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:30:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "22:00:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "17:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    }
+                ],
+                "ModifiedDueToVerification": false
+            },
+            "ComfortSetpoint": 2000,
+            "ComfortEndTime": "2022-12-28T15:58:34",
+            "ManualModeSetpoint": 2350,
+            "VacationEnabled": false,
+            "VacationBeginDay": "2022-12-21T00:00:00",
+            "VacationEndDay": "2022-12-22T00:00:00",
+            "VacationTemperature": 500,
+            "LastPrimaryModeIsAuto": true,
+            "BoostEndTime": "2023-01-02T14:55:01",
+            "FrostProtectionTemperature": 500
+        },
+        {
+            "Action": 0,
+            "GroupId": 50370,
+            "GroupName": "Gang",
+            "Thermostats": [
+                {
+                    "Id": 117010,
+                    "Action": 0,
+                    "SerialNumber": "800857",
+                    "GroupName": "Gang",
+                    "GroupId": 50370,
+                    "CustomerId": 10,
+                    "SWversion": "1013W213",
+                    "Online": true,
+                    "Heating": false,
+                    "RoomTemperature": 1747,
+                    "FloorTemperature": 1656,
+                    "RegulationMode": 6,
+                    "Schedule": {
+                        "Days": [
+                            {
+                                "WeekDayGrpNo": 1,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:45:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "09:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "13:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "15:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 2,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:45:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "09:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "13:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "15:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 3,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:45:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "09:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "13:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "15:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 4,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:45:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "09:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "13:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "15:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 5,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:45:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "09:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "13:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "15:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 6,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:45:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "09:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "13:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "15:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            },
+                            {
+                                "WeekDayGrpNo": 7,
+                                "Events": [
+                                    {
+                                        "ScheduleType": 0,
+                                        "Clock": "06:45:00",
+                                        "Temperature": 1500,
+                                        "Active": true,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 1,
+                                        "Clock": "09:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 2,
+                                        "Clock": "12:00:00",
+                                        "Temperature": 2500,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 3,
+                                        "Clock": "13:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 4,
+                                        "Clock": "15:00:00",
+                                        "Temperature": 2000,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    },
+                                    {
+                                        "ScheduleType": 5,
+                                        "Clock": "23:00:00",
+                                        "Temperature": 1800,
+                                        "Active": false,
+                                        "EventIsOnNextDay": false
+                                    }
+                                ]
+                            }
+                        ],
+                        "ModifiedDueToVerification": false
+                    },
+                    "ComfortSetpoint": 2300,
+                    "ComfortEndTime": "2016-01-01T00:00:00",
+                    "ManualModeSetpoint": 0,
+                    "VacationEnabled": false,
+                    "VacationBeginDay": "1970-01-01T00:00:00",
+                    "VacationEndDay": "1970-01-01T00:00:00",
+                    "VacationTemperature": 500,
+                    "LastPrimaryModeIsAuto": true,
+                    "BoostEndTime": "2016-01-01T00:00:00",
+                    "FrostProtectionTemperature": 500,
+                    "ErrorCode": 0,
+                    "ThermostatName": "Gang",
+                    "OpenWindow": true,
+                    "AdaptiveMode": true,
+                    "DaylightSaving": true,
+                    "SensorAppl": 3,
+                    "MinSetpoint": 500,
+                    "MaxSetpoint": 4000,
+                    "TimeZone": 3600,
+                    "DaylightSavingActive": false,
+                    "FloorType": 1
+                },
+                {}
+            ],
+            "RegulationMode": 6,
+            "Schedule": {
+                "Days": [
+                    {
+                        "WeekDayGrpNo": 1,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:45:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "09:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "13:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "15:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 2,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:45:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "09:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "13:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "15:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 3,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:45:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "09:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "13:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "15:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 4,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:45:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "09:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "13:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "15:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 5,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:45:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "09:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "13:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "15:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 6,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:45:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "09:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "13:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "15:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    },
+                    {
+                        "WeekDayGrpNo": 7,
+                        "Events": [
+                            {
+                                "ScheduleType": 0,
+                                "Clock": "06:45:00",
+                                "Temperature": 1500,
+                                "Active": true,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 1,
+                                "Clock": "09:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 2,
+                                "Clock": "12:00:00",
+                                "Temperature": 2500,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 3,
+                                "Clock": "13:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 4,
+                                "Clock": "15:00:00",
+                                "Temperature": 2000,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            },
+                            {
+                                "ScheduleType": 5,
+                                "Clock": "23:00:00",
+                                "Temperature": 1800,
+                                "Active": false,
+                                "EventIsOnNextDay": false
+                            }
+                        ]
+                    }
+                ],
+                "ModifiedDueToVerification": false
+            },
+            "ComfortSetpoint": 2300,
+            "ComfortEndTime": "2016-01-01T00:00:00",
+            "ManualModeSetpoint": 0,
+            "VacationEnabled": false,
+            "VacationBeginDay": "2022-11-17T00:00:00",
+            "VacationEndDay": "2022-11-18T00:00:00",
+            "VacationTemperature": 500,
+            "LastPrimaryModeIsAuto": true,
+            "BoostEndTime": "2016-01-01T00:00:00",
+            "FrostProtectionTemperature": 500
+        }
+    ],
+    "ErrorCode": 0
+}

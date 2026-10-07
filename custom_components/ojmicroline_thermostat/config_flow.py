@@ -2,11 +2,15 @@
 
 from typing import Any
 
-import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+import probatio
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 
 from ojmicroline_thermostat import (
     OJMicrolineAuthError,
@@ -31,45 +35,49 @@ from .const import (
     MODEL_WG4_SERIES,
 )
 
-DATA_SCHEMA = vol.Schema(
+DATA_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_MODEL): vol.In([MODEL_WD5_SERIES, MODEL_WG4_SERIES]),
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
+        probatio.Required(CONF_MODEL): probatio.In(
+            [MODEL_WD5_SERIES, MODEL_WG4_SERIES]
+        ),
+        probatio.Required(CONF_USERNAME): str,
+        probatio.Required(CONF_PASSWORD): str,
         CONF_HOST: str,
         CONF_CUSTOMER_ID: int,
         CONF_API_KEY: str,
-        vol.Optional(CONF_APPLICATION): int,
+        probatio.Optional(CONF_APPLICATION): int,
     }
 )
 
-USER_STEP_SCHEMA = vol.Schema(
+USER_STEP_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_MODEL): vol.In([MODEL_WD5_SERIES, MODEL_WG4_SERIES]),
+        probatio.Required(CONF_MODEL): probatio.In(
+            [MODEL_WD5_SERIES, MODEL_WG4_SERIES]
+        ),
     }
 )
 
-WD5_STEP_SCHEMA = vol.Schema(
+WD5_STEP_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
-        vol.Required(CONF_API_KEY): str,
+        probatio.Required(CONF_USERNAME): str,
+        probatio.Required(CONF_PASSWORD): str,
+        probatio.Required(CONF_API_KEY): str,
         CONF_HOST: str,
         CONF_CUSTOMER_ID: int,
     }
 )
 
-WG4_STEP_SCHEMA = vol.Schema(
+WG4_STEP_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
+        probatio.Required(CONF_USERNAME): str,
+        probatio.Required(CONF_PASSWORD): str,
         CONF_HOST: str,
-        vol.Optional(CONF_APPLICATION, default=DEFAULT_WG4_APPLICATION): int,
+        probatio.Optional(CONF_APPLICATION, default=DEFAULT_WG4_APPLICATION): int,
     }
 )
 
 
-class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle an OJ Microline config flow."""
 
     VERSION = CONFIG_FLOW_VERSION
@@ -173,10 +181,10 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
     async def _async_try_create_entry(
         self, data: dict[str, Any], errors: dict[str, str]
-    ) -> FlowResult | None:
+    ) -> ConfigFlowResult | None:
         """Validate the config entry data and logs in to the API.
 
-        If successful, calls async_create_entry and returns the FlowResult.
+        If successful, calls async_create_entry and returns the ConfigFlowResult.
         Otherwise, stores an error in the errors dict and returns None.
         """
         data = DATA_SCHEMA(data)
@@ -213,7 +221,7 @@ class OJMicrolineOptionsFlowHandler(OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle a flow initialized by the user.
 
         Args:
@@ -230,20 +238,20 @@ class OJMicrolineOptionsFlowHandler(OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Optional(
+                    probatio.Optional(
                         CONF_USE_COMFORT_MODE,
                         default=self.config_entry.options.get(
                             CONF_USE_COMFORT_MODE, False
                         ),
                     ): bool,
-                    vol.Optional(
+                    probatio.Optional(
                         CONF_COMFORT_MODE_DURATION,
                         default=self.config_entry.options.get(
                             CONF_COMFORT_MODE_DURATION, COMFORT_DURATION
                         ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                    ): probatio.All(probatio.Coerce(int), probatio.Range(min=1)),
                 }
             ),
         )

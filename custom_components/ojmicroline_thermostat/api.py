@@ -1,10 +1,8 @@
 """Helper to construct OJMicroline objects."""
 
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from ojmicroline_thermostat import WD5API, WG4API, OJMicroline
@@ -17,6 +15,11 @@ from .const import (
     MODEL_WD5_SERIES,
     MODEL_WG4_SERIES,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from homeassistant.core import HomeAssistant
 
 
 def oj_microline_from_config_entry_data(

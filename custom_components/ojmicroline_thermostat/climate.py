@@ -2,11 +2,9 @@
 
 import asyncio
 import logging
-from collections.abc import Mapping  # pylint: disable=import-error
-from datetime import date
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
-import voluptuous as vol
+import probatio
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -18,14 +16,11 @@ from homeassistant.components.climate.const import (
     PRESET_COMFORT,
     PRESET_ECO,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ojmicroline_thermostat import OJMicrolineError
@@ -60,6 +55,14 @@ from .const import (
 from .coordinator import OJMicrolineDataUpdateCoordinator
 from .helpers import target_temperature, wd5_date
 from .schedule import SLOTS, WEEKDAYS, ScheduleError, set_days
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from datetime import date
+
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,8 +104,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_VACATION,
         {
-            vol.Required(ATTR_START_DATE): cv.date,
-            vol.Required(ATTR_END_DATE): cv.date,
+            probatio.Required(ATTR_START_DATE): cv.date,
+            probatio.Required(ATTR_END_DATE): cv.date,
         },
         "async_set_vacation",
     )
@@ -112,20 +115,20 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_SCHEDULE,
         {
-            vol.Required(ATTR_DAYS): vol.All(
-                cv.ensure_list, [vol.In(WEEKDAYS)], vol.Length(min=1)
+            probatio.Required(ATTR_DAYS): probatio.All(
+                cv.ensure_list, [probatio.In(WEEKDAYS)], probatio.Length(min=1)
             ),
-            vol.Required(ATTR_EVENTS): vol.All(
+            probatio.Required(ATTR_EVENTS): probatio.All(
                 cv.ensure_list,
                 [
-                    vol.Schema(
+                    probatio.Schema(
                         {
-                            vol.Required(ATTR_TIME): cv.time,
-                            vol.Required(ATTR_TEMPERATURE): vol.Coerce(float),
+                            probatio.Required(ATTR_TIME): cv.time,
+                            probatio.Required(ATTR_TEMPERATURE): probatio.Coerce(float),
                         }
                     )
                 ],
-                vol.Length(min=1, max=SLOTS),
+                probatio.Length(min=1, max=SLOTS),
             ),
         },
         "async_set_schedule",
@@ -137,7 +140,6 @@ class OJMicrolineThermostat(
 ):
     """OJMicrolineThermostat climate."""
 
-    _attr_hvac_modes: ClassVar[list[HVACMode]] = [HVACMode.HEAT]
     _attr_hvac_mode = HVACMode.HEAT
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TARGET_TEMPERATURE
@@ -168,6 +170,7 @@ class OJMicrolineThermostat(
         super().__init__(coordinator)
         self.idx = idx
         self.options = options
+        self._attr_hvac_modes = [HVACMode.HEAT]
         self._attr_unique_id = self.idx
 
     @property
@@ -390,8 +393,8 @@ class OJMicrolineThermostat(
 
     async def async_set_hvac_mode(
         self,
-        hvac_mode: str,  # pylint: disable=unused-argument  # noqa: ARG002
-    ) -> bool:
+        hvac_mode: HVACMode,  # pylint: disable=unused-argument
+    ) -> None:
         """Set new hvac mode.
 
         Always ignore; we only support HEATING mode.
@@ -401,4 +404,3 @@ class OJMicrolineThermostat(
             hvac_mode: Currently not used.
 
         """
-        return True

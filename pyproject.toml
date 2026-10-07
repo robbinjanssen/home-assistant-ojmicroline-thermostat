@@ -1,42 +1,31 @@
-[tool.poetry]
+[project]
 name = "home-assistant-ojmicroline-thermostat"
 version = "1.5.0"
 description = "Control your OJ Microline Thermostat using home assistant."
-authors = ["Robbin Janssen <robbinjanssen@gmail.com>"]
-maintainers = ["Robbin Janssen <robbinjanssen@gmail.com>"]
+authors = [{ name = "Robbin Janssen", email = "robbinjanssen@gmail.com" }]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat"
-repository = "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat"
-documentation = "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat"
-classifiers = [
-    "Framework :: AsyncIO",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-packages = [
-    { include = "custom_components" },
+requires-python = ">=3.14.2,<3.15"
+dependencies = ["ojmicroline-thermostat"]
+
+[dependency-groups]
+dev = [
+  "codespell==2.4.3",
+  "mypy==2.4.0",
+  "prek==0.5.5",
+  "pylint==4.1.2",
+  "pytest-homeassistant-custom-component==0.13.370",
+  "ruff==0.16.10",
+  "yamllint==1.38.0",
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.12,<3.15"
+[tool.uv]
+# This repository is a Home Assistant integration, not a Python package.
+package = false
+
+[tool.uv.sources]
+# Develop against the library's main branch, the manifest pins the release.
 ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
-voluptuous = "^0.16.0"
-
-[tool.poetry.group.dev.dependencies]
-codespell = "2.4.1"
-mypy = "1.19.1"
-pre-commit = "4.5.1"
-pre-commit-hooks = "6.0.0"
-pylint = "4.0.4"
-ruff = "0.16.9"
-yamllint = "1.38.0"
-async-timeout = "5.0.1"
 
 [tool.mypy]
 # Specify the target platform details in config, so your developers are
@@ -71,9 +60,12 @@ warn_redundant_casts = true
 warn_return_any = true
 warn_unused_configs = true
 warn_unused_ignores = true
+explicit_package_bases = true
 
-[tool.pylint.MASTER]
-ignore = ["tests"]
+[[tool.mypy.overrides]]
+# Home Assistant re-exports names, e.g. BinarySensorDeviceClass, without __all__.
+module = "homeassistant.*"
+implicit_reexport = true
 
 [tool.pylint.BASIC]
 good-names = ["_", "ex", "fp", "i", "id", "j", "k", "on", "Run", "T"]
@@ -99,13 +91,17 @@ max-line-length = 88
 max-attributes = 20
 
 [tool.pylint.TYPECHECK]
-ignored-modules = [
-  "ojmicroline_thermostat",
-  "homeassistant",
-]
+# The integration package has the same name as the library, which confuses
+# pylint's import resolution.
+ignored-modules = ["ojmicroline_thermostat"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 lint.select = ["ALL"]
 lint.ignore = [
   "ANN401",  # Opinioated warning on disallowing dynamically typed expressions
@@ -122,18 +118,14 @@ lint.ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"test_output.py" = ["ERA001", "T201"]
+"tests/*.py" = ["S101", "S105", "S106", "SLF001"]
 
 [tool.ruff.lint.flake8-pytest-style]
 mark-parentheses = false
 fixture-parentheses = false
 
 [tool.ruff.lint.isort]
-known-first-party = ["omnikinverter"]
+known-first-party = ["custom_components"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 25
-
-[build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0"]

@@ -1,0 +1,30 @@
+{
+    "EnergyUsage": [
+        {
+            "Usage": [
+                {
+                    "EnergyKWattHour": 3.8763
+                },
+                {
+                    "EnergyKWattHour": 0.0
+                },
+                {
+                    "EnergyKWattHour": 13.7008
+                },
+                {
+                    "EnergyKWattHour": 6.817
+                },
+                {
+                    "EnergyKWattHour": 25.263
+                },
+                {
+                    "EnergyKWattHour": 16.441
+                },
+                {
+                    "EnergyKWattHour": 15.0375
+                }
+            ]
+        }
+    ],
+    "ErrorCode": 0
+}

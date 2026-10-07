@@ -90,7 +90,7 @@ def _mode_time(thermostat: Thermostat, value: Any, *, active: bool) -> Any:
 
 def _temp_formatter(temp: Any) -> float:
     """Format the temperature."""
-    return temp / 100
+    return float(temp) / 100
 
 
 SENSOR_TYPES: list[OJMicrolineSensorInfo] = [

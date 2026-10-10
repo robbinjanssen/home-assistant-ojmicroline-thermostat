@@ -10,6 +10,7 @@ from ojmicroline_thermostat import WD5API, WG4API, WG5API, OJMicroline
 from .const import (
     CONF_APPLICATION,
     CONF_CUSTOMER_ID,
+    CONF_IDENTITY_HOST,
     CONF_MODEL,
     DEFAULT_WG4_APPLICATION,
     MODEL_WD5_SERIES,
@@ -60,10 +61,15 @@ def api_from_config_entry_data(data: Mapping[str, Any]) -> Any:
             **extra_args,
         )
     if model == MODEL_WG5_SERIES:
+        wg5_args = dict(extra_args)
+        # Optional OAuth2 identity server override (e.g. nJoy / WarmlyYours).
+        # Blank or absent: the library default (identity.ojmicroline.com).
+        if data.get(CONF_IDENTITY_HOST):
+            wg5_args["identity_host"] = data[CONF_IDENTITY_HOST]
         return WG5API(
             username=data[CONF_USERNAME],
             password=data[CONF_PASSWORD],
-            **extra_args,
+            **wg5_args,
         )
     msg = f"Unknown model {model}"
     raise RuntimeError(msg)

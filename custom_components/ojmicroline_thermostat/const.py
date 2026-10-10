@@ -19,6 +19,10 @@ PUSH_ACTION_UPDATE = 2
 CONF_MODEL = "model"
 CONF_CUSTOMER_ID = "customer_id"
 CONF_APPLICATION = "application"
+# OAuth2 identity server for WG5. Standard OJ Microline uses the library
+# default (identity.ojmicroline.com); private labels such as nJoy /
+# WarmlyYours use identity.njoy.warmlyyours.com.
+CONF_IDENTITY_HOST = "identity_host"
 CONF_USE_COMFORT_MODE = "use_comfort_mode"
 CONF_COMFORT_MODE_DURATION = "comfort_mode_duration"
 CONF_COMFORT_TEMPERATURE = "comfort_temperature"

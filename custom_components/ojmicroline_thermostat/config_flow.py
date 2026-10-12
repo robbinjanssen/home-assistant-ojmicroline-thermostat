@@ -41,6 +41,7 @@ from .const import (
     CONF_COMFORT_MODE_DURATION,
     CONF_COMFORT_TEMPERATURE,
     CONF_CUSTOMER_ID,
+    CONF_IDENTITY_HOST,
     CONF_MODEL,
     CONF_USE_COMFORT_MODE,
     CONFIG_FLOW_VERSION,
@@ -63,6 +64,7 @@ DATA_SCHEMA = probatio.Schema(
         probatio.Required(CONF_USERNAME): str,
         probatio.Required(CONF_PASSWORD): str,
         CONF_HOST: str,
+        CONF_IDENTITY_HOST: str,
         CONF_CUSTOMER_ID: int,
         CONF_API_KEY: str,
         probatio.Optional(CONF_APPLICATION): int,
@@ -91,6 +93,7 @@ WG5_STEP_SCHEMA = probatio.Schema(
         probatio.Required(CONF_PASSWORD): TextSelector(
             TextSelectorConfig(type=TextSelectorType.PASSWORD)
         ),
+        CONF_IDENTITY_HOST: str,
     }
 )
 

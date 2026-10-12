@@ -1,6 +1,5 @@
 {
   "name": "OJ Microline Thermostat",
-  "country": "NL",
   "homeassistant": "2026.10.0",
   "render_readme": true
 }

@@ -12,6 +12,10 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
 
+from custom_components.ojmicroline_thermostat.api import api_from_config_entry_data
+
+from .conftest import WG5_DATA
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -87,3 +91,23 @@ async def test_set_temperature(
     ]
     assert len(requests) == 1
     assert requests[0][2]["Setpoint"] == 21.5
+
+
+@pytest.mark.parametrize(
+    ("identity_host", "expected"),
+    [
+        (None, "identity.ojmicroline.com"),
+        ("", "identity.ojmicroline.com"),
+        ("identity.njoy.warmlyyours.com", "identity.njoy.warmlyyours.com"),
+    ],
+)
+def test_identity_host(identity_host: str | None, expected: str) -> None:
+    """Test the identity host override, falling back to the library default."""
+    data = dict(WG5_DATA)
+    if identity_host is not None:
+        data["identity_host"] = identity_host
+
+    api = api_from_config_entry_data(data)
+
+    assert api.identity_host == expected
+    assert api.host == "user-api.ojmicroline.com"

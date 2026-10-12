@@ -44,10 +44,12 @@
             "wg5": {
                 "data": {
                     "username": "Gebruikersnaam",
-                    "password": "Wachtwoord"
+                    "password": "Wachtwoord",
+                    "identity_host": "Identiteitsserver"
                 },
                 "data_description": {
-                    "username": "Het account dat je in de OJ Microline-app gebruikt."
+                    "username": "Het account dat je in de OJ Microline-app gebruikt.",
+                    "identity_host": "OAuth2-inlogserver. Laat leeg voor de standaard OJ Microline. Vul voor nJoy / WarmlyYours (UWG5) in: identity.njoy.warmlyyours.com (zonder https://)."
                 }
             },
             "reconfigure": {
@@ -59,11 +61,13 @@
                     "api_key": "API-sleutel",
                     "host": "Host",
                     "customer_id": "Klant-ID",
-                    "application": "Applicatiecode"
+                    "application": "Applicatiecode",
+                    "identity_host": "Identiteitsserver"
                 },
                 "data_description": {
                     "host": "Laat leeg voor de standaardwaarde. Laat https:// weg als je een host opgeeft.",
-                    "customer_id": "Laat leeg voor de standaardwaarde."
+                    "customer_id": "Laat leeg voor de standaardwaarde.",
+                    "identity_host": "OAuth2-inlogserver. Laat leeg voor de standaard OJ Microline. Vul voor nJoy / WarmlyYours (UWG5) in: identity.njoy.warmlyyours.com (zonder https://)."
                 }
             }
         },

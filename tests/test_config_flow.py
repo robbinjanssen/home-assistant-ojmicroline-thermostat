@@ -266,4 +266,8 @@ async def test_reconfigure_form_per_model(
 
     data_schema = result["data_schema"]
     assert data_schema is not None
-    assert [str(key) for key in data_schema.schema] == ["username", "password"]
+    assert [str(key) for key in data_schema.schema] == [
+        "username",
+        "password",
+        "identity_host",
+    ]

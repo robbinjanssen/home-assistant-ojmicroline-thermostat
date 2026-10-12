@@ -44,10 +44,12 @@
             "wg5": {
                 "data": {
                     "username": "Nome de utilizador",
-                    "password": "Palavra-passe"
+                    "password": "Palavra-passe",
+                    "identity_host": "Servidor de identidade"
                 },
                 "data_description": {
-                    "username": "A conta que utiliza na aplicação OJ Microline."
+                    "username": "A conta que utiliza na aplicação OJ Microline.",
+                    "identity_host": "Servidor de autenticação OAuth2. Deixe em branco para o OJ Microline padrão. Para nJoy / WarmlyYours (UWG5) indique: identity.njoy.warmlyyours.com (omita o https://)."
                 }
             },
             "reconfigure": {
@@ -59,11 +61,13 @@
                     "api_key": "Chave de API",
                     "host": "Anfitrião",
                     "customer_id": "ID de cliente",
-                    "application": "Código da aplicação"
+                    "application": "Código da aplicação",
+                    "identity_host": "Servidor de identidade"
                 },
                 "data_description": {
                     "host": "Deixe em branco para usar o valor predefinido. Se indicar um, omita o https://.",
-                    "customer_id": "Deixe em branco para usar o valor predefinido."
+                    "customer_id": "Deixe em branco para usar o valor predefinido.",
+                    "identity_host": "Servidor de autenticação OAuth2. Deixe em branco para o OJ Microline padrão. Para nJoy / WarmlyYours (UWG5) indique: identity.njoy.warmlyyours.com (omita o https://)."
                 }
             }
         },

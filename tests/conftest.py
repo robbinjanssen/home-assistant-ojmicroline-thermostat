@@ -155,6 +155,7 @@ def mock_wd5_api(aioclient_mock: AiohttpClientMocker) -> Generator[AiohttpClient
 WG5_IDENTITY = "https://identity.ojmicroline.com"
 WG5_HOST = "https://user-api.ojmicroline.com"
 WG5_BUILDING = "57dc7778-4ed3-4382-9e89-5cf2e0bc0f8a"
+WG5_ZONE = "ae85d8fc-1b4a-445a-bdf1-05f970fc3da4"
 WG5_THERMOSTAT = "2cb3e6c5-8cf8-4e7e-943a-42618c34a506"
 WG5_SCHEDULE = "f9aac20b-4e45-415b-9f56-e53014ee8639"
 WG5_DATA = {"model": "WG5 series", "username": "user@example.com", "password": "pw"}
@@ -184,7 +185,7 @@ def mock_wg5_api(aioclient_mock: AiohttpClientMocker) -> AiohttpClientMocker:
     for path, fixture in (
         ("buildings", "wg5_buildings.json"),
         (f"buildings/{WG5_BUILDING}/tree", "wg5_building_tree.json"),
-        (f"thermostats/{WG5_THERMOSTAT}/control", "wg5_thermostat_control.json"),
+        (f"zones/{WG5_ZONE}/control/thermostats", "wg5_zone_thermostats.json"),
         (f"thermostats/{WG5_THERMOSTAT}", "wg5_thermostat_detail.json"),
         (f"schedules/{WG5_SCHEDULE}", "wg5_schedule.json"),
     ):

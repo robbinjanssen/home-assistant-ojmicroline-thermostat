@@ -17,7 +17,7 @@ Three thermostat series, each with its own API in the library:
 | --- | --- | --- |
 | WD5 (OWD5, MWD5, WCD5) | `WD5API` | session API; push via the SignalR hub in `push.py`; schedule, vacation and energy history |
 | WG4 (UWG4, AWG4) | `WG4API` | session API; push via the library's `subscribe()`; energy history and power |
-| WG5 (UWG5) | `WG5API` | OAuth API; polled; experimental, not tested with a real thermostat |
+| WG5 (UWG5) | `WG5API` | OAuth API; polled; tested by users with a real thermostat (#302), not by the maintainers |
 
 ```text
 custom_components/ojmicroline_thermostat/

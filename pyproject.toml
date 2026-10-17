@@ -1,6 +1,6 @@
 [project]
 name = "home-assistant-ojmicroline-thermostat"
-version = "2.1.0"
+version = "2.1.2"
 description = "Control your OJ Microline Thermostat using home assistant."
 authors = [{ name = "Robbin Janssen", email = "robbinjanssen@gmail.com" }]
 license = "MIT"

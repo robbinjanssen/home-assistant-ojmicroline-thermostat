@@ -17,5 +17,5 @@
     "requirements": [
         "ojmicroline-thermostat==3.7.2"
     ],
-    "version": "2.1.0"
+    "version": "2.1.2"
 }

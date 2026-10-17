@@ -1312,7 +1312,7 @@ wheels = [
 
 [[package]]
 name = "home-assistant-ojmicroline-thermostat"
-version = "2.1.0"
+version = "2.1.2"
 source = { virtual = "." }
 dependencies = [
     { name = "ojmicroline-thermostat" },

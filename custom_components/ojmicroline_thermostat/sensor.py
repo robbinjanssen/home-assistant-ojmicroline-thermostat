@@ -311,10 +311,10 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
 
         Returns
         -------
-            True if the sensor is available, false otherwise.
+            True if the data is up to date and the thermostat is online.
 
         """
-        return self.coordinator.data[self.idx].online
+        return super().available and self.coordinator.data[self.idx].online
 
     @property
     def native_value(self) -> Any | None:

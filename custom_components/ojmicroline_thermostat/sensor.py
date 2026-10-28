@@ -314,7 +314,7 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
             True if the data is up to date and the thermostat is online.
 
         """
-        return super().available and self.coordinator.data[self.idx].online
+        return super().available and self.thermostat.online
 
     @property
     def native_value(self) -> Any | None:
@@ -325,7 +325,7 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
             The current state value of the sensor.
 
         """
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         val = _get_value(thermostat, self.entity_description, self.value_getter)
         if self.formatter is not None:
             return self.formatter(val)
@@ -353,11 +353,11 @@ class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         """Return the temperature the schedule prescribes now."""
-        schedule = self.coordinator.data[self.idx].schedule
+        schedule = self.thermostat.schedule
         return None if schedule is None else current_setpoint(schedule, dt_util.now())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return the active events per weekday."""
-        schedule = self.coordinator.data[self.idx].schedule
+        schedule = self.thermostat.schedule
         return None if schedule is None else schedule_attributes(schedule)

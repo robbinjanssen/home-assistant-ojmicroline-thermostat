@@ -153,3 +153,18 @@ async def test_preset_shown_right_away(
     assert state is not None
     assert state.attributes["preset_mode"] == "comfort"
     assert state.attributes[ATTR_TEMPERATURE] == 25.0
+
+
+async def test_removed_thermostat_unavailable(
+    hass: HomeAssistant, setup_integration: object, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test a thermostat removed from the account becomes unavailable."""
+    assert setup_integration
+    coordinator = mock_config_entry.runtime_data
+
+    coordinator.async_set_updated_data({})
+    await hass.async_block_till_done()
+
+    state = hass.states.get("climate.roomname")
+    assert state is not None
+    assert state.state == "unavailable"

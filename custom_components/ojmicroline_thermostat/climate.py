@@ -22,7 +22,6 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ojmicroline_thermostat import OJMicrolineError
 from ojmicroline_thermostat.const import (
@@ -54,8 +53,8 @@ from .const import (
     SERVICE_SET_SCHEDULE,
     SERVICE_SET_VACATION,
 )
-from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
 from .helpers import target_temperature, wd5_date
+from .models import OJMicrolineEntity
 from .schedule import SLOTS, WEEKDAYS, ScheduleError, set_days
 
 if TYPE_CHECKING:
@@ -66,6 +65,8 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
     from ojmicroline_thermostat import Thermostat
+
+    from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -140,9 +141,7 @@ async def async_setup_entry(
     )
 
 
-class OJMicrolineThermostat(
-    CoordinatorEntity[OJMicrolineDataUpdateCoordinator], ClimateEntity
-):
+class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
     """OJMicrolineThermostat climate."""
 
     _attr_hvac_mode = HVACMode.HEAT
@@ -150,11 +149,9 @@ class OJMicrolineThermostat(
         ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TARGET_TEMPERATURE
     )
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_has_entity_name = True
     _attr_name = None
     _attr_translation_key = "ojthermostat"
 
-    idx: str
     options: Mapping[str, Any]
 
     def __init__(
@@ -172,8 +169,7 @@ class OJMicrolineThermostat(
             options: The options provided by the user.
 
         """
-        super().__init__(coordinator)
-        self.idx = idx
+        super().__init__(coordinator, idx)
         self.options = options
         self._attr_hvac_modes = [HVACMode.HEAT]
         self._attr_unique_id = self.idx
@@ -191,9 +187,9 @@ class OJMicrolineThermostat(
         return DeviceInfo(
             identifiers={(DOMAIN, self.idx)},
             manufacturer=MANUFACTURER,
-            name=self.coordinator.data[self.idx].name,
-            sw_version=self.coordinator.data[self.idx].software_version,
-            model=self.coordinator.data[self.idx].model,
+            name=self.thermostat.name,
+            sw_version=self.thermostat.software_version,
+            model=self.thermostat.model,
         )
 
     @property
@@ -207,7 +203,7 @@ class OJMicrolineThermostat(
         """
         return [
             VENDOR_TO_HA_STATE[mode]
-            for mode in self.coordinator.data[self.idx].supported_regulation_modes
+            for mode in self.thermostat.supported_regulation_modes
         ]
 
     @property
@@ -219,7 +215,7 @@ class OJMicrolineThermostat(
             The preset mode in a string format.
 
         """
-        return VENDOR_TO_HA_STATE.get(self.coordinator.data[self.idx].regulation_mode)  # type: ignore[return-value]
+        return VENDOR_TO_HA_STATE.get(self.thermostat.regulation_mode)  # type: ignore[return-value]
 
     @property
     def current_temperature(self) -> float:
@@ -230,7 +226,7 @@ class OJMicrolineThermostat(
             The current temperature in a float format..
 
         """
-        return self.coordinator.data[self.idx].get_current_temperature() / 100
+        return self.thermostat.get_current_temperature() / 100
 
     @property
     def target_temperature(self) -> float:
@@ -241,7 +237,7 @@ class OJMicrolineThermostat(
             The target temperature in a float format.
 
         """
-        return target_temperature(self.coordinator.data[self.idx]) / 100
+        return target_temperature(self.thermostat) / 100
 
     @property
     def max_temp(self) -> float:
@@ -252,7 +248,7 @@ class OJMicrolineThermostat(
             The max temperature in a float format.
 
         """
-        return self.coordinator.data[self.idx].max_temperature / 100
+        return self.thermostat.max_temperature / 100
 
     @property
     def min_temp(self) -> float:
@@ -263,7 +259,7 @@ class OJMicrolineThermostat(
             The min temperature in a float format.
 
         """
-        return self.coordinator.data[self.idx].min_temperature / 100
+        return self.thermostat.min_temperature / 100
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -274,7 +270,7 @@ class OJMicrolineThermostat(
             The HVACAction.
 
         """
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         if thermostat.heating:
             return HVACAction.HEATING
         if thermostat.online:
@@ -289,7 +285,7 @@ class OJMicrolineThermostat(
             preset_mode: The preset mode to set the thermostat to.
 
         """
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         regulation_mode = HA_TO_VENDOR_STATE[preset_mode]
         # Always send a temperature for these presets: without one, the WG4
         # API stores an empty temperature and the thermostat falls back to an
@@ -304,7 +300,7 @@ class OJMicrolineThermostat(
         except OJMicrolineError:
             _LOGGER.exception(
                 'Failed setting preset mode "%s" (%s)',
-                self.coordinator.data[self.idx].name,
+                self.thermostat.name,
                 preset_mode,
             )
 
@@ -319,7 +315,7 @@ class OJMicrolineThermostat(
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
 
-        regulation_mode = self.coordinator.data[self.idx].regulation_mode
+        regulation_mode = self.thermostat.regulation_mode
 
         if regulation_mode not in {REGULATION_MANUAL, REGULATION_COMFORT}:
             regulation_mode = (
@@ -355,7 +351,7 @@ class OJMicrolineThermostat(
             OJMicrolineError: The API refused the update.
 
         """
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         await self.coordinator.async_set_regulation_mode(
             thermostat,
             regulation_mode,
@@ -390,12 +386,12 @@ class OJMicrolineThermostat(
 
         """
         await self.coordinator.async_change_vacation(
-            self.coordinator.data[self.idx], start_date, end_date, enabled=True
+            self.thermostat, start_date, end_date, enabled=True
         )
 
     async def async_cancel_vacation(self) -> None:
         """Cancel the (scheduled or active) vacation for this thermostat's group."""
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         start = wd5_date(thermostat.vacation_begin_time)
         end = wd5_date(thermostat.vacation_end_time)
         if start is None or end is None or end <= start:
@@ -416,7 +412,7 @@ class OJMicrolineThermostat(
             events: The day's events, each with a time and a temperature.
 
         """
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         if thermostat.schedule is None:
             msg = "The schedule can only be set on WD5-series thermostats."
             raise ServiceValidationError(msg)

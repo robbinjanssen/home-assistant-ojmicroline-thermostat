@@ -162,10 +162,13 @@ class WD5PushClient:
                 # E.g. '"No Way"' when the hub rejects the session ID.
                 with contextlib.suppress(ValueError):
                     message = json.loads(message)  # noqa: PLW2901
-            if isinstance(message, dict):
-                self._on_message(message)
-            else:
-                _LOGGER.debug("Ignoring push message: %s", message)
+            if not isinstance(message, dict):
+                # The hub accepted the connection but not the session ID, so
+                # no updates would arrive; log in again and reconnect.
+                self._api.invalidate_session()
+                msg = f"The notification hub rejected the session: {message}"
+                raise OJMicrolineError(msg)
+            self._on_message(message)
 
     async def _get_json(self, path: str, params: dict[str, str]) -> Any:
         async with self._session.get(

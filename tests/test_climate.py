@@ -12,6 +12,7 @@ from homeassistant.components.climate import (
     DOMAIN as CLIMATE_DOMAIN,
 )
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
+from homeassistant.exceptions import HomeAssistantError
 
 from .conftest import WG4_HOST
 
@@ -168,3 +169,32 @@ async def test_removed_thermostat_unavailable(
     state = hass.states.get("climate.roomname")
     assert state is not None
     assert state.state == "unavailable"
+
+
+@pytest.mark.parametrize(
+    ("service", "data"),
+    [
+        (SERVICE_SET_PRESET_MODE, {ATTR_PRESET_MODE: "comfort"}),
+        (SERVICE_SET_TEMPERATURE, {ATTR_TEMPERATURE: 21.5}),
+    ],
+)
+async def test_update_error(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_wg4_api: AiohttpClientMocker,
+    service: str,
+    data: dict[str, Any],
+) -> None:
+    """Test a refused update is reported to the caller."""
+    mock_wg4_api.post(f"{WG4_HOST}/api/thermostat", status=500)
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            service,
+            {ATTR_ENTITY_ID: "climate.roomname", **data},
+            blocking=True,
+        )

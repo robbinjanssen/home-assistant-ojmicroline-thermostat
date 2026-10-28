@@ -1,7 +1,6 @@
 """Climate sensors for OJMicroline."""
 
 import asyncio
-import logging
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
@@ -18,7 +17,7 @@ from homeassistant.components.climate.const import (
     PRESET_ECO,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -67,8 +66,6 @@ if TYPE_CHECKING:
     from ojmicroline_thermostat import Thermostat
 
     from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 VENDOR_TO_HA_STATE = {
     REGULATION_SCHEDULE: PRESET_SCHEDULE,
@@ -295,14 +292,7 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
             temperature = target_temperature(thermostat)
         elif regulation_mode == REGULATION_COMFORT:
             temperature = self._comfort_temperature(thermostat)
-        try:
-            await self._async_set_regulation_mode(regulation_mode, temperature)
-        except OJMicrolineError:
-            _LOGGER.exception(
-                'Failed setting preset mode "%s" (%s)',
-                self.thermostat.name,
-                preset_mode,
-            )
+        await self._async_set_regulation_mode(regulation_mode, temperature)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new temperature.
@@ -348,16 +338,19 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
 
         Raises
         ------
-            OJMicrolineError: The API refused the update.
+            HomeAssistantError: The API refused the update.
 
         """
         thermostat = self.thermostat
-        await self.coordinator.async_set_regulation_mode(
-            thermostat,
-            regulation_mode,
-            temperature=temperature,
-            duration=self.options.get(CONF_COMFORT_MODE_DURATION),
-        )
+        try:
+            await self.coordinator.async_set_regulation_mode(
+                thermostat,
+                regulation_mode,
+                temperature=temperature,
+                duration=self.options.get(CONF_COMFORT_MODE_DURATION),
+            )
+        except OJMicrolineError as error:
+            raise HomeAssistantError(str(error)) from error
 
         changes: dict[str, Any] = {"regulation_mode": regulation_mode}
         if temperature is not None:

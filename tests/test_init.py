@@ -1,9 +1,11 @@
 """Tests for setting up the OJ Microline Thermostat integration."""
 
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from ojmicroline_thermostat import OJMicrolineError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMockResponse,
@@ -155,3 +157,23 @@ async def test_setup_auth_failed_starts_reauth(
 
     flows = hass.config_entries.flow.async_progress()
     assert [flow["context"]["source"] for flow in flows] == ["reauth"]
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_setup_when_energy_usage_fails(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test the thermostats are set up even if the energy usage fails."""
+    mock_config_entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.ojmicroline_thermostat.energy.EnergyStatistics.async_today",
+        side_effect=OJMicrolineError("Unable to get energy usage via API."),
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+    state = hass.states.get("climate.roomname")
+    assert state is not None
+    assert state.state == "heat"

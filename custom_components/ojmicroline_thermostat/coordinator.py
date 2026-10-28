@@ -169,19 +169,29 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             self._energy_updated is None
             or now - self._energy_updated >= ENERGY_UPDATE_INTERVAL
         )
+        energy_failed = False
         for thermostat in thermostats:
             previous = (self.data or {}).get(thermostat.serial_number)
             if not refresh_energy and previous is not None:
                 thermostat.energy = previous.energy
-            else:
-                # Today's usage per local hour, which is also imported into
-                # the energy statistics. (For WD5-series thermostats, the
-                # library's own request uses the UTC date, so it shows
-                # yesterday's total until 02:00.)
+                continue
+            # Today's usage per local hour, which is also imported into
+            # the energy statistics. (For WD5-series thermostats, the
+            # library's own request uses the UTC date, so it shows
+            # yesterday's total until 02:00.)
+            try:
                 today = await self.energy.async_today(thermostat)
-                thermostat.energy = [round(sum(today), 4)]
-                self.energy.schedule_import(thermostat, today)
-        if refresh_energy:
+            except OJMicrolineAuthError:
+                raise
+            except OJMicrolineError as error:
+                # Keep the thermostat data; only the energy usage is stale.
+                _LOGGER.debug("Could not fetch energy usage: %s", error)
+                thermostat.energy = None if previous is None else previous.energy
+                energy_failed = True
+                continue
+            thermostat.energy = [round(sum(today), 4)]
+            self.energy.schedule_import(thermostat, today)
+        if refresh_energy and not energy_failed:
             self._energy_updated = now
         return thermostats
 

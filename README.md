@@ -55,12 +55,12 @@ WD5-series thermostats are sold under several brands, each with its own app. The
 | --- | --- | --- |
 | OJ Microline (OWD5 app) | (default) | `1` |
 | SWATT | (default) | `99` |
-| Schlüter HEAT CONTROL (Europe, DITRA-HEAT-E-WiFi) | `owd5-sl003-app.ojelectronics.com` | `3` |
+| Schlüter HEAT CONTROL (Europe, DITRA-HEAT-E-WiFi and DITRA-HEAT-E-R6) | `owd5-sl003-app.ojelectronics.com` | `3` |
 | Microtemp | `owd5-mh015-app.ojelectronics.com` | `111` |
 
-The Schlüter and Microtemp settings were reported by users ([#466](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/466) and the [Home Assistant forum](https://community.home-assistant.io/t/mwd5-wifi-thermostat-oj-electronics-microtemp/445601)); the maintainers have not tested them.
+The Schlüter and Microtemp settings were reported by users ([#466](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/466) and the Home Assistant forum: [Schlüter R6](https://community.home-assistant.io/t/schluter-ditra-heat-home-assistant-integration/185275/65), [Microtemp](https://community.home-assistant.io/t/mwd5-wifi-thermostat-oj-electronics-microtemp/445601)); the maintainers have not tested them.
 
-If the login fails, try the customer ID of another app (1, 99 or 3). The customer ID belongs to the app your account was created with, which is not always the number the app shows under thermostat data. Does your app work with other settings? Open an issue with them, so they can be added.
+If the login fails, try the customer ID of another app (1, 99 or 3). The customer ID belongs to the app your account was created with, which is not always the number the app shows under thermostat data (the Schlüter app shows 33, for example). Does your app work with other settings? Open an issue with them, so they can be added.
 
 ## Live updates (WD5 and WG4 series)
 

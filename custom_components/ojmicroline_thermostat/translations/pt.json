@@ -10,6 +10,13 @@
                     "model": "A série WD5 inclui OWD5 e MWD5; a série WG4 inclui UWG4 e AWG4; a série WG5 inclui UWG5."
                 }
             },
+            "wd5_app": {
+                "title": "Aplicação",
+                "description": "Escolha a aplicação que usa para controlar o termóstato para preencher as definições.",
+                "data": {
+                    "app": "Aplicação"
+                }
+            },
             "wd5": {
                 "data": {
                     "username": "Utilizador",
@@ -19,9 +26,9 @@
                     "customer_id": "ID de Cliente"
                 },
                 "data_description": {
-                    "api_key": "A chave de API usada pelo aplicativo",
+                    "api_key": "Deixe em branco para usar a chave de API das aplicações OJ Microline.",
                     "host": "Deixe em branco para usar o padrão. Se especificado, omita https://.",
-                    "customer_id": "Deixe em branco para usar o padrão."
+                    "customer_id": "O ID de cliente da aplicação com que a sua conta foi criada. Deixe em branco para usar 99 (SWATT)."
                 }
             },
             "wg4": {
@@ -66,8 +73,9 @@
                 },
                 "data_description": {
                     "host": "Deixe em branco para usar o valor predefinido. Se indicar um, omita o https://.",
-                    "customer_id": "Deixe em branco para usar o valor predefinido.",
-                    "identity_host": "Servidor de autenticação OAuth2. Deixe em branco para o OJ Microline padrão. Para nJoy / WarmlyYours (UWG5) indique: identity.njoy.warmlyyours.com (omita o https://)."
+                    "customer_id": "O ID de cliente da aplicação com que a sua conta foi criada. Deixe em branco para usar 99 (SWATT).",
+                    "identity_host": "Servidor de autenticação OAuth2. Deixe em branco para o OJ Microline padrão. Para nJoy / WarmlyYours (UWG5) indique: identity.njoy.warmlyyours.com (omita o https://).",
+                    "api_key": "Deixe em branco para usar a chave de API das aplicações OJ Microline."
                 }
             }
         },
@@ -177,6 +185,17 @@
                 "data_description": {
                     "comfort_temperature": "A temperatura usada ao mudar para a predefinição de conforto. Deixe em branco para usar a temperatura de conforto guardada no termóstato."
                 }
+            }
+        }
+    },
+    "selector": {
+        "app": {
+            "options": {
+                "ojmicroline": "OJ Microline (aplicação OWD5)",
+                "swatt": "SWATT",
+                "schluter_eu": "Schlüter HEAT CONTROL (Europa)",
+                "microtemp": "Microtemp",
+                "other": "Outra (introduza as definições manualmente)"
             }
         }
     }

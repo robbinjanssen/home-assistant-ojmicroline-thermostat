@@ -59,7 +59,7 @@ class OJMicrolineVacationDate(OJMicrolineEntity, DateEntity):
     @property
     def native_value(self) -> date | None:
         """Return the date."""
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         return wd5_date(
             thermostat.vacation_end_time
             if self._end
@@ -68,7 +68,7 @@ class OJMicrolineVacationDate(OJMicrolineEntity, DateEntity):
 
     async def async_set_value(self, value: date) -> None:
         """Change the date."""
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         start = wd5_date(thermostat.vacation_begin_time)
         end = wd5_date(thermostat.vacation_end_time)
         if self._end:

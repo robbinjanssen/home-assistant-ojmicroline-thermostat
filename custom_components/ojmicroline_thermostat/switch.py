@@ -47,7 +47,7 @@ class OJMicrolineVacationSwitch(OJMicrolineEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return whether the vacation is enabled."""
-        return bool(self.coordinator.data[self.idx].vacation_mode)
+        return bool(self.thermostat.vacation_mode)
 
     async def async_turn_on(self, **kwargs: Any) -> None:  # noqa: ARG002 # pylint: disable=unused-argument
         """Enable the vacation period."""
@@ -58,7 +58,7 @@ class OJMicrolineVacationSwitch(OJMicrolineEntity, SwitchEntity):
         await self._async_set(enabled=False)
 
     async def _async_set(self, *, enabled: bool) -> None:
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         start = wd5_date(thermostat.vacation_begin_time)
         end = wd5_date(thermostat.vacation_end_time)
         if start is None or end is None or (enabled and end <= dt_util.now().date()):

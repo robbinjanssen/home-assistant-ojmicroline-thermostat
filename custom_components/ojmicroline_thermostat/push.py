@@ -34,6 +34,9 @@ TRANSPORT = "serverSentEvents"
 DEFAULT_KEEP_ALIVE_TIMEOUT = 20.0
 RECONNECT_MIN_DELAY = 5
 RECONNECT_MAX_DELAY = 300
+# The hub's answers to the session ID.
+SESSION_ACCEPTED = "got it"
+SESSION_REJECTED = "No Way"
 
 
 class WD5PushClient:
@@ -140,9 +143,8 @@ class WD5PushClient:
                 payload = line[5:].strip()
 
                 if payload == "initialized":
+                    # Connected once the hub accepts the session ID.
                     await self._send(connection, session_id)
-                    _LOGGER.debug("Push connection established")
-                    self._set_connected(connected=True)
                     continue
 
                 # pylint: disable-next=protected-access
@@ -162,7 +164,18 @@ class WD5PushClient:
                 # E.g. '"No Way"' when the hub rejects the session ID.
                 with contextlib.suppress(ValueError):
                     message = json.loads(message)  # noqa: PLW2901
-            if isinstance(message, dict):
+            if message == SESSION_REJECTED:
+                # The hub accepted the connection but not the session ID, so
+                # no updates would arrive; log in again and reconnect.
+                self._api.invalidate_session()
+                msg = f"The notification hub rejected the session: {message}"
+                raise OJMicrolineError(msg)
+            if message == SESSION_ACCEPTED:
+                _LOGGER.debug("Push connection established")
+                self._set_connected(connected=True)
+            elif isinstance(message, dict):
+                # Pushed data also shows that the session was accepted.
+                self._set_connected(connected=True)
                 self._on_message(message)
             else:
                 _LOGGER.debug("Ignoring push message: %s", message)

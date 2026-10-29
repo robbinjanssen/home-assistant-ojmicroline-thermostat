@@ -63,6 +63,9 @@ class OJMicrolineSensorInfo:
     formatter: ValueFormatter | None = None
     # Defaults to getattr on the key if None
     value_getter: ValueGetterOverride | None = None
+    # Create the sensor even without a value, e.g. when the first energy
+    # request failed.
+    always_create: bool = False
 
 
 def _get_value(
@@ -156,7 +159,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             state_class=SensorStateClass.TOTAL_INCREASING,
             key="energy_usage",
         ),
-        value_getter=lambda thermostat: thermostat.get_current_energy(),
+        # Unknown until fetched: 0 kWh would look like a meter reset.
+        value_getter=lambda thermostat: (
+            None if thermostat.energy is None else thermostat.get_current_energy()
+        ),
+        always_create=True,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -254,7 +261,7 @@ async def async_setup_entry(
             thermostat = coordinator.data[idx]
             raw = getattr(thermostat, info.entity_description.key, None)
             val = _get_value(thermostat, info.entity_description, info.value_getter)
-            if raw is not None or val is not None:
+            if info.always_create or raw is not None or val is not None:
                 entities.append(
                     OJMicrolineSensor(
                         coordinator,
@@ -311,10 +318,10 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
 
         Returns
         -------
-            True if the sensor is available, false otherwise.
+            True if the data is up to date and the thermostat is online.
 
         """
-        return self.coordinator.data[self.idx].online
+        return super().available and self.thermostat.online
 
     @property
     def native_value(self) -> Any | None:
@@ -325,7 +332,7 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
             The current state value of the sensor.
 
         """
-        thermostat = self.coordinator.data[self.idx]
+        thermostat = self.thermostat
         val = _get_value(thermostat, self.entity_description, self.value_getter)
         if self.formatter is not None:
             return self.formatter(val)
@@ -353,11 +360,11 @@ class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         """Return the temperature the schedule prescribes now."""
-        schedule = self.coordinator.data[self.idx].schedule
+        schedule = self.thermostat.schedule
         return None if schedule is None else current_setpoint(schedule, dt_util.now())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return the active events per weekday."""
-        schedule = self.coordinator.data[self.idx].schedule
+        schedule = self.thermostat.schedule
         return None if schedule is None else schedule_attributes(schedule)

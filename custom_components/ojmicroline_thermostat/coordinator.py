@@ -41,6 +41,7 @@ from .api import api_from_config_entry_data, oj_microline_from_api
 from .const import (
     API_TIMEOUT,
     DOMAIN,
+    ENERGY_RETRY_INTERVAL,
     ENERGY_UPDATE_INTERVAL,
     PUSH_ACTION_UPDATE,
     PUSH_UPDATE_INTERVAL,
@@ -95,7 +96,8 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         )
         model_api = api_from_config_entry_data(entry.data)
         self._model_api = model_api
-        self._energy_updated: float | None = None
+        # When to fetch the energy usage of each thermostat again (monotonic).
+        self._energy_next: dict[str, float] = {}
         self.wd5_api: WD5API | None = (
             model_api if isinstance(model_api, WD5API) else None
         )
@@ -124,8 +126,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         """
         try:
-            async with asyncio.timeout(API_TIMEOUT):
-                thermostats = await self._async_fetch_thermostats()
+            thermostats = await self._async_fetch_thermostats()
 
         except OJMicrolineAuthError as error:
             raise ConfigEntryAuthFailed from error
@@ -182,40 +183,51 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         """
         api = self._model_api
         if not isinstance(api, SessionOJMicrolineAPI):
-            return await self.api.get_thermostats()
+            async with asyncio.timeout(API_TIMEOUT):
+                return await self.api.get_thermostats()
 
-        data = await self._async_with_session(
-            lambda: api.request(
-                api.get_thermostats_path,
-                method="GET",
-                params={
-                    # pylint: disable-next=protected-access
-                    "sessionid": api._session_id,  # noqa: SLF001
-                    **api.get_thermostats_params(),
-                },
+        async with asyncio.timeout(API_TIMEOUT):
+            data = await self._async_with_session(
+                lambda: api.request(
+                    api.get_thermostats_path,
+                    method="GET",
+                    params={
+                        # pylint: disable-next=protected-access
+                        "sessionid": api._session_id,  # noqa: SLF001
+                        **api.get_thermostats_params(),
+                    },
+                )
             )
-        )
         thermostats = api.parse_thermostats_response(data)
 
         now = monotonic()
-        refresh_energy = (
-            self._energy_updated is None
-            or now - self._energy_updated >= ENERGY_UPDATE_INTERVAL
-        )
         for thermostat in thermostats:
-            previous = (self.data or {}).get(thermostat.serial_number)
-            if not refresh_energy and previous is not None:
+            serial_number = thermostat.serial_number
+            previous = (self.data or {}).get(serial_number)
+            if previous is not None and now < self._energy_next.get(serial_number, 0):
                 thermostat.energy = previous.energy
-            else:
-                # Today's usage per local hour, which is also imported into
-                # the energy statistics. (For WD5-series thermostats, the
-                # library's own request uses the UTC date, so it shows
-                # yesterday's total until 02:00.)
-                today = await self.energy.async_today(thermostat)
-                thermostat.energy = [round(sum(today), 4)]
-                self.energy.schedule_import(thermostat, today)
-        if refresh_energy:
-            self._energy_updated = now
+                continue
+            # Today's usage per local hour, which is also imported into
+            # the energy statistics. (For WD5-series thermostats, the
+            # library's own request uses the UTC date, so it shows
+            # yesterday's total until 02:00.) Each request has its own
+            # timeout, so a hanging one does not fail the whole update.
+            try:
+                async with asyncio.timeout(API_TIMEOUT):
+                    today = await self.energy.async_today(thermostat)
+            except OJMicrolineAuthError:
+                raise
+            except (OJMicrolineError, TimeoutError) as error:
+                # Keep the thermostat data; only the energy usage is stale.
+                _LOGGER.debug(
+                    "Could not fetch energy usage of %s: %r", serial_number, error
+                )
+                thermostat.energy = None if previous is None else previous.energy
+                self._energy_next[serial_number] = now + ENERGY_RETRY_INTERVAL
+                continue
+            thermostat.energy = [round(sum(today), 4)]
+            self._energy_next[serial_number] = now + ENERGY_UPDATE_INTERVAL
+            self.energy.schedule_import(thermostat, today)
         return thermostats
 
     @callback

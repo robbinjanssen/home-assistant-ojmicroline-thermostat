@@ -13,6 +13,7 @@ from homeassistant.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
 )
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -59,6 +60,14 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 type OJMicrolineConfigEntry = ConfigEntry["OJMicrolineDataUpdateCoordinator"]
+
+
+def device_in_account(device: dr.DeviceEntry, data: dict[str, Thermostat]) -> bool:
+    """Return whether the device belongs to a thermostat in the account data."""
+    return any(
+        domain == DOMAIN and serial_number in data
+        for domain, serial_number in device.identifiers
+    )
 
 
 class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermostat]]):
@@ -118,13 +127,37 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         """
         try:
             thermostats = await self._async_fetch_thermostats()
-            return {resource.serial_number: resource for resource in thermostats}
 
         except OJMicrolineAuthError as error:
             raise ConfigEntryAuthFailed from error
 
         except OJMicrolineError as error:
             raise UpdateFailed(error) from error
+
+        data = {resource.serial_number: resource for resource in thermostats}
+        self._async_remove_stale_devices(data)
+        return data
+
+    @callback
+    def _async_remove_stale_devices(self, data: dict[str, Thermostat]) -> None:
+        """Remove the devices of thermostats that are no longer in the account.
+
+        Args:
+        ----
+            data: The thermostats in the account, by serial number.
+
+        """
+        # An empty account is more likely a hiccup of the API than every
+        # thermostat removed; keep the devices and their entity settings.
+        if not data:
+            return
+        device_registry = dr.async_get(self.hass)
+        for device in dr.async_entries_for_config_entry(
+            device_registry, self.config_entry.entry_id
+        ):
+            if not device_in_account(device, data):
+                _LOGGER.debug("Removing %s, no longer in the account", device.name)
+                device_registry.async_remove_device(device.id)
 
     async def _async_with_session[T](self, call: Callable[[], Awaitable[T]]) -> T:
         """Log in and run the call, logging in again once if the session expired.

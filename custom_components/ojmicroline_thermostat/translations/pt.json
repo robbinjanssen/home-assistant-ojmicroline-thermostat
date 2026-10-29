@@ -10,6 +10,13 @@
                     "model": "A série WD5 inclui OWD5 e MWD5; a série WG4 inclui UWG4 e AWG4; a série WG5 inclui UWG5."
                 }
             },
+            "wd5_app": {
+                "title": "Aplicação",
+                "description": "Escolha a aplicação que usa para controlar o termóstato para preencher as definições.",
+                "data": {
+                    "app": "Aplicação"
+                }
+            },
             "wd5": {
                 "data": {
                     "username": "Utilizador",
@@ -177,6 +184,14 @@
                 "data_description": {
                     "comfort_temperature": "A temperatura usada ao mudar para a predefinição de conforto. Deixe em branco para usar a temperatura de conforto guardada no termóstato."
                 }
+            }
+        }
+    },
+    "selector": {
+        "app": {
+            "options": {
+                "schluter_eu": "Schlüter HEAT CONTROL (Europa)",
+                "other": "Outra (introduza as definições manualmente)"
             }
         }
     }

@@ -10,6 +10,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from .conftest import DOMAIN, WG4_HOST
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigFlowResult
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.test_util.aiohttp import (
         AiohttpClientMocker,
@@ -28,6 +29,31 @@ async def _start_wg4_flow(hass: HomeAssistant) -> str:
     )
     assert result["step_id"] == "wg4"
     return result["flow_id"]
+
+
+async def _start_wd5_flow(hass: HomeAssistant, app: str) -> ConfigFlowResult:
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"model": "WD5 series"}
+    )
+    assert result["step_id"] == "wd5_app"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"app": app}
+    )
+    assert result["step_id"] == "wd5"
+    return result
+
+
+def _suggested_values(result: ConfigFlowResult) -> dict[str, object]:
+    data_schema = result["data_schema"]
+    assert data_schema is not None
+    return {
+        str(key): description["suggested_value"]
+        for key in data_schema.schema
+        if "suggested_value" in (description := getattr(key, "description", {}) or {})
+    }
 
 
 @pytest.mark.usefixtures("mock_wg4_api")
@@ -271,3 +297,78 @@ async def test_reconfigure_form_per_model(
         "password",
         "identity_host",
     ]
+
+
+async def test_create_wd5_entry_for_app(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test choosing a known app fills in its settings in the WD5 form."""
+    aioclient_mock.post(
+        "https://owd5-sl003-app.ojelectronics.com/api/UserProfile/SignIn",
+        json={"SessionId": "f00b4r", "UserName": "user", "ErrorCode": 0},
+        headers={"Content-Type": "application/json"},
+    )
+    result = await _start_wd5_flow(hass, "schluter_eu")
+    app_settings = {
+        "host": "owd5-sl003-app.ojelectronics.com",
+        "api_key": "f219aab4-9ac0-4343-8422-b72203e2fac9",
+        "customer_id": 3,
+    }
+    assert _suggested_values(result) == app_settings
+
+    # The frontend submits the suggested values along with the credentials.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"username": "user@example.com", "password": "pw", **app_settings},
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {
+        "model": "WD5 series",
+        "username": "user@example.com",
+        "password": "pw",
+        **app_settings,
+    }
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_create_wd5_entry_for_other_app(hass: HomeAssistant) -> None:
+    """Test choosing another app leaves the WD5 form empty."""
+    result = await _start_wd5_flow(hass, "other")
+    assert _suggested_values(result) == {}
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"username": "user@example.com", "password": "pw", "api_key": "api-key"},
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {
+        "model": "WD5 series",
+        "username": "user@example.com",
+        "password": "pw",
+        "api_key": "api-key",
+    }
+
+
+async def test_reconfigure_suggests_current_settings(hass: HomeAssistant) -> None:
+    """Test the form shows the optional settings, so they are not cleared."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        data={
+            "model": "WD5 series",
+            "username": "user@example.com",
+            "password": "pw",
+            "api_key": "api-key",
+            "host": "owd5-sl003-app.ojelectronics.com",
+            "customer_id": 3,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reconfigure_flow(hass)
+
+    suggested = _suggested_values(result)
+    assert suggested["host"] == "owd5-sl003-app.ojelectronics.com"
+    assert suggested["customer_id"] == 3

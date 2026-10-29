@@ -1,5 +1,7 @@
 """Constants for the OJMicroline component."""
 
+from homeassistant.const import CONF_API_KEY, CONF_HOST
+
 DOMAIN = "ojmicroline_thermostat"
 MANUFACTURER = "OJ Electronics"
 INTEGRATION_NAME = "OJ Microline Thermostat"
@@ -23,6 +25,8 @@ CONF_APPLICATION = "application"
 # default (identity.ojmicroline.com); private labels such as nJoy /
 # WarmlyYours use identity.njoy.warmlyyours.com.
 CONF_IDENTITY_HOST = "identity_host"
+# The app a WD5-series account belongs to; only used to fill in the WD5 form.
+CONF_APP = "app"
 CONF_USE_COMFORT_MODE = "use_comfort_mode"
 CONF_COMFORT_MODE_DURATION = "comfort_mode_duration"
 CONF_COMFORT_TEMPERATURE = "comfort_temperature"
@@ -30,6 +34,18 @@ CONF_COMFORT_TEMPERATURE = "comfort_temperature"
 MODEL_WD5_SERIES = "WD5 series"
 MODEL_WG4_SERIES = "WG4 series"
 MODEL_WG5_SERIES = "WG5 series"
+
+# Settings of apps that are a private label of the WD5 series, used as
+# suggested values in the WD5 form. Reported by users, not tested by the
+# maintainers: Schlüter HEAT CONTROL (Europe) in #466.
+WD5_APP_OTHER = "other"
+WD5_APPS: dict[str, dict[str, str | int]] = {
+    "schluter_eu": {
+        CONF_HOST: "owd5-sl003-app.ojelectronics.com",
+        CONF_API_KEY: "f219aab4-9ac0-4343-8422-b72203e2fac9",
+        CONF_CUSTOMER_ID: 3,
+    },
+}
 
 # The application code sent on WG4 login. Standard WG4 thermostats use 2
 # (the library default); Danfoss LX (lxwifi.danfoss.us) requires 4.

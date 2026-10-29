@@ -10,6 +10,13 @@
                     "model": "The WD5 series includes OWD5 and MWD5; the WG4 series includes UWG4 and AWG4; the WG5 series includes UWG5."
                 }
             },
+            "wd5_app": {
+                "title": "App",
+                "description": "Choose the app you use to control your thermostat to fill in its settings.",
+                "data": {
+                    "app": "App"
+                }
+            },
             "wd5": {
                 "data": {
                     "username": "Username",
@@ -226,6 +233,12 @@
                 "friday": "Friday",
                 "saturday": "Saturday",
                 "sunday": "Sunday"
+            }
+        },
+        "app": {
+            "options": {
+                "schluter_eu": "Schlüter HEAT CONTROL (Europe)",
+                "other": "Other (enter the settings yourself)"
             }
         }
     }

@@ -22,6 +22,9 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -37,6 +40,7 @@ from ojmicroline_thermostat.const import COMFORT_DURATION
 
 from .api import oj_microline_from_config_entry_data
 from .const import (
+    CONF_APP,
     CONF_APPLICATION,
     CONF_COMFORT_MODE_DURATION,
     CONF_COMFORT_TEMPERATURE,
@@ -51,6 +55,8 @@ from .const import (
     MODEL_WD5_SERIES,
     MODEL_WG4_SERIES,
     MODEL_WG5_SERIES,
+    WD5_APP_OTHER,
+    WD5_APPS,
 )
 
 if TYPE_CHECKING:
@@ -93,7 +99,19 @@ WG5_STEP_SCHEMA = probatio.Schema(
         probatio.Required(CONF_PASSWORD): TextSelector(
             TextSelectorConfig(type=TextSelectorType.PASSWORD)
         ),
-        CONF_IDENTITY_HOST: str,
+        probatio.Optional(CONF_IDENTITY_HOST): str,
+    }
+)
+
+WD5_APP_STEP_SCHEMA = probatio.Schema(
+    {
+        probatio.Required(CONF_APP, default=WD5_APP_OTHER): SelectSelector(
+            SelectSelectorConfig(
+                options=[*WD5_APPS, WD5_APP_OTHER],
+                translation_key=CONF_APP,
+                mode=SelectSelectorMode.LIST,
+            )
+        ),
     }
 )
 
@@ -102,8 +120,8 @@ WD5_STEP_SCHEMA = probatio.Schema(
         probatio.Required(CONF_USERNAME): str,
         probatio.Required(CONF_PASSWORD): str,
         probatio.Required(CONF_API_KEY): str,
-        CONF_HOST: str,
-        CONF_CUSTOMER_ID: int,
+        probatio.Optional(CONF_HOST): str,
+        probatio.Optional(CONF_CUSTOMER_ID): int,
     }
 )
 
@@ -111,7 +129,7 @@ WG4_STEP_SCHEMA = probatio.Schema(
     {
         probatio.Required(CONF_USERNAME): str,
         probatio.Required(CONF_PASSWORD): str,
-        CONF_HOST: str,
+        probatio.Optional(CONF_HOST): str,
         probatio.Optional(CONF_APPLICATION, default=DEFAULT_WG4_APPLICATION): int,
     }
 )
@@ -131,6 +149,8 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle an OJ Microline config flow."""
 
     VERSION = CONFIG_FLOW_VERSION
+    # The app chosen in the wd5_app step, whose settings fill in the WD5 form.
+    _wd5_app = WD5_APP_OTHER
 
     @staticmethod
     @callback
@@ -164,7 +184,7 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
         """
         if user_input:
             if user_input[CONF_MODEL] == MODEL_WD5_SERIES:
-                return await self.async_step_wd5()
+                return await self.async_step_wd5_app()
             if user_input[CONF_MODEL] == MODEL_WG5_SERIES:
                 return await self.async_step_wg5()
             return await self.async_step_wg4()
@@ -231,6 +251,23 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
             step_id="wg5", data_schema=WG5_STEP_SCHEMA, errors=errors
         )
 
+    async def async_step_wd5_app(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Step that asks which app is used for WD5-series thermostats.
+
+        Args:
+        ----
+            user_input: The input received from the user or none.
+
+        Returns:
+        -------
+            The WD5 form, filled in with the app's settings, or the app form.
+
+        """
+        if user_input:
+            self._wd5_app = user_input[CONF_APP]
+            return await self.async_step_wd5()
+        return self.async_show_form(step_id="wd5_app", data_schema=WD5_APP_STEP_SCHEMA)
+
     async def async_step_wd5(self, user_input: dict[str, Any] | None = None) -> Any:
         """Step that gathers information for WD5-series thermostats.
 
@@ -257,7 +294,11 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
             if result is not None:
                 return result
         return self.async_show_form(
-            step_id="wd5", data_schema=WD5_STEP_SCHEMA, errors=errors
+            step_id="wd5",
+            data_schema=self.add_suggested_values_to_schema(
+                WD5_STEP_SCHEMA, user_input or WD5_APPS.get(self._wd5_app, {})
+            ),
+            errors=errors,
         )
 
     async def _async_try_create_entry(

@@ -43,9 +43,19 @@ Install this integration by copying all files in `/custom_components/ojmicroline
 
 [![ha_badge][ha-add-shield]][ha-add-url]
 
-To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (and for the WD5 series also the customer ID and API key).
+To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (for the WD5 series you first choose your app, and enter the customer ID and API key if it is not listed).
 
 To change these settings later, for example after changing your password or to use another host, choose **Reconfigure** in the integration's menu.
+
+### Apps for WD5-series thermostats
+
+WD5-series thermostats are sold under other brands too, each with its own app, host, API key and customer ID. When you add a WD5-series account, choose your app to fill in these settings, or choose **Other** to enter them yourself. Users have reported these apps to work; the maintainers have not tested them with a thermostat.
+
+| App | Host | API key | Customer ID |
+| --- | --- | --- | --- |
+| Schlüter HEAT CONTROL (Europe, DITRA-HEAT-E-WiFi) | `owd5-sl003-app.ojelectronics.com` | `f219aab4-9ac0-4343-8422-b72203e2fac9` | `3` |
+
+Use the username and password of the app. Does your app work with other settings? Open an issue with them, so they can be added.
 
 ## Live updates (WD5 and WG4 series)
 

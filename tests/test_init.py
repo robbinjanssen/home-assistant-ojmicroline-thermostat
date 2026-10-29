@@ -1,11 +1,12 @@
 """Tests for setting up the OJ Microline Thermostat integration."""
 
+import asyncio
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from ojmicroline_thermostat import OJMicrolineError
+from ojmicroline_thermostat import OJMicrolineError, Thermostat
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMockResponse,
@@ -169,6 +170,64 @@ async def test_setup_when_energy_usage_fails(
     with patch(
         "custom_components.ojmicroline_thermostat.energy.EnergyStatistics.async_today",
         side_effect=OJMicrolineError("Unable to get energy usage via API."),
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+    state = hass.states.get("climate.roomname")
+    assert state is not None
+    assert state.state == "heat"
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_failed_energy_request_does_not_refetch_others(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test one failing energy request does not fetch every thermostat again."""
+    requested: list[str] = []
+
+    async def today(thermostat: Thermostat) -> list[float]:
+        requested.append(thermostat.serial_number)
+        if thermostat.serial_number == "42424243":
+            msg = "Unable to get energy usage via API."
+            raise OJMicrolineError(msg)
+        return [1.0]
+
+    mock_config_entry.add_to_hass(hass)
+    with patch(
+        "custom_components.ojmicroline_thermostat.energy.EnergyStatistics.async_today",
+        side_effect=today,
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        assert sorted(requested) == ["42424242", "42424243"]
+
+        requested.clear()
+        await mock_config_entry.runtime_data.async_refresh()
+
+    # The successful one waits for the update interval, the failed one for
+    # the retry interval.
+    assert not requested
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_hanging_energy_request(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test a hanging energy request does not fail the whole update."""
+
+    async def hang(_thermostat: Thermostat) -> list[float]:
+        await asyncio.Event().wait()
+        return []
+
+    mock_config_entry.add_to_hass(hass)
+    with (
+        patch("custom_components.ojmicroline_thermostat.coordinator.API_TIMEOUT", 0.05),
+        patch(
+            "custom_components.ojmicroline_thermostat.energy.EnergyStatistics.async_today",
+            side_effect=hang,
+        ),
     ):
         assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()

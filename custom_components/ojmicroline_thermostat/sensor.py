@@ -63,6 +63,9 @@ class OJMicrolineSensorInfo:
     formatter: ValueFormatter | None = None
     # Defaults to getattr on the key if None
     value_getter: ValueGetterOverride | None = None
+    # Create the sensor even without a value, e.g. when the first energy
+    # request failed.
+    always_create: bool = False
 
 
 def _get_value(
@@ -156,7 +159,11 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             state_class=SensorStateClass.TOTAL_INCREASING,
             key="energy_usage",
         ),
-        value_getter=lambda thermostat: thermostat.get_current_energy(),
+        # Unknown until fetched: 0 kWh would look like a meter reset.
+        value_getter=lambda thermostat: (
+            None if thermostat.energy is None else thermostat.get_current_energy()
+        ),
+        always_create=True,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -254,7 +261,7 @@ async def async_setup_entry(
             thermostat = coordinator.data[idx]
             raw = getattr(thermostat, info.entity_description.key, None)
             val = _get_value(thermostat, info.entity_description, info.value_getter)
-            if raw is not None or val is not None:
+            if info.always_create or raw is not None or val is not None:
                 entities.append(
                     OJMicrolineSensor(
                         coordinator,

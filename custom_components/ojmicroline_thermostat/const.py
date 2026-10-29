@@ -14,6 +14,8 @@ PUSH_UPDATE_INTERVAL = 300
 # Rate limiting: energy usage changes slowly, so fetch it (one request per
 # thermostat) at most this often, and space out extra refresh requests.
 ENERGY_UPDATE_INTERVAL = 1800
+# Retry a failed energy request sooner, without fetching it on every poll.
+ENERGY_RETRY_INTERVAL = 300
 REFRESH_COOLDOWN = 30
 # "Action" value in pushed thermostat data for an update (1 = add, 3 = remove).
 PUSH_ACTION_UPDATE = 2

@@ -26,7 +26,7 @@ the HVAC mode will (re)set it to the schedule preset.
 
 ## Requirements
 
-Your thermostat needs to be connected to the internet. For OWD5 model thermostats you will need the API key and customer ID that is used by the app that you currently use to control your thermostat.
+Your thermostat needs to be connected to the internet. For WD5-series thermostats you need to know which app you use to control your thermostat, see [Apps for WD5-series thermostats](#apps-for-wd5-series-thermostats).
 
 This integration requires Home Assistant 2026.10 or newer.
 
@@ -43,9 +43,24 @@ Install this integration by copying all files in `/custom_components/ojmicroline
 
 [![ha_badge][ha-add-shield]][ha-add-url]
 
-To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (and for the WD5 series also the customer ID and API key).
+To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (for the WD5 series you first choose your app, which fills in its settings).
 
 To change these settings later, for example after changing your password or to use another host, choose **Reconfigure** in the integration's menu.
+
+### Apps for WD5-series thermostats
+
+WD5-series thermostats are sold under several brands, each with its own app. The apps share one API key (`f219aab4-9ac0-4343-8422-b72203e2fac9`, used when you leave the field blank); they differ in host and customer ID. When you add a WD5-series account, choose your app to fill in these settings, or choose **Other** to enter them yourself. Use the username and password of the app.
+
+| App | Host | Customer ID |
+| --- | --- | --- |
+| OJ Microline (OWD5 app) | (default) | `1` |
+| SWATT | (default) | `99` |
+| Schlüter HEAT CONTROL (Europe, DITRA-HEAT-E-WiFi) | `owd5-sl003-app.ojelectronics.com` | `3` |
+| Microtemp | `owd5-mh015-app.ojelectronics.com` | `111` |
+
+The Schlüter and Microtemp settings were reported by users ([#466](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/466) and the [Home Assistant forum](https://community.home-assistant.io/t/mwd5-wifi-thermostat-oj-electronics-microtemp/445601)); the maintainers have not tested them.
+
+If the login fails, try the customer ID of another app (1, 99 or 3). The customer ID belongs to the app your account was created with, which is not always the number the app shows under thermostat data. Does your app work with other settings? Open an issue with them, so they can be added.
 
 ## Live updates (WD5 and WG4 series)
 

@@ -1,6 +1,6 @@
 """Constants for the OJMicroline component."""
 
-from homeassistant.const import CONF_API_KEY, CONF_HOST
+from homeassistant.const import CONF_HOST
 
 DOMAIN = "ojmicroline_thermostat"
 MANUFACTURER = "OJ Electronics"
@@ -35,20 +35,27 @@ MODEL_WD5_SERIES = "WD5 series"
 MODEL_WG4_SERIES = "WG4 series"
 MODEL_WG5_SERIES = "WG5 series"
 
+# The API key of the apps for WD5-series thermostats. It is the same in every
+# known app and visible in their traffic, so it is public and not a secret;
+# the account is protected by the username and password.
+DEFAULT_WD5_API_KEY = "f219aab4-9ac0-4343-8422-b72203e2fac9"
+
 # Settings of the apps for WD5-series thermostats, used as suggested values in
-# the WD5 form. The API key is the same for every known app; apps without a
-# host use the library default. Schlüter HEAT CONTROL (Europe) was reported
-# by a user (#466) and is not tested by the maintainers.
+# the WD5 form. The customer ID belongs to the app the account was created
+# with; apps without a host use the library default. Schlüter HEAT CONTROL
+# (Europe) was reported by a user (#466) and Microtemp on the Home Assistant
+# forum (2022); the maintainers have not tested them.
 WD5_APP_OTHER = "other"
 WD5_APPS: dict[str, dict[str, str | int]] = {
-    "swatt": {
-        CONF_API_KEY: "f219aab4-9ac0-4343-8422-b72203e2fac9",
-        CONF_CUSTOMER_ID: 99,
-    },
+    "ojmicroline": {CONF_CUSTOMER_ID: 1},
+    "swatt": {CONF_CUSTOMER_ID: 99},
     "schluter_eu": {
         CONF_HOST: "owd5-sl003-app.ojelectronics.com",
-        CONF_API_KEY: "f219aab4-9ac0-4343-8422-b72203e2fac9",
         CONF_CUSTOMER_ID: 3,
+    },
+    "microtemp": {
+        CONF_HOST: "owd5-mh015-app.ojelectronics.com",
+        CONF_CUSTOMER_ID: 111,
     },
 }
 

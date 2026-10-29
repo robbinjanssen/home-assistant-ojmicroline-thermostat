@@ -309,11 +309,7 @@ async def test_create_wd5_entry_for_app(
         headers={"Content-Type": "application/json"},
     )
     result = await _start_wd5_flow(hass, "schluter_eu")
-    app_settings = {
-        "host": "owd5-sl003-app.ojelectronics.com",
-        "api_key": "f219aab4-9ac0-4343-8422-b72203e2fac9",
-        "customer_id": 3,
-    }
+    app_settings = {"host": "owd5-sl003-app.ojelectronics.com", "customer_id": 3}
     assert _suggested_values(result) == app_settings
 
     # The frontend submits the suggested values along with the credentials.
@@ -329,6 +325,10 @@ async def test_create_wd5_entry_for_app(
         "password": "pw",
         **app_settings,
     }
+    # Without an API key, the one shared by the apps is used.
+    sign_in = aioclient_mock.mock_calls[-1][2]
+    assert sign_in["APIKEY"] == "f219aab4-9ac0-4343-8422-b72203e2fac9"
+    assert sign_in["CustomerId"] == 3
 
 
 @pytest.mark.usefixtures("mock_wd5_api")
@@ -378,7 +378,4 @@ async def test_wd5_app_without_host(hass: HomeAssistant) -> None:
     """Test an app without its own host leaves the host to the default."""
     result = await _start_wd5_flow(hass, "swatt")
 
-    assert _suggested_values(result) == {
-        "api_key": "f219aab4-9ac0-4343-8422-b72203e2fac9",
-        "customer_id": 99,
-    }
+    assert _suggested_values(result) == {"customer_id": 99}

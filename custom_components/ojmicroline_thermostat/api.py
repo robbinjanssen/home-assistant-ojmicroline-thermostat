@@ -12,6 +12,7 @@ from .const import (
     CONF_CUSTOMER_ID,
     CONF_IDENTITY_HOST,
     CONF_MODEL,
+    DEFAULT_WD5_API_KEY,
     DEFAULT_WG4_APPLICATION,
     MODEL_WD5_SERIES,
     MODEL_WG4_SERIES,
@@ -49,7 +50,7 @@ def api_from_config_entry_data(data: Mapping[str, Any]) -> Any:
         return WD5API(
             username=data[CONF_USERNAME],
             password=data[CONF_PASSWORD],
-            api_key=data[CONF_API_KEY],
+            api_key=data.get(CONF_API_KEY) or DEFAULT_WD5_API_KEY,
             customer_id=data.get(CONF_CUSTOMER_ID, 99),
             **extra_args,
         )

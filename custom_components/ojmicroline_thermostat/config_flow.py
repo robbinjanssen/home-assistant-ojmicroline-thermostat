@@ -119,7 +119,7 @@ WD5_STEP_SCHEMA = probatio.Schema(
     {
         probatio.Required(CONF_USERNAME): str,
         probatio.Required(CONF_PASSWORD): str,
-        probatio.Required(CONF_API_KEY): str,
+        probatio.Optional(CONF_API_KEY): str,
         probatio.Optional(CONF_HOST): str,
         probatio.Optional(CONF_CUSTOMER_ID): int,
     }

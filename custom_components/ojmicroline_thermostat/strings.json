@@ -26,9 +26,9 @@
                     "customer_id": "Customer ID"
                 },
                 "data_description": {
-                    "api_key": "The API key used by the app.",
+                    "api_key": "Leave blank to use the API key of the OJ Microline apps.",
                     "host": "Leave blank to use the default. If specified, omit the https://.",
-                    "customer_id": "Leave blank to use the default."
+                    "customer_id": "The customer ID of the app your account was created with. Leave blank to use 99 (SWATT)."
                 }
             },
             "wg4": {
@@ -75,8 +75,9 @@
                 },
                 "data_description": {
                     "host": "Leave blank to use the default. If specified, omit the https://.",
-                    "customer_id": "Leave blank to use the default.",
-                    "identity_host": "OAuth2 login server. Leave blank for standard OJ Microline. For nJoy / WarmlyYours (UWG5) enter: identity.njoy.warmlyyours.com (omit the https://)."
+                    "customer_id": "The customer ID of the app your account was created with. Leave blank to use 99 (SWATT).",
+                    "identity_host": "OAuth2 login server. Leave blank for standard OJ Microline. For nJoy / WarmlyYours (UWG5) enter: identity.njoy.warmlyyours.com (omit the https://).",
+                    "api_key": "Leave blank to use the API key of the OJ Microline apps."
                 }
             }
         },
@@ -237,8 +238,10 @@
         },
         "app": {
             "options": {
+                "ojmicroline": "OJ Microline (OWD5 app)",
                 "swatt": "SWATT",
                 "schluter_eu": "Schlüter HEAT CONTROL (Europe)",
+                "microtemp": "Microtemp",
                 "other": "Other (enter the settings yourself)"
             }
         }

@@ -5,16 +5,22 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.helpers import config_validation as cv
 from homeassistant.loader import async_get_integration
 
 from .const import CONF_MODEL, CONFIG_FLOW_VERSION, DOMAIN, MODEL_WD5_SERIES
-from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
+from .coordinator import (
+    OJMicrolineConfigEntry,
+    OJMicrolineDataUpdateCoordinator,
+    device_in_account,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceEntry
     from homeassistant.helpers.typing import ConfigType
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)  # pylint: disable=invalid-name
@@ -93,6 +99,30 @@ async def async_unload_entry(
 
     """
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,  # noqa: ARG001 # pylint: disable=unused-argument
+    entry: OJMicrolineConfigEntry,
+    device_entry: DeviceEntry,
+) -> bool:
+    """Allow deleting the device of a thermostat that is no longer in the account.
+
+    Args:
+    ----
+        hass: The HomeAssistant instance.
+        entry: The ConfigEntry the device belongs to.
+        device_entry: The device to delete.
+
+    Returns:
+    -------
+        Return true if the device may be deleted.
+
+    """
+    # Without loaded data it is unknown whether the thermostat still exists.
+    if entry.state is not ConfigEntryState.LOADED:
+        return False
+    return not device_in_account(device_entry, entry.runtime_data.data)
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:

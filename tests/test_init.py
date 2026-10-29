@@ -1,5 +1,6 @@
 """Tests for setting up the OJ Microline Thermostat integration."""
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -9,13 +10,17 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMockResponse,
 )
 
-from custom_components.ojmicroline_thermostat import async_migrate_entry
+from custom_components.ojmicroline_thermostat import (
+    async_migrate_entry,
+    async_remove_config_entry_device,
+)
 
 from . import load_fixture
 from .conftest import DOMAIN, WG4_HOST
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+    from homeassistant.helpers import device_registry as dr
     from pytest_homeassistant_custom_component.test_util.aiohttp import (
         AiohttpClientMocker,
     )
@@ -155,3 +160,136 @@ async def test_setup_auth_failed_starts_reauth(
 
     flows = hass.config_entries.flow.async_progress()
     assert [flow["context"]["source"] for flow in flows] == ["reauth"]
+
+
+def _mock_wg4_thermostats(
+    aioclient_mock: AiohttpClientMocker, serial_numbers: set[str]
+) -> None:
+    """Let the WG4 API return only the thermostats with these serial numbers."""
+    groups = json.loads(load_fixture("wg4_group.json"))
+    for group in groups["Groups"]:
+        group["Thermostats"] = [
+            thermostat
+            for thermostat in group["Thermostats"]
+            if thermostat.get("SerialNumber") in serial_numbers
+        ]
+    aioclient_mock.clear_requests()
+    aioclient_mock.post(
+        f"{WG4_HOST}/api/authenticate/user",
+        json={"SessionId": "f00b4r", "ErrorCode": 0},
+        headers={"Content-Type": "application/json"},
+    )
+    aioclient_mock.get(
+        f"{WG4_HOST}/api/thermostats",
+        json=groups,
+        headers={"Content-Type": "application/json"},
+    )
+    aioclient_mock.get(
+        f"{WG4_HOST}/api/energyusage",
+        text=load_fixture("wg4_energy.json"),
+        headers={"Content-Type": "application/json"},
+    )
+
+
+async def test_removed_thermostat_device_removed(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_wg4_api: AiohttpClientMocker,
+    device_registry: dr.DeviceRegistry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test the device of a thermostat removed from the account is removed."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    assert (
+        device_registry.async_get_device_by_identifier(
+            (DOMAIN, "42424243"), mock_config_entry.entry_id
+        )
+        is not None
+    )
+
+    _mock_wg4_thermostats(mock_wg4_api, {"42424242"})
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert (
+        device_registry.async_get_device_by_identifier(
+            (DOMAIN, "42424243"), mock_config_entry.entry_id
+        )
+        is None
+    )
+    assert hass.states.get("climate.secondroom") is None
+    assert (
+        device_registry.async_get_device_by_identifier(
+            (DOMAIN, "42424242"), mock_config_entry.entry_id
+        )
+        is not None
+    )
+    assert hass.states.get("climate.roomname") is not None
+    # No deprecated device registry calls.
+    assert "Detected that custom integration" not in caplog.text
+
+
+async def test_empty_account_keeps_devices(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_wg4_api: AiohttpClientMocker,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test an account without thermostats does not remove every device."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+    _mock_wg4_thermostats(mock_wg4_api, set())
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert (
+        device_registry.async_get_device_by_identifier(
+            (DOMAIN, "42424242"), mock_config_entry.entry_id
+        )
+        is not None
+    )
+    assert (
+        device_registry.async_get_device_by_identifier(
+            (DOMAIN, "42424243"), mock_config_entry.entry_id
+        )
+        is not None
+    )
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_remove_device(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test only devices of thermostats no longer in the account can be deleted."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    current = device_registry.async_get_device_by_identifier(
+        (DOMAIN, "42424242"), mock_config_entry.entry_id
+    )
+    assert current is not None
+    removed = device_registry.async_get_or_create(
+        config_entry_id=mock_config_entry.entry_id,
+        identifiers={(DOMAIN, "99999999")},
+    )
+
+    assert not await async_remove_config_entry_device(hass, mock_config_entry, current)
+    assert await async_remove_config_entry_device(hass, mock_config_entry, removed)
+
+
+async def test_remove_device_not_loaded(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test a device cannot be deleted while the account data is unknown."""
+    mock_config_entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=mock_config_entry.entry_id,
+        identifiers={(DOMAIN, "42424242")},
+    )
+
+    assert not await async_remove_config_entry_device(hass, mock_config_entry, device)

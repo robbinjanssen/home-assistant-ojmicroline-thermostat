@@ -235,6 +235,7 @@
         },
         "app": {
             "options": {
+                "swatt": "SWATT",
                 "schluter_eu": "Schlüter HEAT CONTROL (Europa)",
                 "other": "Anders (vul de instellingen zelf in)"
             }

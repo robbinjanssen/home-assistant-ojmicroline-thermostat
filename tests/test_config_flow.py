@@ -372,3 +372,13 @@ async def test_reconfigure_suggests_current_settings(hass: HomeAssistant) -> Non
     suggested = _suggested_values(result)
     assert suggested["host"] == "owd5-sl003-app.ojelectronics.com"
     assert suggested["customer_id"] == 3
+
+
+async def test_wd5_app_without_host(hass: HomeAssistant) -> None:
+    """Test an app without its own host leaves the host to the default."""
+    result = await _start_wd5_flow(hass, "swatt")
+
+    assert _suggested_values(result) == {
+        "api_key": "f219aab4-9ac0-4343-8422-b72203e2fac9",
+        "customer_id": 99,
+    }

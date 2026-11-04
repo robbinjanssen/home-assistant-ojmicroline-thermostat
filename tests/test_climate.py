@@ -198,3 +198,13 @@ async def test_update_error(
             {ATTR_ENTITY_ID: "climate.roomname", **data},
             blocking=True,
         )
+
+
+async def test_wg4_presets(hass: HomeAssistant, setup_integration: object) -> None:
+    """Test WG4 thermostats do not offer the vacation preset, which has no effect."""
+    assert setup_integration
+
+    state = hass.states.get("climate.roomname")
+
+    assert state is not None
+    assert "vacation" not in state.attributes["preset_modes"]

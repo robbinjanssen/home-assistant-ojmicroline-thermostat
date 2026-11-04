@@ -7,6 +7,7 @@ from homeassistant.config_entries import SOURCE_USER
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from . import load_fixture
 from .conftest import DOMAIN, WG4_HOST
 
 if TYPE_CHECKING:
@@ -20,6 +21,10 @@ WG4_INPUT = {"username": "user@example.com", "password": "pw"}
 
 
 async def _start_wg4_flow(hass: HomeAssistant) -> str:
+    return (await _start_wg4_app_flow(hass, "other"))["flow_id"]
+
+
+async def _start_wg4_app_flow(hass: HomeAssistant, app: str) -> ConfigFlowResult:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
@@ -27,8 +32,12 @@ async def _start_wg4_flow(hass: HomeAssistant) -> str:
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"model": "WG4 series"}
     )
+    assert result["step_id"] == "wg4_app"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"app": app}
+    )
     assert result["step_id"] == "wg4"
-    return result["flow_id"]
+    return result
 
 
 async def _start_wd5_flow(hass: HomeAssistant, app: str) -> ConfigFlowResult:
@@ -308,6 +317,11 @@ async def test_create_wd5_entry_for_app(
         json={"SessionId": "f00b4r", "UserName": "user", "ErrorCode": 0},
         headers={"Content-Type": "application/json"},
     )
+    aioclient_mock.get(
+        "https://owd5-sl003-app.ojelectronics.com/api/Group/GroupContents",
+        text=load_fixture("wd5_group.json"),
+        headers={"Content-Type": "application/json"},
+    )
     result = await _start_wd5_flow(hass, "schluter_eu")
     app_settings = {"host": "owd5-sl003-app.ojelectronics.com", "customer_id": 3}
     assert _suggested_values(result) == app_settings
@@ -326,7 +340,11 @@ async def test_create_wd5_entry_for_app(
         **app_settings,
     }
     # Without an API key, the one shared by the apps is used.
-    sign_in = aioclient_mock.mock_calls[-1][2]
+    sign_in = next(
+        data
+        for _, url, data, _ in aioclient_mock.mock_calls
+        if url.path.endswith("SignIn")
+    )
     assert sign_in["APIKEY"] == "f219aab4-9ac0-4343-8422-b72203e2fac9"
     assert sign_in["CustomerId"] == 3
 
@@ -379,3 +397,58 @@ async def test_wd5_app_without_host(hass: HomeAssistant) -> None:
     result = await _start_wd5_flow(hass, "swatt")
 
     assert _suggested_values(result) == {"customer_id": 99}
+
+
+async def test_create_wg4_entry_for_app(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test choosing a known app fills in its settings in the WG4 form."""
+    host = "https://ditra-heat-e-wifi.schluter.com"
+    aioclient_mock.post(
+        f"{host}/api/authenticate/user",
+        json={"SessionId": "f00b4r", "ErrorCode": 0},
+        headers={"Content-Type": "application/json"},
+    )
+    aioclient_mock.get(
+        f"{host}/api/thermostats",
+        text=load_fixture("wg4_group.json"),
+        headers={"Content-Type": "application/json"},
+    )
+    result = await _start_wg4_app_flow(hass, "schluter_na")
+    app_settings = {"host": "ditra-heat-e-wifi.schluter.com", "application": 7}
+    assert _suggested_values(result) == app_settings
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**WG4_INPUT, **app_settings}
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {"model": "WG4 series", **WG4_INPUT, **app_settings}
+    login = next(
+        data
+        for _, url, data, _ in aioclient_mock.mock_calls
+        if url.path.endswith("authenticate/user")
+    )
+    assert login["Application"] == 7
+
+
+async def test_account_without_thermostats(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test a login with the wrong application code (no thermostats) is refused."""
+    aioclient_mock.post(
+        f"{WG4_HOST}/api/authenticate/user",
+        json={"SessionId": "f00b4r", "ErrorCode": 0},
+        headers={"Content-Type": "application/json"},
+    )
+    aioclient_mock.get(
+        f"{WG4_HOST}/api/thermostats",
+        json={"Groups": []},
+        headers={"Content-Type": "application/json"},
+    )
+    flow_id = await _start_wg4_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(flow_id, WG4_INPUT)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "no_thermostats"}

@@ -24,6 +24,9 @@ if TYPE_CHECKING:
 
     from homeassistant.core import HomeAssistant
 
+    from ojmicroline_thermostat import Thermostat
+    from ojmicroline_thermostat.ojmicroline import SessionOJMicrolineAPI
+
 
 def oj_microline_from_config_entry_data(
     data: dict[str, Any], hass: HomeAssistant
@@ -74,3 +77,20 @@ def api_from_config_entry_data(data: Mapping[str, Any]) -> Any:
         )
     msg = f"Unknown model {model}"
     raise RuntimeError(msg)
+
+
+async def async_fetch_thermostats(api: SessionOJMicrolineAPI) -> list[Thermostat]:
+    """Fetch the thermostats of a logged in session API, without energy usage.
+
+    Unlike the library's get_thermostats, this is a single request.
+    """
+    data = await api.request(
+        api.get_thermostats_path,
+        method="GET",
+        params={
+            # pylint: disable-next=protected-access
+            "sessionid": api._session_id,  # noqa: SLF001
+            **api.get_thermostats_params(),
+        },
+    )
+    return api.parse_thermostats_response(data)

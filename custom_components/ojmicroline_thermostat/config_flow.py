@@ -37,9 +37,15 @@ from ojmicroline_thermostat import (
     OJMicrolineTimeoutError,
 )
 from ojmicroline_thermostat.const import COMFORT_DURATION
+from ojmicroline_thermostat.ojmicroline import SessionOJMicrolineAPI
 
-from .api import oj_microline_from_config_entry_data
+from .api import (
+    api_from_config_entry_data,
+    async_fetch_thermostats,
+    oj_microline_from_api,
+)
 from .const import (
+    APP_OTHER,
     CONF_APP,
     CONF_APPLICATION,
     CONF_COMFORT_MODE_DURATION,
@@ -55,8 +61,8 @@ from .const import (
     MODEL_WD5_SERIES,
     MODEL_WG4_SERIES,
     MODEL_WG5_SERIES,
-    WD5_APP_OTHER,
     WD5_APPS,
+    WG4_APPS,
 )
 
 if TYPE_CHECKING:
@@ -103,17 +109,21 @@ WG5_STEP_SCHEMA = probatio.Schema(
     }
 )
 
-WD5_APP_STEP_SCHEMA = probatio.Schema(
-    {
-        probatio.Required(CONF_APP, default=WD5_APP_OTHER): SelectSelector(
-            SelectSelectorConfig(
-                options=[*WD5_APPS, WD5_APP_OTHER],
-                translation_key=CONF_APP,
-                mode=SelectSelectorMode.LIST,
-            )
-        ),
-    }
-)
+
+def _app_step_schema(apps: Mapping[str, Any]) -> probatio.Schema:
+    """Return the schema of the step that asks which app is used."""
+    return probatio.Schema(
+        {
+            probatio.Required(CONF_APP, default=APP_OTHER): SelectSelector(
+                SelectSelectorConfig(
+                    options=[*apps, APP_OTHER],
+                    translation_key=CONF_APP,
+                    mode=SelectSelectorMode.LIST,
+                )
+            ),
+        }
+    )
+
 
 WD5_STEP_SCHEMA = probatio.Schema(
     {
@@ -149,8 +159,9 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle an OJ Microline config flow."""
 
     VERSION = CONFIG_FLOW_VERSION
-    # The app chosen in the wd5_app step, whose settings fill in the WD5 form.
-    _wd5_app = WD5_APP_OTHER
+    # The app chosen in the wd5_app or wg4_app step, whose settings fill in
+    # the form of the series.
+    _app = APP_OTHER
 
     @staticmethod
     @callback
@@ -187,10 +198,29 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_wd5_app()
             if user_input[CONF_MODEL] == MODEL_WG5_SERIES:
                 return await self.async_step_wg5()
-            return await self.async_step_wg4()
+            return await self.async_step_wg4_app()
         return self.async_show_form(
             step_id="user",
             data_schema=USER_STEP_SCHEMA,
+        )
+
+    async def async_step_wg4_app(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Step that asks which app is used for WG4-series thermostats.
+
+        Args:
+        ----
+            user_input: The input received from the user or none.
+
+        Returns:
+        -------
+            The WG4 form, filled in with the app's settings, or the app form.
+
+        """
+        if user_input:
+            self._app = user_input[CONF_APP]
+            return await self.async_step_wg4()
+        return self.async_show_form(
+            step_id="wg4_app", data_schema=_app_step_schema(WG4_APPS)
         )
 
     async def async_step_wg4(self, user_input: dict[str, Any] | None = None) -> Any:
@@ -219,7 +249,11 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
             if result is not None:
                 return result
         return self.async_show_form(
-            step_id="wg4", data_schema=WG4_STEP_SCHEMA, errors=errors
+            step_id="wg4",
+            data_schema=self.add_suggested_values_to_schema(
+                WG4_STEP_SCHEMA, user_input or WG4_APPS.get(self._app, {})
+            ),
+            errors=errors,
         )
 
     async def async_step_wg5(self, user_input: dict[str, Any] | None = None) -> Any:
@@ -264,9 +298,11 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
 
         """
         if user_input:
-            self._wd5_app = user_input[CONF_APP]
+            self._app = user_input[CONF_APP]
             return await self.async_step_wd5()
-        return self.async_show_form(step_id="wd5_app", data_schema=WD5_APP_STEP_SCHEMA)
+        return self.async_show_form(
+            step_id="wd5_app", data_schema=_app_step_schema(WD5_APPS)
+        )
 
     async def async_step_wd5(self, user_input: dict[str, Any] | None = None) -> Any:
         """Step that gathers information for WD5-series thermostats.
@@ -296,7 +332,7 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="wd5",
             data_schema=self.add_suggested_values_to_schema(
-                WD5_STEP_SCHEMA, user_input or WD5_APPS.get(self._wd5_app, {})
+                WD5_STEP_SCHEMA, user_input or WD5_APPS.get(self._app, {})
             ),
             errors=errors,
         )
@@ -313,24 +349,41 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
         # Disallow duplicate entries, only considering model/host/username as
         # distinguishing keys.
         self._async_abort_entries_match({k: data[k] for k in data if k in ACCOUNT_KEYS})
-        if (error := await self._async_validate_login(data)) is not None:
+        if (
+            error := await self._async_validate_login(data, check_thermostats=True)
+        ) is not None:
             errors["base"] = error
             return None
         return self.async_create_entry(
             title=f"{INTEGRATION_NAME} ({data[CONF_USERNAME]})", data=data
         )
 
-    async def _async_validate_login(self, data: Mapping[str, Any]) -> str | None:
+    async def _async_validate_login(
+        self, data: Mapping[str, Any], *, check_thermostats: bool = False
+    ) -> str | None:
         """Log in to the API with the given config entry data.
 
-        Returns
+        Args:
+        ----
+            data: The config entry data.
+            check_thermostats: Whether the account must have thermostats. With
+                the wrong application code (WG4 series), the login succeeds
+                but the account looks empty.
+
+        Returns:
         -------
             None if the login succeeded, otherwise the error key.
 
         """
         try:
-            api = oj_microline_from_config_entry_data(dict(data), self.hass)
-            await api.login()
+            model_api = api_from_config_entry_data(data)
+            await oj_microline_from_api(model_api, self.hass).login()
+            if (
+                check_thermostats
+                and isinstance(model_api, SessionOJMicrolineAPI)
+                and not await async_fetch_thermostats(model_api)
+            ):
+                return "no_thermostats"
         except OJMicrolineAuthError:
             return "invalid_auth"
         except OJMicrolineTimeoutError:
@@ -368,7 +421,9 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
                     k: other.data.get(k) for k in ACCOUNT_KEYS
                 }:
                     return self.async_abort(reason="already_configured")
-            if (error := await self._async_validate_login(data)) is None:
+            if (
+                error := await self._async_validate_login(data, check_thermostats=True)
+            ) is None:
                 return self.async_update_reload_and_abort(
                     entry,
                     title=f"{INTEGRATION_NAME} ({data[CONF_USERNAME]})",

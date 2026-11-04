@@ -26,7 +26,7 @@ the HVAC mode will (re)set it to the schedule preset.
 
 ## Requirements
 
-Your thermostat needs to be connected to the internet. For WD5-series thermostats you need to know which app you use to control your thermostat, see [Apps for WD5-series thermostats](#apps-for-wd5-series-thermostats).
+Your thermostat needs to be connected to the internet. For WD5 and WG4-series thermostats you need to know which app you use to control your thermostat, see [Apps for WD5-series thermostats](#apps-for-wd5-series-thermostats) and [Apps for WG4-series thermostats](#apps-for-wg4-series-thermostats).
 
 This integration requires Home Assistant 2026.10 or newer.
 
@@ -43,7 +43,7 @@ Install this integration by copying all files in `/custom_components/ojmicroline
 
 [![ha_badge][ha-add-shield]][ha-add-url]
 
-To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (for the WD5 series you first choose your app, which fills in its settings).
+To configure the integration, add it using [Home Assistant integrations][ha-add-url]. This will provide you with a configuration screen where you first choose the thermostat series and then enter your username and password (for the WD5 and WG4 series you first choose your app, which fills in its settings).
 
 To change these settings later, for example after changing your password or to use another host, choose **Reconfigure** in the integration's menu.
 
@@ -61,6 +61,18 @@ WD5-series thermostats are sold under several brands, each with its own app. The
 The Schlüter and Microtemp settings were reported by users ([#466](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/466) and the Home Assistant forum: [Schlüter R6](https://community.home-assistant.io/t/schluter-ditra-heat-home-assistant-integration/185275/65), [Microtemp](https://community.home-assistant.io/t/mwd5-wifi-thermostat-oj-electronics-microtemp/445601)); the maintainers have not tested them.
 
 If the login fails, try the customer ID of another app (1, 99 or 3). The customer ID belongs to the app your account was created with, which is not always the number the app shows under thermostat data (the Schlüter app shows 33, for example). Does your app work with other settings? Open an issue with them, so they can be added.
+
+### Apps for WG4-series thermostats
+
+WG4-series thermostats are also sold under several brands. Their apps differ in host and application code. When you add a WG4-series account, choose your app to fill in these settings, or choose **Other** to enter them yourself. Use the email address and password of the app.
+
+| App | Host | Application code |
+| --- | --- | --- |
+| OJ Microline (mythermostat.info) | (default) | `2` |
+| Danfoss LX | `lxwifi.danfoss.us` | `4` |
+| Schlüter DITRA-HEAT-E-WiFi (North America) | `ditra-heat-e-wifi.schluter.com` | `7` |
+
+The Danfoss and Schlüter settings were reported by users ([#441](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/441), [#469](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/469)); the maintainers have not tested them. With the wrong application code the login succeeds, but the account has no thermostats; the integration then asks you to check the app.
 
 ## Live updates (WD5 and WG4 series)
 

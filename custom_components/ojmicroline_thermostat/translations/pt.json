@@ -31,6 +31,13 @@
                     "customer_id": "O ID de cliente da aplicação com que a sua conta foi criada. Deixe em branco para usar 99 (SWATT)."
                 }
             },
+            "wg4_app": {
+                "title": "Aplicação",
+                "description": "Escolha a aplicação que usa para controlar o termóstato para preencher as definições.",
+                "data": {
+                    "app": "Aplicação"
+                }
+            },
             "wg4": {
                 "data": {
                     "username": "Utilizador",
@@ -83,7 +90,8 @@
             "invalid_auth": "Erro na autenticação",
             "timeout": "Erro de timeout, tente novamente",
             "connection_failed": "Falha na ligação, tente novamente",
-            "unknown": "Erro desconhecido"
+            "unknown": "Erro desconhecido",
+            "no_thermostats": "Sessão iniciada, mas a conta não tem termóstatos. Verifique a aplicação escolhida, o código de aplicação (série WG4) ou o ID de cliente (série WD5)."
         },
         "abort": {
             "already_configured": "As suas credenciais já se encontram configuradas."
@@ -195,6 +203,9 @@
                 "swatt": "SWATT",
                 "schluter_eu": "Schlüter HEAT CONTROL (Europa)",
                 "microtemp": "Microtemp",
+                "mythermostat": "OJ Microline (mythermostat.info)",
+                "danfoss_lx": "Danfoss LX",
+                "schluter_na": "Schlüter DITRA-HEAT-E-WiFi (América do Norte)",
                 "other": "Outra (introduza as definições manualmente)"
             }
         }

@@ -31,6 +31,13 @@
                     "customer_id": "The customer ID of the app your account was created with. Leave blank to use 99 (SWATT)."
                 }
             },
+            "wg4_app": {
+                "title": "App",
+                "description": "Choose the app you use to control your thermostat to fill in its settings.",
+                "data": {
+                    "app": "App"
+                }
+            },
             "wg4": {
                 "data": {
                     "username": "Username",
@@ -85,7 +92,8 @@
             "invalid_auth": "Invalid authentication",
             "timeout": "A timeout occurred, please try again",
             "connection_failed": "Connection failed, please try again",
-            "unknown": "Unexpected error"
+            "unknown": "Unexpected error",
+            "no_thermostats": "Logged in, but the account has no thermostats. Check the app you chose, the application code (WG4 series) or the customer ID (WD5 series)."
         },
         "abort": {
             "already_configured": "Your credentials are already configured."
@@ -242,6 +250,9 @@
                 "swatt": "SWATT",
                 "schluter_eu": "Schlüter HEAT CONTROL (Europe)",
                 "microtemp": "Microtemp",
+                "mythermostat": "OJ Microline (mythermostat.info)",
+                "danfoss_lx": "Danfoss LX",
+                "schluter_na": "Schlüter DITRA-HEAT-E-WiFi (North America)",
                 "other": "Other (enter the settings yourself)"
             }
         }

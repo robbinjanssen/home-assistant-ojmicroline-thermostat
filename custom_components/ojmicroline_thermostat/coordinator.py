@@ -37,7 +37,11 @@ from ojmicroline_thermostat.const import (
 )
 from ojmicroline_thermostat.ojmicroline import SessionOJMicrolineAPI
 
-from .api import api_from_config_entry_data, oj_microline_from_api
+from .api import (
+    api_from_config_entry_data,
+    async_fetch_thermostats,
+    oj_microline_from_api,
+)
 from .const import (
     API_TIMEOUT,
     DOMAIN,
@@ -187,18 +191,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
                 return await self.api.get_thermostats()
 
         async with asyncio.timeout(API_TIMEOUT):
-            data = await self._async_with_session(
-                lambda: api.request(
-                    api.get_thermostats_path,
-                    method="GET",
-                    params={
-                        # pylint: disable-next=protected-access
-                        "sessionid": api._session_id,  # noqa: SLF001
-                        **api.get_thermostats_params(),
-                    },
-                )
+            thermostats = await self._async_with_session(
+                lambda: async_fetch_thermostats(api)
             )
-        thermostats = api.parse_thermostats_response(data)
 
         now = monotonic()
         for thermostat in thermostats:

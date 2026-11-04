@@ -42,12 +42,14 @@ MODEL_WG5_SERIES = "WG5 series"
 # the account is protected by the username and password.
 DEFAULT_WD5_API_KEY = "f219aab4-9ac0-4343-8422-b72203e2fac9"
 
+# The app choice for entering the settings yourself.
+APP_OTHER = "other"
+
 # Settings of the apps for WD5-series thermostats, used as suggested values in
 # the WD5 form. The customer ID belongs to the app the account was created
 # with; apps without a host use the library default. Schlüter HEAT CONTROL
 # (Europe) was reported by a user (#466) and Microtemp on the Home Assistant
 # forum (2022); the maintainers have not tested them.
-WD5_APP_OTHER = "other"
 WD5_APPS: dict[str, dict[str, str | int]] = {
     "ojmicroline": {CONF_CUSTOMER_ID: 1},
     "swatt": {CONF_CUSTOMER_ID: 99},
@@ -64,6 +66,19 @@ WD5_APPS: dict[str, dict[str, str | int]] = {
 # The application code sent on WG4 login. Standard WG4 thermostats use 2
 # (the library default); Danfoss LX (lxwifi.danfoss.us) requires 4.
 DEFAULT_WG4_APPLICATION = 2
+
+# Settings of the apps for WG4-series thermostats, used as suggested values in
+# the WG4 form. With the wrong application code the login succeeds, but the
+# account has no thermostats. Danfoss LX (#441) and Schlüter North America
+# (#469) were reported by users; the maintainers have not tested them.
+WG4_APPS: dict[str, dict[str, str | int]] = {
+    "mythermostat": {CONF_APPLICATION: DEFAULT_WG4_APPLICATION},
+    "danfoss_lx": {CONF_HOST: "lxwifi.danfoss.us", CONF_APPLICATION: 4},
+    "schluter_na": {
+        CONF_HOST: "ditra-heat-e-wifi.schluter.com",
+        CONF_APPLICATION: 7,
+    },
+}
 
 PRESET_SCHEDULE = "schedule"
 PRESET_MANUAL = "manual"

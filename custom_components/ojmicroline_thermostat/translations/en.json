@@ -168,6 +168,11 @@
                 "name": "Vacation"
             }
         },
+        "number": {
+            "energy_price": {
+                "name": "Energy price"
+            }
+        },
         "binary_sensor": {
             "online": {
                 "name": "Online"

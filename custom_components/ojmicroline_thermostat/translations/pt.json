@@ -166,6 +166,11 @@
                 "name": "Férias"
             }
         },
+        "number": {
+            "energy_price": {
+                "name": "Preço da energia"
+            }
+        },
         "binary_sensor": {
             "online": {
                 "name": "Online"

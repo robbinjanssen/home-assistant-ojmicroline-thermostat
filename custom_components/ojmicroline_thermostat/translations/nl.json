@@ -166,6 +166,11 @@
                 "name": "Vakantie"
             }
         },
+        "number": {
+            "energy_price": {
+                "name": "Energieprijs"
+            }
+        },
         "binary_sensor": {
             "online": {
                 "name": "Online"

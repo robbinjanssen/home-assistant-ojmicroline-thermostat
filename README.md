@@ -89,6 +89,12 @@ The "Energy Usage" sensor shows today's usage (from local midnight). Use either 
 
 For WG4-series thermostats, energy usage is taken from the "Energy Use" page of mythermostat.info, where the usage of each hour is added once that hour has ended. The "Power" sensor shows the power draw of the floor heating: the load of the heating element, as reported by the thermostat (measured, or configured on the thermostat if load measuring is off), while the thermostat is heating, and 0 W otherwise.
 
+## Energy price (WG4 series)
+
+WG4-series thermostats store the price per kWh that the app uses to show the energy costs. The integration shows it as `number.<name>_energy_price`, in the currency set in Home Assistant, and you can change it there.
+
+The entity is disabled by default: the cloud applies a new price to all stored usage, including earlier days, so the costs in the app are only right for one constant price. Do not use it to follow changing tariffs; Home Assistant's energy dashboard tracks costs with changing prices itself.
+
 ## Schedule and vacation (WD5 series)
 
 Every WD5-series thermostat gets these extra entities. Like in the apps, schedule and vacation settings belong to the thermostat's group.

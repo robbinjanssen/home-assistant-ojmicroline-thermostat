@@ -1,0 +1,49 @@
+---
+name: Release
+
+on:
+  release:
+    types: [published]
+  # Attach the zip to an existing release, e.g. one published before this
+  # workflow existed.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag of the release
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Attach the integration to the release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.0
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      # HACS installs this zip (zip_release in hacs.json), so the version
+      # Home Assistant shows always matches the release tag.
+      - name: Set the integration version
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          version="${TAG#v}"
+          manifest=custom_components/ojmicroline_thermostat/manifest.json
+          jq --arg version "${version}" '.version = $version' "${manifest}" > manifest.tmp
+          mv manifest.tmp "${manifest}"
+          jq -r .version "${manifest}"
+
+      - name: Zip the integration
+        working-directory: custom_components/ojmicroline_thermostat
+        run: zip -r "${RUNNER_TEMP}/ojmicroline_thermostat.zip" . -x "*__pycache__*"
+
+      - name: Attach the zip to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "${TAG}" "${RUNNER_TEMP}/ojmicroline_thermostat.zip" --clobber

@@ -46,8 +46,9 @@ class OJMicrolineEnergyPrice(OJMicrolineEntity, NumberEntity):
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0
     _attr_native_max_value = 1000
-    # The cloud keeps four decimal places.
-    _attr_native_step = 0.0001
+    # The cloud accepts more decimals, but the thermostat truncates the
+    # price to two at its next sync (#476).
+    _attr_native_step = 0.01
 
     def __init__(
         self, coordinator: OJMicrolineDataUpdateCoordinator, idx: str, currency: str

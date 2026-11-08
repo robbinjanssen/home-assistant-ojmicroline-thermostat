@@ -84,11 +84,13 @@ async def test_set_energy_price(
     assert state is not None
     assert state.state == "0.25"
     assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == "EUR/kWh"
+    # The thermostat keeps two decimals of the price.
+    assert state.attributes["step"] == 0.01
 
     await hass.services.async_call(
         NUMBER_DOMAIN,
         SERVICE_SET_VALUE,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_VALUE: 0.0894},
+        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_VALUE: 0.09},
         blocking=True,
     )
 
@@ -97,10 +99,10 @@ async def test_set_energy_price(
         for method, url, data, _ in mock_wg4_api.mock_calls
         if method == "POST" and url.path == "/api/thermostat"
     ]
-    assert updates == [{"KwhCharge": "0.0894"}]
+    assert [float(update["KwhCharge"]) for update in updates] == [0.09]
     state = hass.states.get(ENTITY_ID)
     assert state is not None
-    assert state.state == "0.0894"
+    assert state.state == "0.09"
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")

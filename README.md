@@ -91,7 +91,7 @@ For WG4-series thermostats, energy usage is taken from the "Energy Use" page of 
 
 ## Energy price (WG4 series)
 
-WG4-series thermostats store the price per kWh that the app uses to show the energy costs. The integration shows it as `number.<name>_energy_price`, in the currency set in Home Assistant, and you can change it there.
+WG4-series thermostats store the price per kWh that the app uses to show the energy costs. The integration shows it as `number.<name>_energy_price`, in the currency set in Home Assistant, and you can change it there. The thermostat keeps two decimals: the cloud accepts more, but the thermostat truncates the price at its next sync.
 
 The entity is disabled by default: the cloud applies a new price to all stored usage, including earlier days, so the costs in the app are only right for one constant price. Do not use it to follow changing tariffs; Home Assistant's energy dashboard tracks costs with changing prices itself.
 

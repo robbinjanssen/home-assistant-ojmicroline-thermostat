@@ -549,7 +549,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             {
                 **self.data,
                 thermostat.serial_number: replace(
-                    thermostat, energy_price=round(price, 4)
+                    thermostat, energy_price=round(price, 2)
                 ),
             }
         )

@@ -37,7 +37,7 @@ Add this integration using HACS by searching for `OJ Microline Thermostat` on th
 ## Manual installation
 
 Create a directory called `ojmicroline_thermostat` in the `<config directory>/custom_components/` directory on your Home Assistant instance.
-Install this integration by copying all files in `/custom_components/ojmicroline_thermostat/` folder from this repo into the new `<config directory>/custom_components/ojmicroline_thermostat/` directory you just created.
+Download `ojmicroline_thermostat.zip` from the [latest release](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/releases/latest) and extract it into the new `<config directory>/custom_components/ojmicroline_thermostat/` directory you just created.
 
 ## Configuration
 

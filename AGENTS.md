@@ -105,7 +105,11 @@ work on a branch.
   `hotfix`, `documentation`, `enhancement`, `refactor`, `performance`,
   `new-feature`, `maintenance`, `ci`, `dependencies`, `skip-changelog`.
 - Release Drafter derives the next version from the labels
-  (`breaking-change` → major). Bump `version` in `manifest.json` and
-  `pyproject.toml` to match before a release.
+  (`breaking-change` → major, `new-feature` → minor, others → patch).
+  Publishing a GitHub release runs `release.yaml`, which sets the version in
+  `manifest.json` from the tag, zips the integration and attaches
+  `ojmicroline_thermostat.zip` to the release; HACS installs that zip
+  (`zip_release` in `hacs.json`). The version in `manifest.json` and
+  `pyproject.toml` stays `0.0.0`.
 - Renovate keeps dependencies up to date and automerges minor and patch
   updates.

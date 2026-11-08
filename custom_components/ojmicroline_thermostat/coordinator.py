@@ -528,6 +528,32 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             lambda: api.fetch_energy_usage(thermostat, view, day, history)
         )
 
+    async def async_set_energy_price(
+        self, thermostat: Thermostat, price: float
+    ) -> None:
+        """Set the price per kWh that the app uses (WG4 series only).
+
+        The new price is applied to the coordinator data right away.
+
+        Raises
+        ------
+            OJMicrolineError: The API refused the update.
+
+        """
+        api = self.wg4_api
+        if api is None:
+            msg = "This is only supported on WG4-series thermostats."
+            raise OJMicrolineError(msg)
+        await self._async_with_session(lambda: api.set_energy_price(thermostat, price))
+        self.async_set_updated_data(
+            {
+                **self.data,
+                thermostat.serial_number: replace(
+                    thermostat, energy_price=round(price, 2)
+                ),
+            }
+        )
+
     async def async_set_regulation_mode(
         self,
         thermostat: Thermostat,

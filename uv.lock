@@ -1312,7 +1312,7 @@ wheels = [
 
 [[package]]
 name = "home-assistant-ojmicroline-thermostat"
-version = "2.1.2"
+version = "2.3.0"
 source = { virtual = "." }
 dependencies = [
     { name = "ojmicroline-thermostat" },
@@ -2046,7 +2046,7 @@ wheels = [
 [[package]]
 name = "ojmicroline-thermostat"
 version = "0.0.0"
-source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main#bdec328a82eaea62c59dd86132dee69d9924e864" }
+source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main#20fa609c137c30651e765271ebe1e301ff67fe0b" }
 dependencies = [
     { name = "aiohttp" },
     { name = "yarl" },

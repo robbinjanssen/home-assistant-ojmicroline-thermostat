@@ -74,6 +74,14 @@ WG4-series thermostats are also sold under several brands. Their apps differ in 
 
 The Danfoss and Schlüter settings were reported by users ([#441](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/441), [#469](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues/469)); the maintainers have not tested them. With the wrong application code the login succeeds, but the account has no thermostats; the integration then asks you to check the app.
 
+## Experimental WG4 local control
+
+An optional local backend is available for a WG4 thermostat with firmware
+`1012M201` and a verified private device profile. It hosts the device gateway
+inside Home Assistant and preserves existing entities. See
+[local setup, limitations, backups, and recovery](docs/WG4_LOCAL.md) before
+enabling it. Capture/import is currently an advanced manual procedure.
+
 ## Live updates (WD5 and WG4 series)
 
 WD5-series thermostats receive live updates through the same notification service the OJ Microline and SWATT apps use, so changes made on the thermostat or in the app show up in Home Assistant within seconds. While this connection is up, the integration polls only every 5 minutes (for energy usage and as a fallback); when it drops, polling returns to every minute and the connection is retried automatically.

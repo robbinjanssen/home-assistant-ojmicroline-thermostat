@@ -321,6 +321,13 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
             True if the data is up to date and the thermostat is online.
 
         """
+        if self.coordinator.local is not None and self.entity_description.key in {
+            "energy_usage",
+            "comfort_end_time",
+            "vacation_begin_time",
+            "vacation_end_time",
+        }:
+            return False
         return super().available and self.thermostat.online
 
     @property

@@ -21,6 +21,7 @@ REFRESH_COOLDOWN = 30
 PUSH_ACTION_UPDATE = 2
 
 CONF_MODEL = "model"
+CONF_LOCAL_CONTROL = "local_control"
 CONF_CUSTOMER_ID = "customer_id"
 CONF_APPLICATION = "application"
 # OAuth2 identity server for WG5. Standard OJ Microline uses the library

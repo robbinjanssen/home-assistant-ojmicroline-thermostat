@@ -193,12 +193,16 @@
                 "data": {
                     "use_comfort_mode": "Definna para modo conforto quando está a mudar a temperatura.",
                     "comfort_mode_duration": "Qual a duração que o modo conforto deve durar.",
-                    "comfort_temperature": "Temperatura de conforto"
+                    "comfort_temperature": "Temperatura de conforto",
+                    "local_control": "Usar gateway WG4 local"
                 },
                 "data_description": {
                     "comfort_temperature": "A temperatura usada ao mudar para a predefinição de conforto. Deixe em branco para usar a temperatura de conforto guardada no termóstato."
                 }
             }
+        },
+        "error": {
+            "local_profile_required": "Importe um perfil capturado do gateway WG4 antes de ativar o controle local. Consulte a documentação."
         }
     },
     "selector": {

@@ -123,6 +123,7 @@ async def test_options_flow(
     assert mock_config_entry.options == {
         "use_comfort_mode": True,
         "comfort_mode_duration": 60,
+        "local_control": False,
     }
 
 

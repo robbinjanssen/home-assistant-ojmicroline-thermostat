@@ -74,7 +74,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: OJMicrolineConfigEntry) 
 
     """
     coordinator = OJMicrolineDataUpdateCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except BaseException:
+        if coordinator.local is not None:
+            await coordinator.local.async_stop()
+        raise
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -99,7 +104,10 @@ async def async_unload_entry(
         Return true if unload was successful, false otherwise.
 
     """
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded and entry.runtime_data.local is not None:
+        await entry.runtime_data.local.async_stop()
+    return unloaded
 
 
 async def async_remove_config_entry_device(

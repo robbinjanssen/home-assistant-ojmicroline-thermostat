@@ -77,13 +77,49 @@ acknowledgement. Unsent commands are cancelled rather than saved for a later
 reconnection. Manual mode follows the integration's existing behavior: entering
 manual uses the current target temperature.
 
-Temporary comfort holds, vacation commands, schedule editing, and cloud energy
+Temporary comfort holds, vacation commands, and cloud energy
 history are not implemented locally. Energy and hold/vacation timestamps are
 unavailable, rather than presenting cached data as current. A power estimate is
 only usable if the cached metadata contains a valid measured/configured load;
 local telemetry does not provide a verified wattage or energy total. Use a
 separate meter for measured power and energy. Cloud-app control is unavailable
 while the thermostat connects to Home Assistant.
+
+## Weekly schedule editor
+
+Local WG4 devices get a `sensor.<name>_schedule` entity as soon as the gateway
+receives a compatible seven-day schedule. Add the bundled dashboard card:
+
+```yaml
+type: custom:ojmicroline-schedule-card
+entity: sensor.your_thermostat_schedule
+climate_entity: climate.your_thermostat
+```
+
+Tap a weekday to edit its active events. Set times and temperatures, select
+additional days under **Also apply to**, and save. Selecting every day applies
+the same pattern all week. The card displays and edits Fahrenheit or Celsius
+according to HA's unit settings. The underlying `set_schedule` service continues
+to use Celsius, as its existing WD5 interface does.
+
+The tested WG4 schedule has seven ISO weekdays (1 Monday to 7 Sunday), six
+slots per day, and Celsius x100 schedule temperatures. Hold commands use a
+different x200 scale. Slot zero stays active; inactive slots are retained where
+possible, with existing active slots preferred during edits. Unknown fields,
+other weekdays, regulation mode, and hold temperatures are preserved. The
+editor supports one to six active events, in increasing same-day order on
+quarter hours, within the device's configured temperature limits. WD5's
+cross-midnight event behavior is not assumed for WG4.
+
+A save requires a device acknowledgement and a matching schedule uploaded by
+the thermostat. The firmware uploads its stored schedule on reconnect, so a
+changed schedule triggers a brief reconnect and the card waits for readback.
+This can take about a minute; keep the editor open while it checks. The
+schedule and state update timestamps are refreshed together in the command.
+An acknowledgement by itself is insufficient. If confirmation
+times out, the card shows an error: refresh the schedule before retrying,
+since a sent command might already have been applied. Unavailable schedules
+cannot be edited. Keep an HA backup before making substantial schedule changes.
 
 ## Keeping it running
 

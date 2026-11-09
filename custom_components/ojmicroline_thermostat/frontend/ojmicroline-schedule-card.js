@@ -1,7 +1,7 @@
 /**
  * OJ Microline schedule card.
  *
- * Shows the weekly schedule of an OJ Microline (WD5-series) thermostat from
+ * Shows the weekly schedule of an OJ Microline thermostat from
  * its schedule sensor, highlighting the event that is active right now.
  * Tap a day to edit it; saving calls the ojmicroline_thermostat.set_schedule
  * action on the thermostat's climate entity. Bundled with and loaded by the
@@ -32,11 +32,14 @@ const TEXTS = {
   en: {
     now: "Now",
     noSchedule: "No schedule",
+    waiting: "Waiting for the thermostat’s schedule…",
     missing: "Entity not found",
     edit: "Edit",
     save: "Save",
     cancel: "Cancel",
     saving: "Saving…",
+    verifying: "Saving and checking thermostat…",
+    verifyHint: "The thermostat reconnects to confirm the saved schedule. This can take about a minute.",
     add: "Add event",
     remove: "Remove",
     alsoApply: "Also apply to",
@@ -47,11 +50,14 @@ const TEXTS = {
   nl: {
     now: "Nu",
     noSchedule: "Geen schema",
+    waiting: "Wachten op het schema van de thermostaat…",
     missing: "Entiteit niet gevonden",
     edit: "Bewerken",
     save: "Opslaan",
     cancel: "Annuleren",
     saving: "Opslaan…",
+    verifying: "Opslaan en thermostaat controleren…",
+    verifyHint: "De thermostaat maakt opnieuw verbinding voor bevestiging van het schema. Dit kan ongeveer een minuut duren.",
     add: "Moment toevoegen",
     remove: "Verwijderen",
     alsoApply: "Ook toepassen op",
@@ -62,11 +68,14 @@ const TEXTS = {
   pt: {
     now: "Agora",
     noSchedule: "Sem horário",
+    waiting: "A aguardar o horário do termóstato…",
     missing: "Entidade não encontrada",
     edit: "Editar",
     save: "Guardar",
     cancel: "Cancelar",
     saving: "A guardar…",
+    verifying: "A guardar e verificar o termóstato…",
+    verifyHint: "O termóstato volta a ligar para confirmar o horário. Pode demorar cerca de um minuto.",
     add: "Adicionar evento",
     remove: "Remover",
     alsoApply: "Aplicar também a",
@@ -148,6 +157,7 @@ class OJMicrolineScheduleCard extends HTMLElement {
     const key = [
       state && state.last_updated,
       hass.locale && hass.locale.language,
+      hass.config.unit_system.temperature,
       Math.floor(Date.now() / 60000),
     ].join("|");
     if (key !== this._key) {
@@ -196,8 +206,24 @@ class OJMicrolineScheduleCard extends HTMLElement {
     );
   }
 
+  _fahrenheit() {
+    return this._hass.config.unit_system.temperature === "°F";
+  }
+
+  _displayTemperature(value) {
+    return this._fahrenheit() ? Math.round((value * 1.8 + 32) * 10) / 10 : value;
+  }
+
   _formatTemperature(value) {
-    return `${new Intl.NumberFormat(this._language(), { maximumFractionDigits: 1 }).format(value)}°`;
+    return `${new Intl.NumberFormat(this._language(), { maximumFractionDigits: 1 }).format(this._displayTemperature(value))}°`;
+  }
+
+  _serviceTemperature(event) {
+    const value = Number(event.temperature);
+    // Merely opening/saving a Fahrenheit draft must not round-trip 17.77 C
+    // through its displayed 64 F and silently change it to 17.78 C.
+    if (value === event.originalDisplay) return event.originalCelsius;
+    return this._fahrenheit() ? (value - 32) / 1.8 : value;
   }
 
   /** The climate entity to call set_schedule on. */
@@ -241,11 +267,13 @@ class OJMicrolineScheduleCard extends HTMLElement {
     const state = this._hass.states[this._config.entity];
     const events = (state.attributes[DAYS[dayIndex]] || []).map((event) => ({
       time: event.time,
-      temperature: event.temperature,
+      temperature: this._displayTemperature(event.temperature),
+      originalCelsius: event.temperature,
+      originalDisplay: this._displayTemperature(event.temperature),
     }));
     this._draft = {
       day: dayIndex,
-      events: events.length ? events : [{ time: "07:00", temperature: 20 }],
+      events: events.length ? events : [{ time: "07:00", temperature: this._displayTemperature(20) }],
       days: new Set([dayIndex]),
       error: "",
       saving: false,
@@ -295,7 +323,7 @@ class OJMicrolineScheduleCard extends HTMLElement {
           days: DAYS.filter((_, index) => draft.days.has(index)),
           events: draft.events.map((event) => ({
             time: event.time,
-            temperature: Number(event.temperature),
+            temperature: this._serviceTemperature(event),
           })),
         },
         { entity_id: climate },
@@ -362,6 +390,10 @@ class OJMicrolineScheduleCard extends HTMLElement {
       body = "";
     } else if (!state) {
       body = `<div class="message">${escapeHtml(texts.missing)}: ${escapeHtml(this._config.entity)}</div>`;
+    } else if (this._draft && this._draft.saving) {
+      body = this._editorHtml(texts);
+    } else if (state.state === "unavailable" || state.state === "unknown") {
+      body = `<div class="message">${escapeHtml(texts.waiting)}</div>`;
     } else if (!Array.isArray(state.attributes.monday)) {
       body = `<div class="message">${escapeHtml(texts.noSchedule)}</div>`;
     } else if (this._draft) {
@@ -412,6 +444,13 @@ class OJMicrolineScheduleCard extends HTMLElement {
   }
 
   _editorHtml(texts) {
+    const scheduleState = this._hass.states[this._config.entity];
+    const local = scheduleState && scheduleState.attributes.same_day_only;
+    const hint = local ? ({
+      en: "Up to 6 events, on the quarter hour, in increasing order within the same day.",
+      nl: "Tot 6 momenten, per kwartier, in oplopende volgorde binnen dezelfde dag.",
+      pt: "Até 6 eventos, a cada quarto de hora, por ordem crescente no mesmo dia.",
+    }[this._language().split("-")[0]] || "Up to 6 events, on the quarter hour, within the same day.") : texts.hint;
     const draft = this._draft;
     const longNames = this._dayNames("long");
     const shortNames = this._dayNames();
@@ -423,9 +462,9 @@ class OJMicrolineScheduleCard extends HTMLElement {
             value="${escapeHtml(event.time)}" ${draft.saving ? "disabled" : ""}>
           <span class="next-day" ${flags[index] ? "" : "hidden"}>${escapeHtml(texts.nextDay)}</span>
           <span class="spacer"></span>
-          <input type="number" min="5" max="40" step="0.5" data-field="temperature" data-index="${index}"
+          <input type="number" min="${this._fahrenheit() ? 41 : 5}" max="${this._fahrenheit() ? 104 : 40}" step="${this._fahrenheit() ? 1 : 0.5}" data-field="temperature" data-index="${index}"
             value="${escapeHtml(event.temperature)}" ${draft.saving ? "disabled" : ""}>
-          <span class="unit">°C</span>
+          <span class="unit">${this._fahrenheit() ? "°F" : "°C"}</span>
           <button class="icon" data-action="remove" data-index="${index}" title="${escapeHtml(texts.remove)}"
             ${draft.events.length <= 1 || draft.saving ? "disabled" : ""}>✕</button>
         </div>`,
@@ -443,14 +482,15 @@ class OJMicrolineScheduleCard extends HTMLElement {
       ${rows}
       <button class="text" data-action="add"
         ${draft.events.length >= MAX_EVENTS || draft.saving ? "disabled" : ""}>+ ${escapeHtml(texts.add)}</button>
-      <div class="hint">${escapeHtml(texts.hint)}</div>
+      <div class="hint">${escapeHtml(hint)}</div>
+      ${local && draft.saving ? `<div class="hint">${escapeHtml(texts.verifyHint)}</div>` : ""}
       <div class="also">${escapeHtml(texts.alsoApply)}:</div>
       <div class="day-toggles">${days}</div>
       ${draft.error ? `<div class="error">${escapeHtml(draft.error)}</div>` : ""}
       <div class="actions">
         <button class="text" data-action="cancel" ${draft.saving ? "disabled" : ""}>${escapeHtml(texts.cancel)}</button>
         <button class="primary" data-action="save" ${draft.saving ? "disabled" : ""}>
-          ${escapeHtml(draft.saving ? texts.saving : texts.save)}</button>
+          ${escapeHtml(draft.saving ? (local ? texts.verifying : texts.saving) : texts.save)}</button>
       </div>
     </div>`;
   }

@@ -145,18 +145,29 @@ def _encode(field: int, value: int | bytes) -> bytes:
 
 def _with_varint(msg: bytes, field: int, value: int) -> bytes:
     """Return msg with varint field set to value and every other field kept."""
-    out = b""
+    parse(msg)
+    chunks = []
+    offset = 0
     replaced = False
-    for number, values in parse(msg).items():
-        for old in values:
-            if number == field and not replaced:
-                encoded, replaced = value, True
-            else:
-                encoded = old
-            out += _encode(number, encoded)
+    while offset < len(msg):
+        start = offset
+        tag, offset = uvarint(msg, offset)
+        wire = tag & 7
+        if wire == 0:
+            _, offset = uvarint(msg, offset)
+        elif wire == 2:
+            length, offset = uvarint(msg, offset)
+            offset += length
+        else:
+            offset += 4 if wire == 5 else 8
+        if tag >> 3 == field and not replaced:
+            chunks.append(_encode(field, value))
+            replaced = True
+        else:
+            chunks.append(msg[start:offset])
     if not replaced:
-        out += _encode(field, value)
-    return out
+        chunks.append(_encode(field, value))
+    return b"".join(chunks)
 
 
 def _server_time() -> int:
@@ -411,6 +422,38 @@ class LocalGateway:
         """Return whether the most recent command still needs acknowledgement."""
         return serial in self._unacked
 
+    def schedule_template(self, serial: str) -> bytes | None:
+        """Return the most recently uploaded schedule, never an optimistic copy."""
+        return self._sched.get(serial)
+
+    def request_schedule_readback(self, serial: str) -> None:
+        """Reconnect the device so it uploads its stored weekly schedule."""
+        if writer := self._writers.get(serial):
+            writer.close()
+
+    async def send_schedule(self, serial: str, schedule: bytes) -> None:
+        """Send an edited schedule while preserving the thermostat's mode/state."""
+        writer = self._writers.get(serial)
+        state = self._state_raw.get(serial)
+        if writer is None or state is None or serial not in self._sched:
+            msg = "Waiting for a connected thermostat and fresh schedule/state."
+            raise ValueError(msg)
+        seq = self._next_seq()
+        timestamp = _server_time()
+        body = (
+            _encode(1, seq)
+            + _encode(5, 1)
+            + _encode(8, _with_varint(schedule, 1, timestamp))
+            + _encode(9, _with_varint(state, 1, timestamp))
+        )
+        self._unacked[serial] = seq
+        try:
+            writer.write(_frame(body))
+            await writer.drain()
+        except OSError:
+            self._unacked.pop(serial, None)
+            raise
+
     # --- framing ------------------------------------------------------------
     @staticmethod
     async def _read_frame(
@@ -513,14 +556,15 @@ class LocalGateway:
             return
         top = parse(body)
         self._log_frame("command", serial, top)
+        self._unacked[serial] = top[1][0]
         try:
             writer.write(_frame(body))
             await writer.drain()
         except OSError as err:
+            self._unacked.pop(serial, None)
             _LOGGER.debug("WG4 set-command to %s failed: %s", serial, err)
             return
         self._desired.pop(serial, None)
-        self._unacked[serial] = top[1][0]
         _LOGGER.debug(
             "WG4 sent set-command seq %s to %s (mode %s, setpoint %s)",
             top[1][0],
@@ -578,6 +622,8 @@ class LocalGateway:
             return
         if 8 in top or 9 in top:
             self._capture(serial, top)
+        if 8 in top:
+            self.on_state(serial, {"LocalScheduleRaw": top[8][0]})
         if 7 in top or 9 in top:
             if fields := _decode_state(body):
                 self.on_state(serial, fields)

@@ -466,8 +466,8 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             HomeAssistantError: The API refused the update.
 
         """
-        if self.wd5_api is None:
-            msg = "The schedule can only be set on WD5-series thermostats."
+        if self.wd5_api is None and self.local is None:
+            msg = "This thermostat has no editable schedule."
             raise ServiceValidationError(msg)
         try:
             await self.async_set_schedule(thermostat, schedule)
@@ -493,6 +493,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             OJMicrolineError: The API refused the update.
 
         """
+        if self.local is not None:
+            await self.local.async_set_schedule(thermostat, schedule)
+            return
         await self._async_update_group(
             thermostat, {"Schedule": schedule}, exclude_vacation=True
         )

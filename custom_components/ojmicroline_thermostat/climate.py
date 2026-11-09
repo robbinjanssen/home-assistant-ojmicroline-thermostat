@@ -53,6 +53,7 @@ from .const import (
     SERVICE_SET_VACATION,
 )
 from .helpers import target_temperature, wd5_date
+from .local_schedule import set_local_days
 from .models import OJMicrolineEntity
 from .schedule import SLOTS, WEEKDAYS, ScheduleError, set_days
 
@@ -407,13 +408,22 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         """
         thermostat = self.thermostat
         if thermostat.schedule is None:
-            msg = "The schedule can only be set on WD5-series thermostats."
+            msg = "This thermostat has no editable schedule."
             raise ServiceValidationError(msg)
         try:
-            schedule = set_days(
-                thermostat.schedule,
-                days,
-                [(event[ATTR_TIME], event[ATTR_TEMPERATURE]) for event in events],
+            requested = [
+                (event[ATTR_TIME], event[ATTR_TEMPERATURE]) for event in events
+            ]
+            schedule = (
+                set_local_days(
+                    thermostat.schedule,
+                    days,
+                    requested,
+                    thermostat.min_temperature,
+                    thermostat.max_temperature,
+                )
+                if self.coordinator.local is not None
+                else set_days(thermostat.schedule, days, requested)
             )
         except ScheduleError as error:
             raise ServiceValidationError(str(error)) from error

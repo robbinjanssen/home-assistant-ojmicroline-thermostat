@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.storage import Store
@@ -26,6 +27,9 @@ from .const import DOMAIN
 from .local_cert import async_ensure_cert
 from .local_gateway import LocalGateway
 from .local_profile import async_load_profile
+from .local_schedule import decode_schedule, encode_schedule
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class WG4LocalTransport:
@@ -52,6 +56,8 @@ class WG4LocalTransport:
         self._live: dict[str, dict[str, Any]] = {}
         self.gateway: LocalGateway | None = None
         self._lock = asyncio.Lock()
+        self._command_lock = asyncio.Lock()
+        self._schedule_updated = asyncio.Event()
 
     async def _start(self) -> None:
         async with self._lock:
@@ -107,6 +113,7 @@ class WG4LocalTransport:
     def _resource(self, serial: str) -> Thermostat:
         data = {**self._seed[serial], "Online": False, **self._live.get(serial, {})}
         resource = Thermostat.from_wg4_json(data)
+        resource.schedule = self._live.get(serial, {}).get("LocalSchedule")
         resource.supported_regulation_modes = [1, 3]
         resource.energy = None
         resource.energy_price = None
@@ -115,6 +122,16 @@ class WG4LocalTransport:
     def _on_state(self, serial: str, fields: dict[str, Any]) -> None:
         if serial not in self._seed:
             return
+        fields = dict(fields)
+        if raw := fields.pop("LocalScheduleRaw", None):
+            self._schedule_updated.set()
+            try:
+                fields["LocalSchedule"] = decode_schedule(raw)
+            except ValueError, KeyError, TypeError, IndexError:
+                fields["LocalSchedule"] = None
+                _LOGGER.warning(
+                    "Unsupported WG4 schedule; local schedule editing disabled"
+                )
         self._live.setdefault(serial, {}).update(fields)
         self._on_update(self._resource(serial))
 
@@ -127,6 +144,12 @@ class WG4LocalTransport:
         self, thermostat: Thermostat, mode: int, temperature: int | None
     ) -> None:
         """Send a bounded command only to a connected, initialized device."""
+        async with self._command_lock:
+            await self._set_mode(thermostat, mode, temperature)
+
+    async def _set_mode(
+        self, thermostat: Thermostat, mode: int, temperature: int | None
+    ) -> None:
         gateway = self.gateway
         serial = thermostat.serial_number
         if gateway is None or serial not in gateway.connected_serials:
@@ -152,6 +175,10 @@ class WG4LocalTransport:
         if gateway.cancel_pending(serial):
             msg = "The local command could not be sent."
             raise OJMicrolineError(msg)
+        await self._wait_for_ack(gateway, serial)
+
+    @staticmethod
+    async def _wait_for_ack(gateway: LocalGateway, serial: str) -> None:
         try:
             async with asyncio.timeout(10):
                 while gateway.is_waiting_for_ack(serial):
@@ -163,6 +190,43 @@ class WG4LocalTransport:
         except TimeoutError as err:
             msg = "The thermostat did not acknowledge the local command."
             raise OJMicrolineError(msg) from err
+
+    async def async_set_schedule(
+        self, thermostat: Thermostat, schedule: dict[str, Any]
+    ) -> None:
+        """Require a device acknowledgement and matching uploaded schedule."""
+        async with self._command_lock:
+            gateway = self.gateway
+            serial = thermostat.serial_number
+            if gateway is None or serial not in gateway.connected_serials:
+                msg = "The thermostat is not connected to the local gateway."
+                raise OJMicrolineError(msg)
+            template = gateway.schedule_template(serial)
+            if template is None or not gateway.has_command_template(serial):
+                msg = "Waiting for the thermostat's state and schedule upload."
+                raise OJMicrolineError(msg)
+            try:
+                raw = encode_schedule(template, schedule)
+                expected = decode_schedule(raw)
+                await gateway.send_schedule(serial, raw)
+            except (ValueError, KeyError, TypeError, OSError) as err:
+                raise OJMicrolineError(str(err)) from err
+            await self._wait_for_ack(gateway, serial)
+            if self._live.get(serial, {}).get("LocalSchedule") == expected:
+                return
+            # This firmware acknowledges edits but uploads the stored schedule
+            # on reconnect, rather than echoing it on the existing connection.
+            self._schedule_updated.clear()
+            gateway.request_schedule_readback(serial)
+            try:
+                async with asyncio.timeout(90):
+                    while self._live.get(serial, {}).get("LocalSchedule") != expected:
+                        await self._schedule_updated.wait()
+                        self._schedule_updated.clear()
+            except TimeoutError as err:
+                msg = "The thermostat did not confirm the edited schedule. "
+                msg += "Refresh before retrying."
+                raise OJMicrolineError(msg) from err
 
     async def async_stop(self) -> None:
         """Close every device connection and release the listening port."""

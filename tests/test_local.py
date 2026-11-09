@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from asyncio import timeout
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -15,10 +16,15 @@ from custom_components.ojmicroline_thermostat.local_profile import (
     profile_store,
     validate_profile,
 )
+from custom_components.ojmicroline_thermostat.local_schedule import (
+    decode_schedule,
+    set_local_days,
+)
 
 from . import load_fixture
 from .conftest import DOMAIN
 from .test_local_gateway import CONFIG, SUPPORT
+from .test_local_schedule import active_events, schedule_wire
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -120,6 +126,36 @@ async def test_local_ha_setup_control_reload(
         blocking=True,
     )
     local_gateway.queue_set.assert_awaited_with(serial, 3, 4400)
+    raw = schedule_wire()
+    local_gateway.schedule_template.return_value = raw
+    transport._on_state(serial, {"LocalScheduleRaw": raw})
+    await hass.async_block_till_done()
+    schedule_state = hass.states.get("sensor.roomname_schedule")
+    assert schedule_state is not None
+    assert schedule_state.state != "unavailable"
+    assert schedule_state.attributes["monday"][0]["temperature"] == 17.1
+    assert schedule_state.attributes["same_day_only"] is True
+
+    async def echo_schedule(device_serial: str, uploaded: bytes) -> None:
+        transport._on_state(device_serial, {"LocalScheduleRaw": uploaded})
+
+    local_gateway.send_schedule = AsyncMock(side_effect=echo_schedule)
+    requested = [
+        {"time": str(clock), "temperature": temp}
+        for clock, temp in active_events(decode_schedule(raw), 6)
+    ]
+    requested[-1]["temperature"] = 20.5
+    await hass.services.async_call(
+        DOMAIN,
+        "set_schedule",
+        {"entity_id": "climate.roomname", "days": ["sunday"], "events": requested},
+        blocking=True,
+    )
+    local_gateway.send_schedule.assert_awaited_once()
+    schedule_state = hass.states.get("sensor.roomname_schedule")
+    assert schedule_state is not None
+    assert schedule_state.attributes["sunday"][-1]["temperature"] == 20.5
+    assert schedule_state.attributes["monday"][0]["temperature"] == 17.1
     device = (await transport.async_get_thermostats())[0]
     assert device.energy is None
     assert device.supported_regulation_modes == [1, 3]
@@ -272,3 +308,84 @@ async def test_port_conflict_cleans_up(
     with pytest.raises(OJMicrolineError, match="port 9533"):
         await transport.async_get_thermostats()
     local_gateway.stop.assert_awaited_once()
+
+
+async def test_schedule_ack_without_readback_is_not_success(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    local_seed: dict[str, dict[str, Any]],
+    local_profile: dict[str, str],
+    local_gateway: MagicMock,
+) -> None:
+    """Keep the confirmed schedule until the device actually reports its change."""
+    await _seed_storage(hass, mock_config_entry.entry_id, local_seed, local_profile)
+    transport = WG4LocalTransport(
+        hass, mock_config_entry, MagicMock(), MagicMock(), MagicMock()
+    )
+    device = (await transport.async_get_thermostats())[0]
+    raw = schedule_wire()
+    serial = device.serial_number
+    transport._on_state(serial, {"LocalScheduleRaw": raw})
+    local_gateway.schedule_template.return_value = raw
+    local_gateway.connected_serials = {serial}
+    local_gateway.send_schedule = AsyncMock()
+    current = decode_schedule(raw)
+    events = active_events(current)
+    events[-1] = (events[-1][0], 22)
+    edited = set_local_days(current, ["monday"], events, 500, 4000)
+    with (
+        patch(
+            "custom_components.ojmicroline_thermostat.local.asyncio.timeout",
+            side_effect=lambda _seconds: timeout(0.001),
+        ),
+        pytest.raises(OJMicrolineError, match="did not confirm"),
+    ):
+        await transport.async_set_schedule(device, edited)
+    local_gateway.request_schedule_readback.assert_called_once_with(serial)
+    assert (await transport.async_get_thermostats())[0].schedule == current
+    await transport.async_stop()
+
+
+async def test_schedule_readback_after_device_reconnect(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    local_seed: dict[str, dict[str, Any]],
+    local_profile: dict[str, str],
+    local_gateway: MagicMock,
+) -> None:
+    """Wait across the intentional reconnect for a genuine device upload."""
+    await _seed_storage(hass, mock_config_entry.entry_id, local_seed, local_profile)
+    transport = WG4LocalTransport(
+        hass, mock_config_entry, MagicMock(), MagicMock(), MagicMock()
+    )
+    device = (await transport.async_get_thermostats())[0]
+    serial = device.serial_number
+    raw = schedule_wire()
+    transport._on_state(serial, {"LocalScheduleRaw": raw})
+    local_gateway.connected_serials = {serial}
+    local_gateway.schedule_template.return_value = raw
+    current = decode_schedule(raw)
+    events = active_events(current)
+    events[-1] = (events[-1][0], 22)
+    edited = set_local_days(current, ["monday"], events, 500, 4000)
+    uploaded = b""
+
+    async def send_schedule(_serial: str, data: bytes) -> None:
+        nonlocal uploaded
+        uploaded = data
+
+    def reconnect(_serial: str) -> None:
+        transport._on_state(serial, {"Online": False})
+        local_gateway.connected_serials = set()
+
+        def report() -> None:
+            local_gateway.connected_serials = {serial}
+            transport._on_state(serial, {"Online": True, "LocalScheduleRaw": uploaded})
+
+        hass.loop.call_soon(report)
+
+    local_gateway.send_schedule = AsyncMock(side_effect=send_schedule)
+    local_gateway.request_schedule_readback.side_effect = reconnect
+    await transport.async_set_schedule(device, edited)
+    assert (await transport.async_get_thermostats())[0].schedule == edited
+    await transport.async_stop()

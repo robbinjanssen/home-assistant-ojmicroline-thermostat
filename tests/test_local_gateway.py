@@ -18,6 +18,8 @@ import pytest
 from custom_components.ojmicroline_thermostat import local_gateway as g
 from custom_components.ojmicroline_thermostat.local_cert import _generate
 
+from .test_local_schedule import schedule_wire
+
 # Protocol regression tests deliberately inspect the wire implementation.
 # pylint: disable=protected-access
 
@@ -291,6 +293,12 @@ async def test_local_session_answers_and_decodes() -> None:
         ),
         writer,
     )
+    assert (SERIAL, {"LocalScheduleRaw": b"\x08\x01"}) in events
+    events = [
+        (serial, fields)
+        for serial, fields in events
+        if "LocalScheduleRaw" not in fields
+    ]
     replies = writer.frames()
     assert 12 in replies[0]
     assert replies[0][1] == [29]
@@ -643,3 +651,64 @@ def test_truncated_fields_are_rejected(body: bytes) -> None:
     """Reject malformed bodies rather than accepting a partial private profile."""
     with pytest.raises(ValueError, match="protobuf"):
         g.parse(body)
+
+
+async def test_schedule_write_preserves_mode_and_requires_readback() -> None:
+    """Send a fresh schedule without changing mode/holds or trusting an ACK alone."""
+    gw, events = _gateway()
+    writer = FakeWriter()
+    gw._writers[SERIAL] = writer
+    gw._state_raw[SERIAL] = PERMANENT_F9
+    gw._sched[SERIAL] = b"previous"
+    raw = schedule_wire()
+    await gw.send_schedule(SERIAL, raw)
+    command = writer.frames()[0]
+    scheduled = g.parse(command[8][0])
+    assert scheduled[2] == g.parse(raw)[2]
+    assert scheduled[1] == g.parse(command[9][0])[1]
+    state = g.parse(command[9][0])
+    original = g.parse(PERMANENT_F9)
+    assert {k: v for k, v in state.items() if k != 1} == {
+        k: v for k, v in original.items() if k != 1
+    }
+    assert gw.schedule_template(SERIAL) == b"previous"
+    assert gw.is_waiting_for_ack(SERIAL)
+    gw._note_ack(SERIAL, {1: command[1], 3: [0]})
+    assert gw.is_waiting_for_ack(SERIAL)
+    gw._note_ack(SERIAL, {1: command[1], 3: [1]})
+    assert not gw.is_waiting_for_ack(SERIAL)
+    gw._dispatch(SERIAL, g._encode(8, raw), {8: [raw]})
+    assert gw.schedule_template(SERIAL) == raw
+    assert events == [(SERIAL, {"LocalScheduleRaw": raw})]
+    gw.request_schedule_readback(SERIAL)
+    assert writer.closed
+
+
+async def test_schedule_send_rejects_uninitialized_device() -> None:
+    """Do not queue a schedule to be applied on a later connection."""
+    gw, _ = _gateway()
+    with pytest.raises(ValueError, match="connected thermostat"):
+        await gw.send_schedule(SERIAL, b"schedule")
+
+
+async def test_schedule_send_failure_cleans_up_ack() -> None:
+    """Avoid claiming a failed write is awaiting acknowledgement."""
+    gw, _ = _gateway()
+    writer = FakeWriter()
+    gw._writers[SERIAL] = writer
+    gw._state_raw[SERIAL] = PERMANENT_F9
+    gw._sched[SERIAL] = b"previous"
+    with (
+        patch.object(writer, "drain", AsyncMock(side_effect=ConnectionResetError)),
+        pytest.raises(ConnectionResetError),
+    ):
+        await gw.send_schedule(SERIAL, schedule_wire())
+    assert not gw.is_waiting_for_ack(SERIAL)
+    assert gw.schedule_template(SERIAL) == b"previous"
+
+
+def test_timestamp_replacement_preserves_unknown_wire_fields() -> None:
+    """Keep unknown fixed-width fields unchanged when updating command versions."""
+    unknown = g._tag(12, 5) + b"abcd"
+    original = g._encode(1, 1234) + unknown
+    assert g._with_varint(original, 1, 5678) == g._encode(1, 5678) + unknown

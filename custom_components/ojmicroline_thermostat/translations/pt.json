@@ -193,12 +193,23 @@
                 "data": {
                     "use_comfort_mode": "Definna para modo conforto quando está a mudar a temperatura.",
                     "comfort_mode_duration": "Qual a duração que o modo conforto deve durar.",
-                    "comfort_temperature": "Temperatura de conforto"
+                    "comfort_temperature": "Temperatura de conforto",
+                    "connection_mode": "Ligação"
                 },
                 "data_description": {
-                    "comfort_temperature": "A temperatura usada ao mudar para a predefinição de conforto. Deixe em branco para usar a temperatura de conforto guardada no termóstato."
+                    "comfort_temperature": "A temperatura usada ao mudar para a predefinição de conforto. Deixe em branco para usar a temperatura de conforto guardada no termóstato.",
+                    "connection_mode": "Como o Home Assistant chega aos termóstatos. Os modos locais são experimentais e precisam de um registo DNS na sua rede; leia primeiro a documentação."
                 }
+            },
+            "gateway": {
+                "title": "Ligação local",
+                "description": "Num modo local, os termóstatos ligam-se ao Home Assistant em vez do gateway da OJ.\n\n1. No servidor DNS que os termóstatos utilizam, adicione um registo que aponte `{hostname}` para `{ip}`.\n2. Certifique-se de que os termóstatos conseguem alcançar a porta {port} nesse endereço.\n3. Submeta este formulário e reinicie depois cada termóstato, para que volte a procurar o endereço.\n\nCom o relay, o Home Assistant encaminha a ligação para o gateway da OJ e a aplicação continua a funcionar. O modo apenas local só funciona depois de um termóstato se ter ligado uma vez através do relay."
             }
+        },
+        "error": {
+            "dns_not_detected": "O Home Assistant ainda não vê o registo DNS. Os termóstatos podem utilizar um servidor DNS diferente do Home Assistant. Submeta novamente para continuar mesmo assim.",
+            "dns_still_local": "O registo DNS ainda encaminha os termóstatos para o Home Assistant, pelo que não chegam à cloud. Remova o registo e reinicie os termóstatos. Submeta novamente para continuar mesmo assim.",
+            "no_profile": "O modo apenas local precisa de um termóstato que se tenha ligado uma vez através do relay. Escolha primeiro local com relay e mude depois de um termóstato se ter ligado."
         }
     },
     "selector": {
@@ -213,6 +224,23 @@
                 "schluter_na": "Schlüter DITRA-HEAT-E-WiFi (América do Norte)",
                 "other": "Outra (introduza as definições manualmente)"
             }
+        },
+        "connection_mode": {
+            "options": {
+                "cloud": "Cloud",
+                "relay": "Local com relay (experimental)",
+                "local": "Apenas local (experimental)"
+            }
+        }
+    },
+    "issues": {
+        "gateway_no_thermostat": {
+            "title": "Nenhum termóstato se ligou ao Home Assistant",
+            "description": "A ligação está definida como local, mas ainda nenhum termóstato se ligou ao Home Assistant. Verifique se `{hostname}` aponta para `{ip}` no servidor DNS que os termóstatos utilizam e se conseguem alcançar a porta {port} nesse endereço. Depois reinicie o termóstato, para que volte a procurar o endereço. Esta mensagem desaparece quando um termóstato se ligar."
+        },
+        "gateway_untrusted": {
+            "title": "O gateway da OJ apresenta um certificado inesperado",
+            "description": "O certificado de `{hostname}` não é o que esta integração espera, pelo que nada lhe é encaminhado. Os termóstatos que se ligaram antes são atendidos pelo Home Assistant e aparecem offline na aplicação. A OJ pode ter substituído o certificado, o que exige uma atualização desta integração. Por favor, reporte-o."
         }
     }
 }

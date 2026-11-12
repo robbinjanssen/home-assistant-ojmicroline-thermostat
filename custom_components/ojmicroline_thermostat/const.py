@@ -33,6 +33,17 @@ CONF_USE_COMFORT_MODE = "use_comfort_mode"
 CONF_COMFORT_MODE_DURATION = "comfort_mode_duration"
 CONF_COMFORT_TEMPERATURE = "comfort_temperature"
 
+# How the thermostats of a WG4-series account are reached. In the two local
+# modes the thermostats connect to a gateway in Home Assistant, which needs a
+# DNS record on the local network (see the README). With the relay, that
+# gateway passes the connection on to OJ's own gateway, so the app keeps
+# working; without it, the thermostats never reach the cloud.
+CONF_CONNECTION_MODE = "connection_mode"
+CONNECTION_CLOUD = "cloud"
+CONNECTION_RELAY = "relay"
+CONNECTION_LOCAL = "local"
+CONNECTION_MODES = [CONNECTION_CLOUD, CONNECTION_RELAY, CONNECTION_LOCAL]
+
 MODEL_WD5_SERIES = "WD5 series"
 MODEL_WG4_SERIES = "WG4 series"
 MODEL_WG5_SERIES = "WG5 series"

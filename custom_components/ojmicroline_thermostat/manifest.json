@@ -9,6 +9,7 @@
     "dependencies": [
         "frontend",
         "http",
+        "network",
         "recorder"
     ],
     "documentation": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat",

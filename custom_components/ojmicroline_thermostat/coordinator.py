@@ -22,6 +22,7 @@ from homeassistant.util import dt as dt_util
 from ojmicroline_thermostat import (
     WD5API,
     WG4API,
+    GatewayMode,
     OJMicrolineAuthError,
     OJMicrolineError,
     OJMicrolineUnauthorizedError,
@@ -44,6 +45,8 @@ from .api import (
 )
 from .const import (
     API_TIMEOUT,
+    CONF_CONNECTION_MODE,
+    CONNECTION_CLOUD,
     DOMAIN,
     ENERGY_RETRY_INTERVAL,
     ENERGY_UPDATE_INTERVAL,
@@ -54,6 +57,7 @@ from .const import (
 )
 from .energy import EnergyStatistics
 from .helpers import format_wd5, format_wd5_date
+from .local import LocalGateway
 from .push import WD5PushClient
 
 if TYPE_CHECKING:
@@ -111,6 +115,35 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         self.api = oj_microline_from_api(model_api, hass)
         self.energy = EnergyStatistics(hass, self)
         self._unsubscribe_push: Callable[[], None] | None = None
+        # The local gateway of a WG4-series account in a local connection
+        # mode; it is started in _async_setup.
+        self.local: LocalGateway | None = None
+
+    async def _async_setup(self) -> None:
+        """Start the local gateway, if the account uses a local connection mode.
+
+        The thermostats then report to the gateway in Home Assistant, and the
+        cloud API is only asked for what a thermostat does not report itself.
+
+        Raises
+        ------
+            UpdateFailed: The gateway cannot listen; the setup is retried.
+
+        """
+        mode = self.config_entry.options.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
+        if self.wg4_api is None or mode == CONNECTION_CLOUD:
+            return
+        local = LocalGateway(
+            self.hass, self.config_entry, self.wg4_api, GatewayMode(mode)
+        )
+        try:
+            api = await local.async_start()
+        except OJMicrolineError as error:
+            raise UpdateFailed(str(error)) from error
+        self.config_entry.async_on_unload(local.async_stop)
+        self.local = local
+        self._model_api = api
+        self.api = oj_microline_from_api(api, self.hass)
 
     async def _async_update_data(self) -> dict[str, Thermostat]:
         """Fetch data from API endpoint.
@@ -168,15 +201,31 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         The API can invalidate a session before it is due to expire, after
         which requests fail with HTTP 401 until a new session is created.
+
+        With a local gateway the session belongs to the cloud API of the
+        account: logging in through the gateway's API does nothing.
         """
-        await self.api.login()
+        api = self._model_api if self.local is None else self.local.api.cloud
+        await api.login()
         try:
             return await call()
         except OJMicrolineUnauthorizedError:
             _LOGGER.debug("The OJ Microline API rejected the session, logging in again")
-            self._model_api.invalidate_session()
-            await self.api.login()
+            api.invalidate_session()
+            await api.login()
             return await call()
+
+    def _async_cloud_usable(self, local: LocalGateway) -> bool:
+        """Return whether the cloud can be asked for the energy usage.
+
+        A password that the cloud no longer accepts starts reauthentication,
+        while the thermostats on the gateway keep working.
+        """
+        error = local.api.cloud_error
+        if isinstance(error, OJMicrolineAuthError):
+            self.config_entry.async_start_reauth(self.hass)
+        # Only a thermostat that is relayed reports its usage to the cloud.
+        return error is None and local.mode is GatewayMode.RELAY
 
     async def _async_fetch_thermostats(self) -> list[Thermostat]:
         """Fetch the thermostats, reusing recent energy usage where possible.
@@ -186,14 +235,23 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         slowly, so only refresh it every ENERGY_UPDATE_INTERVAL.
         """
         api = self._model_api
-        if not isinstance(api, SessionOJMicrolineAPI):
+        if self.local is not None:
+            async with asyncio.timeout(API_TIMEOUT):
+                thermostats = await self.api.get_thermostats()
+            if not self._async_cloud_usable(self.local):
+                # Without the cloud there is no new energy usage.
+                for thermostat in thermostats:
+                    previous = (self.data or {}).get(thermostat.serial_number)
+                    thermostat.energy = None if previous is None else previous.energy
+                return thermostats
+        elif not isinstance(api, SessionOJMicrolineAPI):
             async with asyncio.timeout(API_TIMEOUT):
                 return await self.api.get_thermostats()
-
-        async with asyncio.timeout(API_TIMEOUT):
-            thermostats = await self._async_with_session(
-                lambda: async_fetch_thermostats(api)
-            )
+        else:
+            async with asyncio.timeout(API_TIMEOUT):
+                thermostats = await self._async_with_session(
+                    lambda: async_fetch_thermostats(api)
+                )
 
         now = monotonic()
         for thermostat in thermostats:
@@ -210,9 +268,11 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             try:
                 async with asyncio.timeout(API_TIMEOUT):
                     today = await self.energy.async_today(thermostat)
-            except OJMicrolineAuthError:
-                raise
             except (OJMicrolineError, TimeoutError) as error:
+                # A rejected password stops the update, unless the thermostats
+                # are on the local gateway: those must keep working.
+                if isinstance(error, OJMicrolineAuthError) and self.local is None:
+                    raise
                 # Keep the thermostat data; only the energy usage is stale.
                 _LOGGER.debug(
                     "Could not fetch energy usage of %s: %r", serial_number, error

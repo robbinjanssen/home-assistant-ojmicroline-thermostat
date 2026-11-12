@@ -195,12 +195,23 @@
                 "data": {
                     "use_comfort_mode": "Set the regulation to comfort mode when changing the temperature.",
                     "comfort_mode_duration": "The duration in minutes the comfort mode should be enabled.",
-                    "comfort_temperature": "Comfort temperature"
+                    "comfort_temperature": "Comfort temperature",
+                    "connection_mode": "Connection"
                 },
                 "data_description": {
-                    "comfort_temperature": "The temperature used when switching to the comfort preset. Leave empty to use the comfort temperature stored in the thermostat."
+                    "comfort_temperature": "The temperature used when switching to the comfort preset. Leave empty to use the comfort temperature stored in the thermostat.",
+                    "connection_mode": "How Home Assistant reaches the thermostats. The local modes are experimental and need a DNS record on your network; read the documentation before you choose one."
                 }
+            },
+            "gateway": {
+                "title": "Local connection",
+                "description": "In a local mode the thermostats connect to Home Assistant instead of OJ's gateway.\n\n1. On the DNS server your thermostats use, add a record that points `{hostname}` to `{ip}`.\n2. Make sure the thermostats can reach port {port} on that address.\n3. Submit this form, then restart each thermostat so it looks up the address again.\n\nWith the relay, Home Assistant passes the connection on to OJ's gateway and the app keeps working. Local only works after a thermostat has connected through the relay once."
             }
+        },
+        "error": {
+            "dns_not_detected": "Home Assistant does not see the DNS record yet. Your thermostats may use another DNS server than Home Assistant does. Submit again to continue anyway.",
+            "dns_still_local": "The DNS record still points the thermostats at Home Assistant, so they cannot reach the cloud. Remove the record and restart the thermostats. Submit again to continue anyway.",
+            "no_profile": "Local only needs a thermostat that has connected through the relay once. Choose local with relay first, and switch after a thermostat has connected."
         }
     },
     "services": {
@@ -260,6 +271,23 @@
                 "schluter_na": "Schlüter DITRA-HEAT-E-WiFi (North America)",
                 "other": "Other (enter the settings yourself)"
             }
+        },
+        "connection_mode": {
+            "options": {
+                "cloud": "Cloud",
+                "relay": "Local with relay (experimental)",
+                "local": "Local only (experimental)"
+            }
+        }
+    },
+    "issues": {
+        "gateway_no_thermostat": {
+            "title": "No thermostat has connected to Home Assistant",
+            "description": "The connection is set to local, but no thermostat has connected to Home Assistant yet. Check that `{hostname}` points to `{ip}` on the DNS server your thermostats use, and that they can reach port {port} on that address. Then restart the thermostat so it looks up the address again. This message disappears when a thermostat connects."
+        },
+        "gateway_untrusted": {
+            "title": "OJ's gateway shows an unexpected certificate",
+            "description": "The certificate of `{hostname}` is not the one this integration expects, so nothing is passed on to it. Thermostats that connected before are answered by Home Assistant, and the app shows them offline. OJ may have replaced its certificate, which needs an update of this integration. Please report it."
         }
     }
 }

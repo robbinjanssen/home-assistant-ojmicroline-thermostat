@@ -16,7 +16,7 @@ Three thermostat series, each with its own API in the library:
 | Series | Library API | Notes |
 | --- | --- | --- |
 | WD5 (OWD5, MWD5, WCD5) | `WD5API` | session API; push via the SignalR hub in `push.py`; schedule, vacation and energy history |
-| WG4 (UWG4, AWG4) | `WG4API` | session API; push via the library's `subscribe()`; energy history and power |
+| WG4 (UWG4, AWG4) | `WG4API`, `WG4LocalAPI` | session API; push via the library's `subscribe()`; energy history and power; optional local gateway (experimental) |
 | WG5 (UWG5) | `WG5API` | OAuth API; polled; tested by users with a real thermostat (#302), not by the maintainers |
 
 ```text
@@ -26,6 +26,8 @@ custom_components/ojmicroline_thermostat/
   config_flow.py   user, wd5/wg4/wg5, reauth, reconfigure and options flow
   coordinator.py   polling, push handling, session retry, WD5 group updates
   energy.py        long-term energy statistics (WD5, WG4)
+  local.py         local gateway of a WG4 account: certificate, stored
+                   snapshot and profiles, repair issues
   push.py          WD5 push client
   climate.py, sensor.py, binary_sensor.py, date.py, switch.py, schedule.py
   frontend/        schedule card served by async_setup
@@ -87,6 +89,18 @@ work on a branch.
   Do not add a config entry update listener next to these; Home Assistant
   2026.12 rejects that combination.
 - **Diagnostics**: redact credentials and API keys.
+- **Local connection (WG4)**: with the `connection_mode` option on `relay`
+  or `local`, the coordinator starts a `LocalGateway` in `_async_setup` and
+  swaps its API for the library's `WG4LocalAPI`. The gateway and protocol
+  live in the library; `local.py` only holds what Home Assistant keeps.
+  - It has not been confirmed on a real thermostat. Keep it marked
+    experimental until it is.
+  - A cloud failure must not stop the thermostats on the gateway: a
+    rejected password starts reauthentication without failing the update.
+  - `_async_with_session` logs in on the cloud API (`local.api.cloud`);
+    logging in through `WG4LocalAPI` does nothing.
+  - The stored snapshot holds the account's email address, and a profile
+    is specific to a thermostat. Neither belongs in diagnostics or logs.
 
 ## Tests
 

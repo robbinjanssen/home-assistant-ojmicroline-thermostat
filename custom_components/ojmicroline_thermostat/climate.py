@@ -308,11 +308,13 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         regulation_mode = self.thermostat.regulation_mode
 
         if regulation_mode not in {REGULATION_MANUAL, REGULATION_COMFORT}:
-            regulation_mode = (
-                REGULATION_COMFORT
-                if self.options.get(CONF_USE_COMFORT_MODE)
-                else REGULATION_MANUAL
+            # A thermostat on a local gateway without the cloud has no comfort
+            # mode, whatever the option says.
+            use_comfort = (
+                self.options.get(CONF_USE_COMFORT_MODE)
+                and REGULATION_COMFORT in self.thermostat.supported_regulation_modes
             )
+            regulation_mode = REGULATION_COMFORT if use_comfort else REGULATION_MANUAL
 
         await self._async_set_regulation_mode(regulation_mode, round(temperature * 100))
 

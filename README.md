@@ -95,6 +95,45 @@ WG4-series thermostats store the price per kWh that the app uses to show the ene
 
 The entity is disabled by default: the cloud applies a new price to all stored usage, including earlier days, so the costs in the app are only right for one constant price. Do not use it to follow changing tariffs; Home Assistant's energy dashboard tracks costs with changing prices itself.
 
+## Local connection (WG4 series, experimental)
+
+A WG4-series thermostat keeps a connection open to OJ's own gateway, `na-thermos.ojelectronics.com` on port 9533. With a DNS record on your network that points this name at Home Assistant, the thermostat connects to Home Assistant instead, and keeps working when your internet or OJ's cloud is down. Nothing on the thermostat changes, and removing the record undoes it.
+
+**This is experimental.** It has not been confirmed on a real thermostat yet. Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
+
+Choose the connection under **Configure** in the integration's menu:
+
+| Connection | Setup | The app | When your internet is down |
+| --- | --- | --- | --- |
+| **Cloud** (default) | None | Works | Home Assistant loses the thermostat |
+| **Local with relay** | DNS record | Works | Home Assistant keeps control |
+| **Local only** | DNS record, after the relay has been used once | Shows the thermostat offline | Nothing changes |
+
+With the relay, Home Assistant passes the thermostat's connection on to OJ's gateway, so the app keeps working. While it does, it records how OJ's gateway answers your thermostat. Home Assistant needs those answers to serve the thermostat itself, which is why local only works after a thermostat has connected through the relay once.
+
+### Setting it up
+
+1. Give Home Assistant a fixed IP address, with a DHCP reservation on your router.
+2. On the DNS server your thermostats use, add a record that points `na-thermos.ojelectronics.com` at that address. Pi-hole and AdGuard Home (also available as a Home Assistant add-on) call this a local DNS record or DNS rewrite. Many routers of internet providers cannot do this.
+3. Under **Configure**, choose **Local with relay**. The next screen shows the record to create, and warns if Home Assistant does not see it.
+4. Restart each thermostat, so it looks up the address again.
+
+If no thermostat has connected after ten minutes, a repair issue under **Settings → System → Repairs** tells you what to check. It disappears when a thermostat connects.
+
+To go back, choose **Cloud**, remove the DNS record and restart the thermostats.
+
+### What changes in a local mode
+
+- The temperature, the mode and whether the floor is heating come straight from the thermostat, and a new temperature goes straight to it.
+- The schedule and manual presets are set on the thermostat directly. The comfort preset and the energy usage still need the cloud, so they only work with the relay, while the internet is up. In local only, the option to use comfort mode when changing the temperature is ignored.
+- "Online" means the thermostat is connected to Home Assistant.
+- A thermostat on the same account that never connected to Home Assistant, for example one in another building, keeps working through the cloud.
+- With the DNS record in place, the app only works while Home Assistant is running.
+- Port 9533 has to be free on the machine that runs Home Assistant, and reachable for the thermostats. With Home Assistant in a container, use host networking or publish the port. Every device on your network can reach it: use a local mode only on a network you trust.
+- If OJ's gateway ever shows another certificate than the one this integration knows, nothing is passed on to it and a repair issue tells you. Thermostats that connected before are then served by Home Assistant.
+
+The gateway is part of the [`ojmicroline-thermostat`](https://github.com/robbinjanssen/python-ojmicroline-thermostat) library and builds on [peskyAdmin/schluter-local](https://github.com/peskyAdmin/schluter-local).
+
 ## Schedule and vacation (WD5 series)
 
 Every WD5-series thermostat gets these extra entities. Like in the apps, schedule and vacation settings belong to the thermostat's group.

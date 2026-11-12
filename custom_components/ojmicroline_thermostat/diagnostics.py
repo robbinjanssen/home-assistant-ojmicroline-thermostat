@@ -15,7 +15,10 @@ from ojmicroline_thermostat import OJMicrolineError
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from .coordinator import OJMicrolineConfigEntry
+    from .coordinator import (
+        OJMicrolineConfigEntry,
+        OJMicrolineDataUpdateCoordinator,
+    )
 
 TO_REDACT = {CONF_API_KEY, CONF_PASSWORD, CONF_USERNAME}
 
@@ -28,6 +31,25 @@ ENERGY_PROBES = [
     ("view type 1, today, history 0", 1, 0, 0),
     ("months, 11 months ago, history 0 (app year view)", 4, -334, 0),
 ]
+
+
+def _gateway_diagnostics(
+    coordinator: OJMicrolineDataUpdateCoordinator,
+) -> dict[str, Any] | None:
+    """Describe the local gateway, without the snapshot and profiles it stores."""
+    if (local := coordinator.local) is None:
+        return None
+    gateway = local.gateway
+    status = gateway.upstream_status
+    cloud_error = local.api.cloud_error
+    return {
+        "mode": local.mode.value,
+        "connected": len(gateway.connected),
+        "relayed": sum(gateway.is_relayed(serial) for serial in gateway.connected),
+        "profiles": len(gateway.profiles),
+        "upstream": None if status is None else status.value,
+        "cloud_error": None if cloud_error is None else repr(cloud_error),
+    }
 
 
 async def async_get_config_entry_diagnostics(
@@ -57,6 +79,7 @@ async def async_get_config_entry_diagnostics(
             "data": async_redact_data(dict(entry.data), TO_REDACT),
             "options": dict(entry.options),
         },
+        "gateway": _gateway_diagnostics(coordinator),
         "today": today.isoformat(),
         "time_zone": str(dt_util.get_default_time_zone()),
         "thermostats": thermostats,

@@ -193,12 +193,23 @@
                 "data": {
                     "use_comfort_mode": "Zet de modus naar comfort wanneer de temperatuur wijzigd.",
                     "comfort_mode_duration": "De totale tijd in minuten dat de comfort mode aan moet staan.",
-                    "comfort_temperature": "Comforttemperatuur"
+                    "comfort_temperature": "Comforttemperatuur",
+                    "connection_mode": "Verbinding"
                 },
                 "data_description": {
-                    "comfort_temperature": "De temperatuur bij het overschakelen naar de comfort-preset. Laat leeg om de comforttemperatuur uit de thermostaat te gebruiken."
+                    "comfort_temperature": "De temperatuur bij het overschakelen naar de comfort-preset. Laat leeg om de comforttemperatuur uit de thermostaat te gebruiken.",
+                    "connection_mode": "Hoe Home Assistant de thermostaten bereikt. De lokale modi zijn experimenteel en hebben een DNS-record in je netwerk nodig; lees eerst de documentatie."
                 }
+            },
+            "gateway": {
+                "title": "Lokale verbinding",
+                "description": "In een lokale modus verbinden de thermostaten met Home Assistant in plaats van met de gateway van OJ.\n\n1. Voeg op de DNS-server die je thermostaten gebruiken een record toe dat `{hostname}` naar `{ip}` laat wijzen.\n2. Zorg dat de thermostaten poort {port} op dat adres kunnen bereiken.\n3. Verstuur dit formulier en herstart daarna elke thermostaat, zodat die het adres opnieuw opzoekt.\n\nMet relay stuurt Home Assistant de verbinding door naar de gateway van OJ en blijft de app werken. Alleen lokaal werkt pas nadat een thermostaat één keer via de relay verbonden is geweest."
             }
+        },
+        "error": {
+            "dns_not_detected": "Home Assistant ziet het DNS-record nog niet. Mogelijk gebruiken je thermostaten een andere DNS-server dan Home Assistant. Verstuur opnieuw om toch door te gaan.",
+            "dns_still_local": "Het DNS-record stuurt de thermostaten nog naar Home Assistant, dus ze bereiken de cloud niet. Verwijder het record en herstart de thermostaten. Verstuur opnieuw om toch door te gaan.",
+            "no_profile": "Alleen lokaal heeft een thermostaat nodig die één keer via de relay verbonden is geweest. Kies eerst lokaal met relay en schakel om nadat een thermostaat verbonden is."
         }
     },
     "services": {
@@ -258,6 +269,23 @@
                 "schluter_na": "Schlüter DITRA-HEAT-E-WiFi (Noord-Amerika)",
                 "other": "Anders (vul de instellingen zelf in)"
             }
+        },
+        "connection_mode": {
+            "options": {
+                "cloud": "Cloud",
+                "relay": "Lokaal met relay (experimenteel)",
+                "local": "Alleen lokaal (experimenteel)"
+            }
+        }
+    },
+    "issues": {
+        "gateway_no_thermostat": {
+            "title": "Er is geen thermostaat met Home Assistant verbonden",
+            "description": "De verbinding staat op lokaal, maar er heeft nog geen thermostaat met Home Assistant verbonden. Controleer of `{hostname}` naar `{ip}` wijst op de DNS-server die je thermostaten gebruiken, en of ze poort {port} op dat adres kunnen bereiken. Herstart daarna de thermostaat, zodat die het adres opnieuw opzoekt. Deze melding verdwijnt zodra een thermostaat verbindt."
+        },
+        "gateway_untrusted": {
+            "title": "De gateway van OJ toont een onverwacht certificaat",
+            "description": "Het certificaat van `{hostname}` is niet het certificaat dat deze integratie verwacht, dus er wordt niets naar doorgestuurd. Thermostaten die eerder verbonden waren, worden door Home Assistant bediend en staan in de app als offline. Mogelijk heeft OJ het certificaat vervangen; dan is een update van deze integratie nodig. Meld dit alsjeblieft."
         }
     }
 }

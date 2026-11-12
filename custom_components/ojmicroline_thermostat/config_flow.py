@@ -50,11 +50,15 @@ from .const import (
     CONF_APPLICATION,
     CONF_COMFORT_MODE_DURATION,
     CONF_COMFORT_TEMPERATURE,
+    CONF_CONNECTION_MODE,
     CONF_CUSTOMER_ID,
     CONF_IDENTITY_HOST,
     CONF_MODEL,
     CONF_USE_COMFORT_MODE,
     CONFIG_FLOW_VERSION,
+    CONNECTION_CLOUD,
+    CONNECTION_LOCAL,
+    CONNECTION_MODES,
     DEFAULT_WG4_APPLICATION,
     DOMAIN,
     INTEGRATION_NAME,
@@ -63,6 +67,12 @@ from .const import (
     MODEL_WG5_SERIES,
     WD5_APPS,
     WG4_APPS,
+)
+from .local import (
+    ENDPOINT,
+    async_dns_points_here,
+    async_has_profile,
+    async_host_ip,
 )
 
 if TYPE_CHECKING:
@@ -491,6 +501,12 @@ class OJMicrolineFlowHandler(ConfigFlow, domain=DOMAIN):
 class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
     """Handle options; the entry reloads so they apply right away."""
 
+    def __init__(self) -> None:
+        """Start without chosen options, and without a warning shown."""
+        self._options: dict[str, Any] = {}
+        # A warning about the DNS record is shown once; submitting again goes on.
+        self._warned = False
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -502,45 +518,118 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
 
         Returns:
         -------
-            The created config entry.
+            The created config entry, or the next form.
 
         """
+        errors: dict[str, str] = {}
+        options = self.config_entry.options
+        current_mode = options.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            self._options = user_input
+            if (
+                user_input.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
+                != CONNECTION_CLOUD
+            ):
+                return await self.async_step_gateway()
+            if (
+                current_mode != CONNECTION_CLOUD
+                and not self._warned
+                and await async_dns_points_here(
+                    self.hass, await async_host_ip(self.hass)
+                )
+            ):
+                # Left in place, the DNS record keeps the thermostats away
+                # from the cloud.
+                self._warned = True
+                errors["base"] = "dns_still_local"
+            else:
+                return self.async_create_entry(title="", data=user_input)
+
+        # What was just entered comes back when the form is shown again.
+        values = {**options, **self._options}
+        schema: dict[Any, Any] = {
+            probatio.Optional(
+                CONF_USE_COMFORT_MODE,
+                default=values.get(CONF_USE_COMFORT_MODE, False),
+            ): bool,
+            probatio.Optional(
+                CONF_COMFORT_MODE_DURATION,
+                default=values.get(CONF_COMFORT_MODE_DURATION, COMFORT_DURATION),
+            ): probatio.All(probatio.Coerce(int), probatio.Range(min=1)),
+            # Empty: use the comfort temperature stored in the thermostat.
+            probatio.Optional(
+                CONF_COMFORT_TEMPERATURE,
+                description={"suggested_value": values.get(CONF_COMFORT_TEMPERATURE)},
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=5,
+                    max=40,
+                    step=0.5,
+                    unit_of_measurement=UnitOfTemperature.CELSIUS,
+                    mode=NumberSelectorMode.BOX,
+                )
+            ),
+        }
+        if self.config_entry.data.get(CONF_MODEL) == MODEL_WG4_SERIES:
+            # Only WG4-series thermostats can connect to a local gateway.
+            schema[
+                probatio.Required(
+                    CONF_CONNECTION_MODE,
+                    default=values.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD),
+                )
+            ] = SelectSelector(
+                SelectSelectorConfig(
+                    options=CONNECTION_MODES,
+                    translation_key=CONF_CONNECTION_MODE,
+                    mode=SelectSelectorMode.LIST,
+                )
+            )
+        return self.async_show_form(
+            step_id="init", data_schema=probatio.Schema(schema), errors=errors
+        )
+
+    async def async_step_gateway(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the DNS record a local connection needs, and check for it.
+
+        Args:
+        ----
+            user_input: Empty once the user confirmed, or none.
+
+        Returns:
+        -------
+            The created config entry, or the form with what is missing.
+
+        """
+        errors: dict[str, str] = {}
+        host_ip = await async_host_ip(self.hass)
+        if user_input is not None:
+            if self._options[
+                CONF_CONNECTION_MODE
+            ] == CONNECTION_LOCAL and not await async_has_profile(
+                self.hass, self.config_entry
+            ):
+                # Without a relayed session there is nothing to answer a
+                # thermostat with.
+                errors["base"] = "no_profile"
+            elif not self._warned and not await async_dns_points_here(
+                self.hass, host_ip
+            ):
+                # The thermostats may use another DNS server than Home
+                # Assistant does, so this only warns.
+                self._warned = True
+                errors["base"] = "dns_not_detected"
+            else:
+                return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(
-            step_id="init",
-            data_schema=probatio.Schema(
-                {
-                    probatio.Optional(
-                        CONF_USE_COMFORT_MODE,
-                        default=self.config_entry.options.get(
-                            CONF_USE_COMFORT_MODE, False
-                        ),
-                    ): bool,
-                    probatio.Optional(
-                        CONF_COMFORT_MODE_DURATION,
-                        default=self.config_entry.options.get(
-                            CONF_COMFORT_MODE_DURATION, COMFORT_DURATION
-                        ),
-                    ): probatio.All(probatio.Coerce(int), probatio.Range(min=1)),
-                    # Empty: use the comfort temperature stored in the thermostat.
-                    probatio.Optional(
-                        CONF_COMFORT_TEMPERATURE,
-                        description={
-                            "suggested_value": self.config_entry.options.get(
-                                CONF_COMFORT_TEMPERATURE
-                            )
-                        },
-                    ): NumberSelector(
-                        NumberSelectorConfig(
-                            min=5,
-                            max=40,
-                            step=0.5,
-                            unit_of_measurement=UnitOfTemperature.CELSIUS,
-                            mode=NumberSelectorMode.BOX,
-                        )
-                    ),
-                }
-            ),
+            step_id="gateway",
+            data_schema=probatio.Schema({}),
+            errors=errors,
+            description_placeholders={
+                "hostname": ENDPOINT.host,
+                "ip": host_ip,
+                "port": str(ENDPOINT.port),
+            },
         )

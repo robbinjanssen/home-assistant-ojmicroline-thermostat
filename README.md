@@ -132,6 +132,22 @@ To go back, choose **Cloud**, remove the DNS record and restart the thermostats.
 - Port 9533 has to be free on the machine that runs Home Assistant, and reachable for the thermostats. With Home Assistant in a container, use host networking or publish the port. Every device on your network can reach it: use a local mode only on a network you trust.
 - If OJ's gateway ever shows another certificate than the one this integration knows, nothing is passed on to it and a repair issue tells you. Thermostats that connected before are then served by Home Assistant.
 
+### Reporting how it goes
+
+A local mode has not been confirmed on a real thermostat yet, so a report helps, whether it works or not. Two things show what happened:
+
+- **Diagnostics.** Under **Settings → Devices & services → OJ Microline Thermostat**, open the **⋮** menu and choose **Download diagnostics**. The `gateway` part holds the last 300 events: every connection and whether its TLS handshake succeeded, every message between thermostat and gateway by field number and decoded temperature, each command and its answer, and why OJ's gateway could not be used. Attach the file to an [issue](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues).
+- **Debug logging.** In the same menu, choose **Enable debug logging**, reproduce the problem, and disable it again to download the log. It has the same events without the limit of 300.
+
+Both name the serial number of your thermostat and its address on your network. Neither contains your email address or password: a login is never written down.
+
+What a first report should answer:
+
+- Is there a line `Connection from …, secured with …`? If the thermostat connects but the line says `The TLS handshake … failed`, the thermostat does not accept the connection. If there is no line at all, the DNS record does not reach the thermostat.
+- Is there a line `Thermostat … logged in; it is relayed to OJ's gateway`, and does the app keep working?
+- Does `Recorded the profile of thermostat …` show up? Local only needs it.
+- After changing the temperature in Home Assistant: is `Sending command …` followed by `acknowledged command …`, and does the thermostat follow?
+
 The gateway is part of the [`ojmicroline-thermostat`](https://github.com/robbinjanssen/python-ojmicroline-thermostat) library and builds on [peskyAdmin/schluter-local](https://github.com/peskyAdmin/schluter-local).
 
 ## Schedule and vacation (WD5 series)

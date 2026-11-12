@@ -499,7 +499,10 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
         "relayed": 0,
         "profiles": 1,
         "upstream": None,
+        "upstream_fingerprint": None,
         "cloud_error": None,
+        # What happened on the gateway's connections; nothing yet.
+        "history": [],
     }
     assert "user@example.com" not in str(diagnostics)
     assert PROFILE.to_dict()["support"] not in str(diagnostics)

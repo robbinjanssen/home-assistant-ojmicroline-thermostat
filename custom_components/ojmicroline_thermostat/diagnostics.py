@@ -36,7 +36,12 @@ ENERGY_PROBES = [
 def _gateway_diagnostics(
     coordinator: OJMicrolineDataUpdateCoordinator,
 ) -> dict[str, Any] | None:
-    """Describe the local gateway, without the snapshot and profiles it stores."""
+    """Describe the local gateway, without the snapshot and profiles it stores.
+
+    The history is what a report of a real thermostat needs: how its
+    connection went, and every message by field number. It never holds a
+    login, which has the email address of the account.
+    """
     if (local := coordinator.local) is None:
         return None
     gateway = local.gateway
@@ -48,7 +53,9 @@ def _gateway_diagnostics(
         "relayed": sum(gateway.is_relayed(serial) for serial in gateway.connected),
         "profiles": len(gateway.profiles),
         "upstream": None if status is None else status.value,
+        "upstream_fingerprint": gateway.upstream_fingerprint,
         "cloud_error": None if cloud_error is None else repr(cloud_error),
+        "history": list(gateway.history),
     }
 
 

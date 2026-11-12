@@ -15,6 +15,9 @@
     "documentation": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat",
     "iot_class": "cloud_push",
     "issue_tracker": "https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues",
+    "loggers": [
+        "ojmicroline_thermostat"
+    ],
     "requirements": [
         "ojmicroline-thermostat@git+https://github.com/robbinjanssen/python-ojmicroline-thermostat.git@feature/wg4-local-gateway"
     ],

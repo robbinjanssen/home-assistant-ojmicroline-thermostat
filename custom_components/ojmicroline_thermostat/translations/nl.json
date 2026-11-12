@@ -203,12 +203,12 @@
             },
             "gateway": {
                 "title": "Lokale verbinding",
-                "description": "In een lokale modus verbinden de thermostaten met Home Assistant in plaats van met de gateway van OJ.\n\n1. Voeg op de DNS-server die je thermostaten gebruiken een record toe dat `{hostname}` naar `{ip}` laat wijzen.\n2. Zorg dat de thermostaten poort {port} op dat adres kunnen bereiken.\n3. Verstuur dit formulier en herstart daarna elke thermostaat, zodat die het adres opnieuw opzoekt.\n\nMet relay stuurt Home Assistant de verbinding door naar de gateway van OJ en blijft de app werken. Alleen lokaal werkt pas nadat een thermostaat één keer via de relay verbonden is geweest."
+                "description": "In een lokale modus verbinden de thermostaten met Home Assistant in plaats van met de gateway van OJ.\n\n1. Voeg op de DNS-server die je thermostaten gebruiken een record toe dat `{hostname}` naar `{ip}` laat wijzen. Dat is de naam waarmee de thermostaten verbinden, niet de naam van de app of de website. Leid alleen deze naam om.\n2. Zorg dat de thermostaten poort {port} op dat adres kunnen bereiken. De verbinding blijft binnen je eigen netwerk, dus zet de poort niet open naar internet.\n3. Verstuur dit formulier en zet daarna elke thermostaat uit en weer aan, zodat die het adres opnieuw opzoekt. Zet de thermostaat niet terug naar de fabrieksinstellingen.\n\nMet relay stuurt Home Assistant de verbinding door naar de gateway van OJ en blijft de app werken. Alleen lokaal werkt pas nadat een thermostaat één keer via de relay verbonden is geweest."
             }
         },
         "error": {
             "dns_not_detected": "Home Assistant ziet het DNS-record nog niet. Mogelijk gebruiken je thermostaten een andere DNS-server dan Home Assistant. Verstuur opnieuw om toch door te gaan.",
-            "dns_still_local": "Het DNS-record stuurt de thermostaten nog naar Home Assistant, dus ze bereiken de cloud niet. Verwijder het record en herstart de thermostaten. Verstuur opnieuw om toch door te gaan.",
+            "dns_still_local": "Het DNS-record stuurt de thermostaten nog naar Home Assistant, dus ze bereiken de cloud niet. Verwijder het record en zet de thermostaten uit en weer aan. Verstuur opnieuw om toch door te gaan.",
             "no_profile": "Alleen lokaal heeft een thermostaat nodig die één keer via de relay verbonden is geweest. Kies eerst lokaal met relay en schakel om nadat een thermostaat verbonden is."
         }
     },
@@ -281,7 +281,7 @@
     "issues": {
         "gateway_no_thermostat": {
             "title": "Er is geen thermostaat met Home Assistant verbonden",
-            "description": "De verbinding staat op lokaal, maar er heeft nog geen thermostaat met Home Assistant verbonden. Controleer of `{hostname}` naar `{ip}` wijst op de DNS-server die je thermostaten gebruiken, en of ze poort {port} op dat adres kunnen bereiken. Herstart daarna de thermostaat, zodat die het adres opnieuw opzoekt. Deze melding verdwijnt zodra een thermostaat verbindt."
+            "description": "De verbinding staat op lokaal, maar er heeft nog geen thermostaat met Home Assistant verbonden. Controleer of `{hostname}` naar `{ip}` wijst op de DNS-server die je thermostaten gebruiken, en of ze poort {port} op dat adres kunnen bereiken. Zet daarna de thermostaat uit en weer aan, zodat die het adres opnieuw opzoekt. Een fabrieksreset is niet nodig. Deze melding verdwijnt zodra een thermostaat verbindt."
         },
         "gateway_untrusted": {
             "title": "De gateway van OJ toont een onverwacht certificaat",

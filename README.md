@@ -114,13 +114,13 @@ With the relay, Home Assistant passes the thermostat's connection on to OJ's gat
 ### Setting it up
 
 1. Give Home Assistant a fixed IP address, with a DHCP reservation on your router.
-2. On the DNS server your thermostats use, add a record that points `na-thermos.ojelectronics.com` at that address. Pi-hole and AdGuard Home (also available as a Home Assistant add-on) call this a local DNS record or DNS rewrite. Many routers of internet providers cannot do this.
+2. On the DNS server your thermostats use, add a record that points `na-thermos.ojelectronics.com` at that address. Pi-hole and AdGuard Home (also available as a Home Assistant add-on) call this a local DNS record or DNS rewrite. Many routers of internet providers cannot do this. Redirect only this name: it is the one the thermostat connects to, not the name of the app or the website.
 3. Under **Configure**, choose **Local with relay**. The next screen shows the record to create, and warns if Home Assistant does not see it.
-4. Restart each thermostat, so it looks up the address again.
+4. Switch each thermostat off and on again, so it looks up the address again. Changing the DNS record does not move the connection a thermostat already has. A factory reset is not needed: the thermostat keeps its Wi-Fi settings and its schedule.
 
 If no thermostat has connected after ten minutes, a repair issue under **Settings → System → Repairs** tells you what to check. It disappears when a thermostat connects.
 
-To go back, choose **Cloud**, remove the DNS record and restart the thermostats.
+To go back, choose **Cloud**, remove the DNS record and switch the thermostats off and on again.
 
 ### What changes in a local mode
 
@@ -129,7 +129,7 @@ To go back, choose **Cloud**, remove the DNS record and restart the thermostats.
 - "Online" means the thermostat is connected to Home Assistant.
 - A thermostat on the same account that never connected to Home Assistant, for example one in another building, keeps working through the cloud.
 - With the DNS record in place, the app only works while Home Assistant is running.
-- Port 9533 has to be free on the machine that runs Home Assistant, and reachable for the thermostats. With Home Assistant in a container, use host networking or publish the port. Every device on your network can reach it: use a local mode only on a network you trust.
+- Port 9533 has to be free on the machine that runs Home Assistant, and reachable for the thermostats. With Home Assistant in a container, use host networking or publish the port. Every device on your network can reach it: use a local mode only on a network you trust, and do not open the port to the internet.
 - If OJ's gateway ever shows another certificate than the one this integration knows, nothing is passed on to it and a repair issue tells you. Thermostats that connected before are then served by Home Assistant.
 
 ### Reporting how it goes

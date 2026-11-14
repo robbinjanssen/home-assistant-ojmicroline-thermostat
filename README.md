@@ -95,11 +95,22 @@ WG4-series thermostats store the price per kWh that the app uses to show the ene
 
 The entity is disabled by default: the cloud applies a new price to all stored usage, including earlier days, so the costs in the app are only right for one constant price. Do not use it to follow changing tariffs; Home Assistant's energy dashboard tracks costs with changing prices itself.
 
-## Local connection (WG4 series, experimental)
+## Local connection (WG4 and WD5 series, experimental)
 
-A WG4-series thermostat keeps a connection open to OJ's own gateway, `na-thermos.ojelectronics.com` on port 9533. With a DNS record on your network that points this name at Home Assistant, the thermostat connects to Home Assistant instead, and keeps working when your internet or OJ's cloud is down. Nothing on the thermostat changes, and removing the record undoes it.
+A thermostat keeps a connection open to OJ's own gateway. With a DNS record on your network that points the name of that gateway at Home Assistant, the thermostat connects to Home Assistant instead, and keeps working when your internet or OJ's cloud is down. Nothing on the thermostat changes, and removing the record undoes it.
 
-**This is experimental.** It has not been confirmed on a real thermostat yet. Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
+| Series | Name the thermostat looks for | Port |
+| --- | --- | --- |
+| WG4 | `na-thermos.ojelectronics.com` | 9533 |
+| WD5, SWATT app (customer ID 99) | `owd5-r1099-thermostat.ojelectronics.com` | 9513 |
+| WD5, Schlüter in Europe (customer ID 3) | `owd5-sl003-thermostat.ojelectronics.com` | 9513 |
+
+For a WD5-series account of another app the name is not known yet, and the connection option is not shown. If you find the name in the DNS log of your router, please report it.
+
+**This is experimental.** Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
+
+- **WG4 series:** tested on one real thermostat. Connecting, the relay and local only work. A temperature set from Home Assistant was confirmed by the thermostat too late, so Home Assistant showed an error; that is being worked on.
+- **WD5 series:** not confirmed on a real thermostat with this integration yet. The protocol comes from an ioBroker adapter where it works on an OWD5 thermostat.
 
 Choose the connection under **Configure** in the integration's menu:
 
@@ -107,14 +118,14 @@ Choose the connection under **Configure** in the integration's menu:
 | --- | --- | --- | --- |
 | **Cloud** (default) | None | Works | Home Assistant loses the thermostat |
 | **Local with relay** | DNS record | Works | Home Assistant keeps control |
-| **Local only** | DNS record, after the relay has been used once | Shows the thermostat offline | Nothing changes |
+| **Local only** | DNS record; for the WG4 series after the relay has been used once | Shows the thermostat offline | Nothing changes |
 
-With the relay, Home Assistant passes the thermostat's connection on to OJ's gateway, so the app keeps working. While it does, it records how OJ's gateway answers your thermostat. Home Assistant needs those answers to serve the thermostat itself, which is why local only works after a thermostat has connected through the relay once.
+With the relay, Home Assistant passes the thermostat's connection on to OJ's gateway, so the app keeps working. For a WG4-series thermostat it also records how OJ's gateway answers the thermostat. Home Assistant needs those answers to serve that thermostat itself, which is why local only works after it has connected through the relay once. A WD5-series thermostat needs nothing recorded.
 
 ### Setting it up
 
 1. Give Home Assistant a fixed IP address, with a DHCP reservation on your router.
-2. On the DNS server your thermostats use, add a record that points `na-thermos.ojelectronics.com` at that address. Pi-hole and AdGuard Home (also available as a Home Assistant add-on) call this a local DNS record or DNS rewrite. Many routers of internet providers cannot do this. Redirect only this name: it is the one the thermostat connects to, not the name of the app or the website.
+2. On the DNS server your thermostats use, add a record that points the name from the table above at that address. Pi-hole and AdGuard Home (also available as a Home Assistant add-on) call this a local DNS record or DNS rewrite. Many routers of internet providers cannot do this. Redirect only this name: it is the one the thermostat connects to, not the name of the app or the website.
 3. Under **Configure**, choose **Local with relay**. The next screen shows the record to create, and warns if Home Assistant does not see it.
 4. Switch each thermostat off and on again, so it looks up the address again. Changing the DNS record does not move the connection a thermostat already has. A factory reset is not needed: the thermostat keeps its Wi-Fi settings and its schedule.
 
@@ -125,11 +136,14 @@ To go back, choose **Cloud**, remove the DNS record and switch the thermostats o
 ### What changes in a local mode
 
 - The temperature, the mode and whether the floor is heating come straight from the thermostat, and a new temperature goes straight to it.
-- The schedule and manual presets are set on the thermostat directly. The comfort preset and the energy usage still need the cloud, so they only work with the relay, while the internet is up. In local only, the option to use comfort mode when changing the temperature is ignored.
+- **WG4 series:** the schedule and manual presets are set on the thermostat directly. The comfort preset and the energy usage still need the cloud, so they only work with the relay, while the internet is up. In local only, the option to use comfort mode when changing the temperature is ignored.
+- **WD5 series:** the schedule, comfort, manual, boost and eco presets are set on the thermostat directly. Frost protection, the vacation, changes to the weekly schedule and the energy usage still need the cloud, so they only work with the relay, while the internet is up.
+- **WD5 series:** the cloud sets a preset for every thermostat in a group. A preset that goes straight to a thermostat only changes that thermostat.
+- **WD5 series:** a thermostat on the same account that does not connect to Home Assistant is no longer updated right away, but once every five minutes.
 - "Online" means the thermostat is connected to Home Assistant.
 - A thermostat on the same account that never connected to Home Assistant, for example one in another building, keeps working through the cloud.
 - With the DNS record in place, the app only works while Home Assistant is running.
-- Port 9533 has to be free on the machine that runs Home Assistant, and reachable for the thermostats. With Home Assistant in a container, use host networking or publish the port. Every device on your network can reach it: use a local mode only on a network you trust, and do not open the port to the internet.
+- The port from the table above has to be free on the machine that runs Home Assistant, and reachable for the thermostats. With Home Assistant in a container, use host networking or publish the port. Every device on your network can reach it: use a local mode only on a network you trust, and do not open the port to the internet.
 - If OJ's gateway ever shows another certificate than the one this integration knows, nothing is passed on to it and a repair issue tells you. Thermostats that connected before are then served by Home Assistant.
 
 ### Reporting how it goes

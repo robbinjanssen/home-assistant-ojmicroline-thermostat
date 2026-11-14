@@ -51,7 +51,7 @@ def _gateway_diagnostics(
         "mode": local.mode.value,
         "connected": len(gateway.connected),
         "relayed": sum(gateway.is_relayed(serial) for serial in gateway.connected),
-        "profiles": len(gateway.profiles),
+        "profiles": len(local.profiles),
         "upstream": None if status is None else status.value,
         "upstream_fingerprint": gateway.upstream_fingerprint,
         "cloud_error": None if cloud_error is None else repr(cloud_error),

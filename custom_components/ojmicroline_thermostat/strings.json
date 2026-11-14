@@ -205,7 +205,7 @@
             },
             "gateway": {
                 "title": "Local connection",
-                "description": "In a local mode the thermostats connect to Home Assistant instead of OJ's gateway.\n\n1. On the DNS server your thermostats use, add a record that points `{hostname}` to `{ip}`. That is the name the thermostats connect to, not the name of the app or the website. Redirect only this name.\n2. Make sure the thermostats can reach port {port} on that address. The connection stays on your own network, so do not open the port to the internet.\n3. Submit this form, then switch each thermostat off and on again, so it looks up the address again. Do not reset it to factory settings.\n\nWith the relay, Home Assistant passes the connection on to OJ's gateway and the app keeps working. Local only works after a thermostat has connected through the relay once."
+                "description": "In a local mode the thermostats connect to Home Assistant instead of OJ's gateway.\n\n1. On the DNS server your thermostats use, add a record that points `{hostname}` to `{ip}`. That is the name the thermostats connect to, not the name of the app or the website. Redirect only this name.\n2. Make sure the thermostats can reach port {port} on that address. The connection stays on your own network, so do not open the port to the internet.\n3. Submit this form, then switch each thermostat off and on again, so it looks up the address again. Do not reset it to factory settings.\n\nWith the relay, Home Assistant passes the connection on to OJ's gateway and the app keeps working. For WG4-series thermostats, local only works after a thermostat has connected through the relay once."
             }
         },
         "error": {

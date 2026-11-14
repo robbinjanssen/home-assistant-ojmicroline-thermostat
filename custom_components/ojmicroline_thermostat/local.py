@@ -1,4 +1,4 @@
-"""The local gateway of a WG4-series account.
+"""The local gateway of a WG4-series or WD5-series account.
 
 In a local connection mode the thermostats connect to Home Assistant instead
 of OJ's device gateway. The gateway and its API come from the library. This
@@ -27,29 +27,45 @@ from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
 
 from ojmicroline_thermostat import (
+    WD5_R1099,
+    WD5_SL003,
     WG4_NORTH_AMERICA,
+    WG4API,
     DeviceProfile,
+    GatewayEndpoint,
     GatewayMode,
     UpstreamStatus,
+    WD5Gateway,
+    WD5LocalAPI,
     WG4Gateway,
     WG4LocalAPI,
     server_ssl_context,
 )
 
-from .const import DOMAIN
+from .const import (
+    CONF_CUSTOMER_ID,
+    CONF_MODEL,
+    DOMAIN,
+    MODEL_WD5_SERIES,
+    MODEL_WG4_SERIES,
+)
 
 if TYPE_CHECKING:
     import ssl
+    from collections.abc import Mapping
 
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from ojmicroline_thermostat import WG4API
+    from ojmicroline_thermostat import WD5API
 
 _LOGGER = logging.getLogger(__name__)
 
-# The device gateway of OJ that the thermostats look for.
-ENDPOINT = WG4_NORTH_AMERICA
+# The device gateway WD5-series thermostats look for, by the customer ID of
+# their brand: the SWATT app, and Schlüter in Europe.
+WD5_ENDPOINTS = {99: WD5_R1099, 3: WD5_SL003}
+# The name in the certificate of the gateway. A thermostat does not read it.
+CERTIFICATE_NAME = "ojmicroline-thermostat.local"
 
 STORAGE_VERSION = 1
 # The snapshot changes with almost every poll, so writing it may wait.
@@ -67,6 +83,20 @@ ISSUE_NO_THERMOSTAT = "gateway_no_thermostat"
 ISSUE_UNTRUSTED = "gateway_untrusted"
 
 
+def endpoint_for(data: Mapping[str, Any]) -> GatewayEndpoint | None:
+    """Return the device gateway of OJ that the thermostats of an account look for.
+
+    None means that a local connection is not possible: the series has no
+    local gateway, or the gateway of the brand is not known.
+    """
+    model = data.get(CONF_MODEL)
+    if model == MODEL_WG4_SERIES:
+        return WG4_NORTH_AMERICA
+    if model == MODEL_WD5_SERIES:
+        return WD5_ENDPOINTS.get(data.get(CONF_CUSTOMER_ID, 99))
+    return None
+
+
 def gateway_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
     """Return where the snapshot and profiles of a config entry are stored."""
     return Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}.gateway")
@@ -81,7 +111,9 @@ async def async_host_ip(hass: HomeAssistant) -> str:
         return "?"
 
 
-async def async_dns_points_here(hass: HomeAssistant, host_ip: str) -> bool:
+async def async_dns_points_here(
+    hass: HomeAssistant, endpoint: GatewayEndpoint, host_ip: str
+) -> bool:
     """Return whether Home Assistant resolves the gateway's name to itself.
 
     The thermostats may use another DNS server than Home Assistant does, so
@@ -89,7 +121,7 @@ async def async_dns_points_here(hass: HomeAssistant, host_ip: str) -> bool:
     """
     try:
         infos = await hass.loop.getaddrinfo(
-            ENDPOINT.host, ENDPOINT.port, family=socket.AF_INET
+            endpoint.host, endpoint.port, family=socket.AF_INET
         )
     except OSError:
         return False
@@ -97,10 +129,16 @@ async def async_dns_points_here(hass: HomeAssistant, host_ip: str) -> bool:
 
 
 async def async_has_profile(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Return whether a thermostat of the entry can be answered locally."""
+    """Return whether a thermostat of the entry can be answered locally.
+
+    A WG4-series thermostat needs a profile for that, which is recorded while
+    it is relayed. A WD5-series thermostat needs nothing.
+    """
+    if entry.data.get(CONF_MODEL) != MODEL_WG4_SERIES:
+        return True
     if entry.state is ConfigEntryState.LOADED:
         local: LocalGateway | None = entry.runtime_data.local
-        if local is not None and local.gateway.profiles:
+        if local is not None and local.profiles:
             return True
     stored = await gateway_store(hass, entry.entry_id).async_load()
     return bool(stored and stored.get("profiles"))
@@ -109,7 +147,7 @@ async def async_has_profile(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def _create_certificate(certfile: Path, keyfile: Path) -> None:
     """Create a self-signed certificate; the thermostat accepts any."""
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, ENDPOINT.host)])
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, CERTIFICATE_NAME)])
     now = datetime.datetime.now(datetime.UTC)
     certificate = (
         x509.CertificateBuilder()
@@ -120,7 +158,8 @@ def _create_certificate(certfile: Path, keyfile: Path) -> None:
         .not_valid_before(now - datetime.timedelta(days=1))
         .not_valid_after(now + datetime.timedelta(days=3650))
         .add_extension(
-            x509.SubjectAlternativeName([x509.DNSName(ENDPOINT.host)]), critical=False
+            x509.SubjectAlternativeName([x509.DNSName(CERTIFICATE_NAME)]),
+            critical=False,
         )
         .sign(key, hashes.SHA256())
     )
@@ -152,22 +191,33 @@ def _load_ssl_context(directory: Path) -> ssl.SSLContext:
 class LocalGateway:
     """Runs the local gateway of one account, and stores what it learns."""
 
-    gateway: WG4Gateway
-    api: WG4LocalAPI
+    gateway: WG4Gateway | WD5Gateway
+    api: WG4LocalAPI | WD5LocalAPI
 
     def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, cloud: WG4API, mode: GatewayMode
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        cloud: WG4API | WD5API,
+        endpoint: GatewayEndpoint,
+        mode: GatewayMode,
     ) -> None:
         """Prepare a gateway for the account of the cloud API."""
         self.hass = hass
         self.mode = mode
+        self.endpoint = endpoint
         self._entry_id = entry.entry_id
         self._cloud = cloud
         self._store = gateway_store(hass, entry.entry_id)
         self._stored: dict[str, Any] = {"snapshot": {}, "profiles": {}}
         self._cancel_check: CALLBACK_TYPE | None = None
 
-    async def async_start(self) -> WG4LocalAPI:
+    @property
+    def profiles(self) -> dict[str, DeviceProfile]:
+        """Return the recorded profiles; only WG4-series thermostats have one."""
+        return self.gateway.profiles if isinstance(self.gateway, WG4Gateway) else {}
+
+    async def async_start(self) -> WG4LocalAPI | WD5LocalAPI:
         """Load what was stored, start listening, and return the API to use.
 
         Raises
@@ -191,17 +241,28 @@ class LocalGateway:
         context = await self.hass.async_add_executor_job(
             _load_ssl_context, Path(self.hass.config.path(DOMAIN))
         )
-        self.gateway = WG4Gateway(
-            context, mode=self.mode, endpoint=ENDPOINT, profiles=profiles
-        )
-        self.gateway.on_profile = self._async_profile_recorded
+        if isinstance(self._cloud, WG4API):
+            wg4 = WG4Gateway(
+                context, mode=self.mode, endpoint=self.endpoint, profiles=profiles
+            )
+            wg4.on_profile = self._async_profile_recorded
+            self.gateway = wg4
+            self.api = WG4LocalAPI(
+                self._cloud,
+                wg4,
+                snapshot=self._stored["snapshot"],
+                on_snapshot=self._async_snapshot_changed,
+            )
+        else:
+            wd5 = WD5Gateway(context, mode=self.mode, endpoint=self.endpoint)
+            self.gateway = wd5
+            self.api = WD5LocalAPI(
+                self._cloud,
+                wd5,
+                snapshot=self._stored["snapshot"],
+                on_snapshot=self._async_snapshot_changed,
+            )
         self.gateway.on_upstream = self._async_upstream_changed
-        self.api = WG4LocalAPI(
-            self._cloud,
-            self.gateway,
-            snapshot=self._stored["snapshot"],
-            on_snapshot=self._async_snapshot_changed,
-        )
         # The API listens to what the thermostats report. Listen along, to
         # know when the first thermostat has found its way here.
         report = self.gateway.on_state
@@ -261,7 +322,7 @@ class LocalGateway:
             is_fixable=False,
             severity=ir.IssueSeverity.ERROR,
             translation_key=ISSUE_UNTRUSTED,
-            translation_placeholders={"hostname": ENDPOINT.host},
+            translation_placeholders={"hostname": self.endpoint.host},
         )
 
     async def _async_check_connected(self, _now: datetime.datetime) -> None:
@@ -277,8 +338,8 @@ class LocalGateway:
             severity=ir.IssueSeverity.WARNING,
             translation_key=ISSUE_NO_THERMOSTAT,
             translation_placeholders={
-                "hostname": ENDPOINT.host,
+                "hostname": self.endpoint.host,
                 "ip": await async_host_ip(self.hass),
-                "port": str(ENDPOINT.port),
+                "port": str(self.endpoint.port),
             },
         )

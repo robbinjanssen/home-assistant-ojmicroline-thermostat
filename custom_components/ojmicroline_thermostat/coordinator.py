@@ -57,7 +57,7 @@ from .const import (
 )
 from .energy import EnergyStatistics
 from .helpers import format_wd5, format_wd5_date
-from .local import LocalGateway
+from .local import LocalGateway, endpoint_for
 from .push import WD5PushClient
 
 if TYPE_CHECKING:
@@ -115,8 +115,8 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         self.api = oj_microline_from_api(model_api, hass)
         self.energy = EnergyStatistics(hass, self)
         self._unsubscribe_push: Callable[[], None] | None = None
-        # The local gateway of a WG4-series account in a local connection
-        # mode; it is started in _async_setup.
+        # The local gateway of a WG4-series or WD5-series account in a local
+        # connection mode; it is started in _async_setup.
         self.local: LocalGateway | None = None
 
     async def _async_setup(self) -> None:
@@ -131,10 +131,12 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         """
         mode = self.config_entry.options.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
-        if self.wg4_api is None or mode == CONNECTION_CLOUD:
+        cloud = self.wg4_api or self.wd5_api
+        endpoint = endpoint_for(self.config_entry.data)
+        if cloud is None or endpoint is None or mode == CONNECTION_CLOUD:
             return
         local = LocalGateway(
-            self.hass, self.config_entry, self.wg4_api, GatewayMode(mode)
+            self.hass, self.config_entry, cloud, endpoint, GatewayMode(mode)
         )
         try:
             api = await local.async_start()
@@ -294,8 +296,12 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         retries failures itself. Either way the work is tied to the config
         entry: it is stopped when the entry unloads, so reloading or
         removing the entry never leaks a subscription.
+
+        With a local gateway the thermostats report to the gateway, also for
+        WD5: the hub would tell that a thermostat is offline when it is only
+        away from the cloud.
         """
-        if self.wd5_api is not None:
+        if self.wd5_api is not None and self.local is None:
             WD5PushClient(
                 self.hass,
                 async_get_clientsession(self.hass),
@@ -629,7 +635,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         """
         duration = duration or COMFORT_DURATION
-        if self.wd5_api is None:
+        if self.wd5_api is None or self._async_sets_locally(
+            thermostat, regulation_mode
+        ):
             await self.api.set_regulation_mode(
                 thermostat, regulation_mode, temperature, duration
             )
@@ -639,6 +647,20 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             regulation_mode=regulation_mode,
             temperature=temperature,
             duration=duration,
+        )
+
+    def _async_sets_locally(self, thermostat: Thermostat, regulation_mode: int) -> bool:
+        """Return whether a mode goes straight to a WD5-series thermostat.
+
+        That is the case for a thermostat on the local gateway and a mode the
+        gateway can set. Anything else is a change of the thermostat's group
+        in the cloud, which reaches a thermostat that is relayed.
+        """
+        if self.local is None:
+            return False
+        api = self.local.api
+        return regulation_mode in api.local_modes and api.on_gateway(
+            thermostat.serial_number
         )
 
     async def _async_update_group(  # noqa: PLR0913 # pylint: disable=too-many-arguments

@@ -1,4 +1,4 @@
-"""Tests for the local gateway of WG4-series accounts.
+"""Tests for the local gateway of WG4-series and WD5-series accounts.
 
 The gateway itself is tested in the library. Here it does not listen on a
 port: the tests let it report as if a thermostat were connected.
@@ -23,13 +23,16 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from ojmicroline_thermostat import (
+    WD5_R1099,
+    WG4_NORTH_AMERICA,
     DeviceProfile,
     GatewayMode,
     OJMicrolineConnectionError,
     UpstreamStatus,
+    WD5Gateway,
     WG4Gateway,
 )
-from ojmicroline_thermostat.const import REGULATION_MANUAL
+from ojmicroline_thermostat.const import REGULATION_COMFORT, REGULATION_MANUAL
 from ojmicroline_thermostat.gateway.protobuf import encode_field, encode_frame
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -59,6 +62,9 @@ STORE_KEY = f"{DOMAIN}.{ENTRY_ID}.gateway"
 # The thermostats in the fixture of the cloud API.
 SERIAL = "42424242"
 OTHER = "42424243"
+# Those of the WD5-series account, which is of the SWATT app.
+WD5_SERIAL = "800747"
+WD5_OTHER = "800857"
 
 MODULE = "custom_components.ojmicroline_thermostat"
 JSON = {"Content-Type": "application/json"}
@@ -105,6 +111,18 @@ def _entry(mode: str, **options: Any) -> MockConfigEntry:
         title="OJ Microline Thermostat (user@example.com)",
         version=2,
         data=WG4_DATA,
+        options={"connection_mode": mode, **options},
+        entry_id=ENTRY_ID,
+    )
+
+
+def _wd5_entry(mode: str, **options: Any) -> MockConfigEntry:
+    """Return the config entry of a WD5-series account in a connection mode."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="OJ Microline Thermostat (user@example.com)",
+        version=2,
+        data=WD5_DATA,
         options={"connection_mode": mode, **options},
         entry_id=ENTRY_ID,
     )
@@ -160,6 +178,8 @@ def listener_fixture() -> Generator[AsyncMock]:
         ),
         patch(f"{MODULE}.local.WG4Gateway.start", new_callable=AsyncMock) as start,
         patch(f"{MODULE}.local.WG4Gateway.stop", new_callable=AsyncMock),
+        patch(f"{MODULE}.local.WD5Gateway.start", start),
+        patch(f"{MODULE}.local.WD5Gateway.stop", new_callable=AsyncMock),
     ):
         yield start
 
@@ -212,20 +232,135 @@ async def test_cloud_mode_has_no_gateway(
 
 
 @pytest.mark.usefixtures("mock_wd5_api")
-async def test_other_series_has_no_gateway(
+async def test_unknown_brand_has_no_gateway(
     hass: HomeAssistant, listener: AsyncMock
 ) -> None:
-    """Test the connection mode means nothing for another series."""
+    """Test the connection mode means nothing without a known device gateway."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         version=2,
-        data=WD5_DATA,
+        # The OJ Microline app, whose device gateway is not known.
+        data={**WD5_DATA, "customer_id": 1},
         options={"connection_mode": "relay"},
     )
     await _setup(hass, entry)
 
     assert entry.runtime_data.local is None
     listener.assert_not_awaited()
+
+
+def test_endpoint_for() -> None:
+    """Test which device gateway the thermostats of an account look for."""
+    assert local.endpoint_for(WG4_DATA) is WG4_NORTH_AMERICA
+    # Without a customer ID the account is of the SWATT app.
+    assert local.endpoint_for(WD5_DATA) is WD5_R1099
+    schluter = local.endpoint_for({**WD5_DATA, "customer_id": 3})
+    assert schluter is not None
+    assert schluter.host == "owd5-sl003-thermostat.ojelectronics.com"
+    assert local.endpoint_for({**WD5_DATA, "customer_id": 1}) is None
+    assert local.endpoint_for({"model": "WG5 series"}) is None
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_wd5_setup(hass: HomeAssistant, listener: AsyncMock) -> None:
+    """Test a WD5-series account gets a gateway, and reports through it."""
+    entry = _wd5_entry("local")
+    with patch(f"{MODULE}.push.WD5PushClient.start") as hub:
+        await _setup(hass, entry)
+
+    assert entry.state is ConfigEntryState.LOADED
+    listener.assert_awaited_once()
+    # The thermostats report to the gateway, so the hub of the cloud is not used.
+    hub.assert_not_called()
+    gateway = entry.runtime_data.local.gateway
+    assert isinstance(gateway, WD5Gateway)
+    assert gateway.mode is GatewayMode.LOCAL
+    assert gateway.endpoint is WD5_R1099
+    assert gateway.allowed_serials == {WD5_SERIAL, WD5_OTHER}
+    # A WD5 thermostat has no profile, and needs none to be answered.
+    assert entry.runtime_data.local.profiles == {}
+    assert await local.async_has_profile(hass, entry)
+
+    _report(entry, WD5_SERIAL, Online=True, RoomTemperature=2175, Heating=True)
+    await _deliver(hass, entry)
+    state = _state(hass, "climate.woonkamer")
+    assert state.attributes["hvac_action"] == "heating"
+    # The other thermostat never connected, and is still the cloud's.
+    assert _state(hass, "climate.gang").attributes["hvac_action"] == "idle"
+
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    assert diagnostics["gateway"]["mode"] == "local"
+    assert diagnostics["gateway"]["profiles"] == 0
+
+
+async def test_wd5_set_temperature_goes_to_the_gateway(
+    hass: HomeAssistant, mock_wd5_api: AiohttpClientMocker
+) -> None:
+    """Test a thermostat on the gateway is set directly, another in the cloud."""
+    entry = _wd5_entry("relay", use_comfort_mode=True, comfort_mode_duration=90)
+    await _setup(hass, entry)
+    send = AsyncMock()
+    _gateway(entry).set_mode = send  # type: ignore[method-assign]
+    _report(entry, WD5_SERIAL, Online=True)
+    await _deliver(hass, entry)
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_TEMPERATURE,
+        {ATTR_ENTITY_ID: "climate.woonkamer", ATTR_TEMPERATURE: 21},
+        blocking=True,
+    )
+
+    send.assert_awaited_once()
+    arguments = send.await_args
+    assert arguments is not None
+    assert arguments.args == (WD5_SERIAL, REGULATION_COMFORT, 2100)
+    # The comfort hold ends after the chosen duration, in thermostat time.
+    assert arguments.kwargs["end"] is not None
+    assert arguments.kwargs["known"]["SerialNumber"] == WD5_SERIAL
+    assert _requests(mock_wd5_api, "/api/Group/UpdateGroup") == 0
+
+    # A thermostat that never connected to the gateway is set in the cloud.
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_TEMPERATURE,
+        {ATTR_ENTITY_ID: "climate.gang", ATTR_TEMPERATURE: 20},
+        blocking=True,
+    )
+    send.assert_awaited_once()
+    assert _requests(mock_wd5_api, "/api/Group/UpdateGroup") == 1
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_wd5_options_flow(hass: HomeAssistant, listener: AsyncMock) -> None:
+    """Test a WD5-series account can go local only without the relay first."""
+    entry = MockConfigEntry(domain=DOMAIN, version=2, data=WD5_DATA)
+    await _setup(hass, entry)
+    chosen = {
+        "use_comfort_mode": False,
+        "comfort_mode_duration": 240,
+        "connection_mode": "local",
+    }
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], chosen
+    )
+    assert result["step_id"] == "gateway"
+    assert result["description_placeholders"] == {
+        "hostname": "owd5-r1099-thermostat.ojelectronics.com",
+        "ip": "10.10.10.10",
+        "port": "9513",
+    }
+
+    with patch(f"{MODULE}.config_flow.async_dns_points_here", return_value=True):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {}
+        )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    listener.assert_awaited_once()
+    assert isinstance(entry.runtime_data.local.gateway, WD5Gateway)
 
 
 @pytest.mark.usefixtures("mock_wg4_api")
@@ -536,12 +671,13 @@ async def test_dns_check(hass: HomeAssistant) -> None:
     def resolves_to(address: str) -> AsyncMock:
         return AsyncMock(return_value=[(2, 1, 6, "", (address, 9533))])
 
+    endpoint = WG4_NORTH_AMERICA
     with patch.object(hass.loop, "getaddrinfo", resolves_to("10.10.10.10")):
-        assert await local.async_dns_points_here(hass, "10.10.10.10")
+        assert await local.async_dns_points_here(hass, endpoint, "10.10.10.10")
     with patch.object(hass.loop, "getaddrinfo", resolves_to("52.165.43.242")):
-        assert not await local.async_dns_points_here(hass, "10.10.10.10")
+        assert not await local.async_dns_points_here(hass, endpoint, "10.10.10.10")
     with patch.object(hass.loop, "getaddrinfo", AsyncMock(side_effect=OSError)):
-        assert not await local.async_dns_points_here(hass, "10.10.10.10")
+        assert not await local.async_dns_points_here(hass, endpoint, "10.10.10.10")
 
     # Without a known address the instructions show a question mark.
     with patch(f"{MODULE}.local.async_get_source_ip", side_effect=HomeAssistantError):
@@ -682,10 +818,11 @@ async def test_options_flow_back_to_cloud_without_the_record(
 
 
 @pytest.mark.usefixtures("mock_wd5_api")
-async def test_options_flow_of_another_series(
-    hass: HomeAssistant, mock_wd5_config_entry: MockConfigEntry
-) -> None:
-    """Test only a WG4-series account can choose a connection mode."""
+async def test_options_flow_without_a_known_gateway(hass: HomeAssistant) -> None:
+    """Test an account whose device gateway is not known has no connection mode."""
+    mock_wd5_config_entry = MockConfigEntry(
+        domain=DOMAIN, version=2, data={**WD5_DATA, "customer_id": 1}
+    )
     await _setup(hass, mock_wd5_config_entry)
 
     result = await hass.config_entries.options.async_init(

@@ -69,10 +69,10 @@ from .const import (
     WG4_APPS,
 )
 from .local import (
-    ENDPOINT,
     async_dns_points_here,
     async_has_profile,
     async_host_ip,
+    endpoint_for,
 )
 
 if TYPE_CHECKING:
@@ -524,6 +524,7 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
         errors: dict[str, str] = {}
         options = self.config_entry.options
         current_mode = options.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
+        endpoint = endpoint_for(self.config_entry.data)
         if user_input is not None:
             self._options = user_input
             if (
@@ -533,9 +534,10 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
                 return await self.async_step_gateway()
             if (
                 current_mode != CONNECTION_CLOUD
+                and endpoint is not None
                 and not self._warned
                 and await async_dns_points_here(
-                    self.hass, await async_host_ip(self.hass)
+                    self.hass, endpoint, await async_host_ip(self.hass)
                 )
             ):
                 # Left in place, the DNS record keeps the thermostats away
@@ -570,8 +572,8 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
                 )
             ),
         }
-        if self.config_entry.data.get(CONF_MODEL) == MODEL_WG4_SERIES:
-            # Only WG4-series thermostats can connect to a local gateway.
+        if endpoint is not None:
+            # Only for thermostats whose device gateway is known.
             schema[
                 probatio.Required(
                     CONF_CONNECTION_MODE,
@@ -604,6 +606,11 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
         """
         errors: dict[str, str] = {}
         host_ip = await async_host_ip(self.hass)
+        endpoint = endpoint_for(self.config_entry.data)
+        if endpoint is None:
+            # The connection option is only offered with a known gateway;
+            # without one the account stays on the cloud.
+            return self.async_create_entry(title="", data=self._options)
         if user_input is not None:
             if self._options[
                 CONF_CONNECTION_MODE
@@ -614,7 +621,7 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
                 # thermostat with.
                 errors["base"] = "no_profile"
             elif not self._warned and not await async_dns_points_here(
-                self.hass, host_ip
+                self.hass, endpoint, host_ip
             ):
                 # The thermostats may use another DNS server than Home
                 # Assistant does, so this only warns.
@@ -628,8 +635,8 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
             data_schema=probatio.Schema({}),
             errors=errors,
             description_placeholders={
-                "hostname": ENDPOINT.host,
+                "hostname": endpoint.host,
                 "ip": host_ip,
-                "port": str(ENDPOINT.port),
+                "port": str(endpoint.port),
             },
         )

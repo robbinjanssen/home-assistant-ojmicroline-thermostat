@@ -316,13 +316,20 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
             return
 
         regulation_mode = self.thermostat.regulation_mode
+        # A thermostat that only the local gateway reaches has fewer modes:
+        # a WG4-series thermostat there has no comfort mode, whatever the
+        # option says, also when it is in that mode already.
+        supported = self.thermostat.supported_regulation_modes
 
-        if regulation_mode not in {REGULATION_MANUAL, REGULATION_COMFORT}:
-            regulation_mode = (
-                REGULATION_COMFORT
-                if self.options.get(CONF_USE_COMFORT_MODE)
-                else REGULATION_MANUAL
+        if (
+            regulation_mode not in {REGULATION_MANUAL, REGULATION_COMFORT}
+            or regulation_mode not in supported
+        ):
+            use_comfort = (
+                self.options.get(CONF_USE_COMFORT_MODE)
+                and REGULATION_COMFORT in supported
             )
+            regulation_mode = REGULATION_COMFORT if use_comfort else REGULATION_MANUAL
 
         await self._async_set_regulation_mode(regulation_mode, round(temperature * 100))
 

@@ -7,14 +7,19 @@ from datetime import date, timedelta
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
+    ConfigEntryError,
     HomeAssistantError,
     ServiceValidationError,
 )
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.aiohttp_client import (
+    async_create_clientsession,
+    async_get_clientsession,
+)
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -22,6 +27,7 @@ from homeassistant.util import dt as dt_util
 from ojmicroline_thermostat import (
     WD5API,
     WG4API,
+    GatewayMode,
     OJMicrolineAuthError,
     OJMicrolineError,
     OJMicrolineUnauthorizedError,
@@ -44,6 +50,8 @@ from .api import (
 )
 from .const import (
     API_TIMEOUT,
+    CONF_CONNECTION_MODE,
+    CONNECTION_CLOUD,
     DOMAIN,
     ENERGY_RETRY_INTERVAL,
     ENERGY_UPDATE_INTERVAL,
@@ -54,6 +62,7 @@ from .const import (
 )
 from .energy import EnergyStatistics
 from .helpers import format_wd5, format_wd5_date
+from .local import LocalGateway, async_forget, endpoint_for, local_entries_on_port
 from .push import WD5PushClient
 
 if TYPE_CHECKING:
@@ -62,6 +71,12 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
+
+# Why a change through the cloud cannot be made for a thermostat on the gateway.
+NOT_RELAYED = (
+    "This change goes through the cloud, which the thermostat is not connected "
+    "to: it is connected to Home Assistant only."
+)
 
 type OJMicrolineConfigEntry = ConfigEntry["OJMicrolineDataUpdateCoordinator"]
 
@@ -108,9 +123,60 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         self.wg4_api: WG4API | None = (
             model_api if isinstance(model_api, WG4API) else None
         )
-        self.api = oj_microline_from_api(model_api, hass)
+        # One HTTP session for the client of the cloud and, with a local
+        # gateway, the client that replaces it.
+        self._session = async_create_clientsession(hass)
+        self.api = oj_microline_from_api(model_api, hass, self._session)
         self.energy = EnergyStatistics(hass, self)
         self._unsubscribe_push: Callable[[], None] | None = None
+        # The local gateway of a WG4-series or WD5-series account in a local
+        # connection mode; it is started in _async_setup.
+        self.local: LocalGateway | None = None
+
+    async def _async_setup(self) -> None:
+        """Start the local gateway, if the account uses a local connection mode.
+
+        The thermostats then report to the gateway in Home Assistant, and the
+        cloud API is only asked for what a thermostat does not report itself.
+
+        Raises
+        ------
+            UpdateFailed: The gateway cannot listen; the setup is retried.
+            ConfigEntryError: Another account runs a gateway on the same port.
+
+        """
+        mode = self.config_entry.options.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
+        cloud = self.wg4_api or self.wd5_api
+        endpoint = endpoint_for(self.config_entry.data)
+        if cloud is None or endpoint is None:
+            return
+        if mode == CONNECTION_CLOUD:
+            # What a local mode stored, the email address among it, goes.
+            await async_forget(self.hass, self.config_entry.entry_id)
+            return
+        for other in local_entries_on_port(
+            self.hass, endpoint.port, self.config_entry.entry_id
+        ):
+            if (
+                other.state is ConfigEntryState.LOADED
+                and other.runtime_data.local is not None
+            ):
+                msg = (
+                    f"The account {other.title} already runs the local gateway on "
+                    f"port {endpoint.port}; only one account can."
+                )
+                raise ConfigEntryError(msg)
+        local = LocalGateway(
+            self.hass, self.config_entry, cloud, endpoint, GatewayMode(mode)
+        )
+        try:
+            api = await local.async_start()
+        except OJMicrolineError as error:
+            raise UpdateFailed(str(error)) from error
+        self.config_entry.async_on_unload(local.async_stop)
+        self.local = local
+        self._model_api = api
+        self.api = oj_microline_from_api(api, self.hass, self._session)
 
     async def _async_update_data(self) -> dict[str, Thermostat]:
         """Fetch data from API endpoint.
@@ -168,15 +234,31 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         The API can invalidate a session before it is due to expire, after
         which requests fail with HTTP 401 until a new session is created.
+
+        With a local gateway the session belongs to the cloud API of the
+        account: logging in through the gateway's API does nothing.
         """
-        await self.api.login()
+        api = self._model_api if self.local is None else self.local.api.cloud
+        await api.login()
         try:
             return await call()
         except OJMicrolineUnauthorizedError:
             _LOGGER.debug("The OJ Microline API rejected the session, logging in again")
-            self._model_api.invalidate_session()
-            await self.api.login()
+            api.invalidate_session()
+            await api.login()
             return await call()
+
+    def _async_cloud_measures(
+        self, local: LocalGateway, thermostat: Thermostat
+    ) -> bool:
+        """Return whether the cloud can be asked for a thermostat's energy usage.
+
+        Only a thermostat that reaches the cloud reports its usage there: one
+        that is relayed, or one that is not on the gateway at all.
+        """
+        return local.api.cloud_error is None and local.api.cloud_reaches(
+            thermostat.serial_number
+        )
 
     async def _async_fetch_thermostats(self) -> list[Thermostat]:
         """Fetch the thermostats, reusing recent energy usage where possible.
@@ -186,17 +268,33 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         slowly, so only refresh it every ENERGY_UPDATE_INTERVAL.
         """
         api = self._model_api
-        if not isinstance(api, SessionOJMicrolineAPI):
+        local = self.local
+        if local is not None:
+            async with asyncio.timeout(API_TIMEOUT):
+                thermostats = await self.api.get_thermostats()
+            if isinstance(local.api.cloud_error, OJMicrolineAuthError):
+                # The thermostats on the gateway keep working meanwhile.
+                self.config_entry.async_start_reauth(self.hass)
+            measured = []
+            for thermostat in thermostats:
+                if self._async_cloud_measures(local, thermostat):
+                    measured.append(thermostat)
+                    continue
+                # Without the cloud there is no new energy usage.
+                previous = (self.data or {}).get(thermostat.serial_number)
+                thermostat.energy = None if previous is None else previous.energy
+        elif not isinstance(api, SessionOJMicrolineAPI):
             async with asyncio.timeout(API_TIMEOUT):
                 return await self.api.get_thermostats()
-
-        async with asyncio.timeout(API_TIMEOUT):
-            thermostats = await self._async_with_session(
-                lambda: async_fetch_thermostats(api)
-            )
+        else:
+            async with asyncio.timeout(API_TIMEOUT):
+                thermostats = await self._async_with_session(
+                    lambda: async_fetch_thermostats(api)
+                )
+            measured = thermostats
 
         now = monotonic()
-        for thermostat in thermostats:
+        for thermostat in measured:
             serial_number = thermostat.serial_number
             previous = (self.data or {}).get(serial_number)
             if previous is not None and now < self._energy_next.get(serial_number, 0):
@@ -210,9 +308,11 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             try:
                 async with asyncio.timeout(API_TIMEOUT):
                     today = await self.energy.async_today(thermostat)
-            except OJMicrolineAuthError:
-                raise
             except (OJMicrolineError, TimeoutError) as error:
+                # A rejected password stops the update, unless the thermostats
+                # are on the local gateway: those must keep working.
+                if isinstance(error, OJMicrolineAuthError) and self.local is None:
+                    raise
                 # Keep the thermostat data; only the energy usage is stale.
                 _LOGGER.debug(
                     "Could not fetch energy usage of %s: %r", serial_number, error
@@ -234,8 +334,12 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         retries failures itself. Either way the work is tied to the config
         entry: it is stopped when the entry unloads, so reloading or
         removing the entry never leaks a subscription.
+
+        With a local gateway the thermostats report to the gateway, also for
+        WD5: the hub would tell that a thermostat is offline when it is only
+        away from the cloud.
         """
-        if self.wd5_api is not None:
+        if self.wd5_api is not None and self.local is None:
             WD5PushClient(
                 self.hass,
                 async_get_clientsession(self.hass),
@@ -387,7 +491,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             OJMicrolineError: The API refused the update.
 
         """
-        regulation_mode = thermostat.regulation_mode
+        regulation_mode = self._async_group_view(thermostat).regulation_mode
         if enabled and dt_util.start_of_local_day(start) <= dt_util.now():
             regulation_mode = REGULATION_VACATION
         elif regulation_mode == REGULATION_VACATION:
@@ -569,7 +673,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         """
         duration = duration or COMFORT_DURATION
-        if self.wd5_api is None:
+        if self.wd5_api is None or self._async_sets_locally(
+            thermostat, regulation_mode
+        ):
             await self.api.set_regulation_mode(
                 thermostat, regulation_mode, temperature, duration
             )
@@ -580,6 +686,31 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             temperature=temperature,
             duration=duration,
         )
+
+    def _async_sets_locally(self, thermostat: Thermostat, regulation_mode: int) -> bool:
+        """Return whether a mode goes straight to a WD5-series thermostat.
+
+        That is the case for a thermostat on the local gateway and a mode the
+        gateway can set. Anything else is a change of the thermostat's group
+        in the cloud, which only reaches a thermostat that is relayed.
+        """
+        if self.local is None:
+            return False
+        api = self.local.api
+        return regulation_mode in api.local_modes and api.on_gateway(
+            thermostat.serial_number
+        )
+
+    def _async_group_view(self, thermostat: Thermostat) -> Thermostat:
+        """Return a thermostat as the cloud knows it, for a change of its group.
+
+        A mode the gateway set on one thermostat is that thermostat's alone.
+        Starting from it, a change of the group would set it for the whole
+        group.
+        """
+        if self.local is None:
+            return thermostat
+        return self.local.api.cloud_thermostat(thermostat.serial_number) or thermostat
 
     async def _async_update_group(  # noqa: PLR0913 # pylint: disable=too-many-arguments
         self,
@@ -602,6 +733,12 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         if api is None:
             msg = "This is only supported on WD5-series thermostats."
             raise OJMicrolineError(msg)
+        if self.local is not None and not self.local.api.cloud_reaches(
+            thermostat.serial_number
+        ):
+            # The cloud would accept the change, which then never arrives.
+            raise OJMicrolineError(NOT_RELAYED)
+        thermostat = self._async_group_view(thermostat)
 
         body = api.update_regulation_mode_body(
             thermostat,

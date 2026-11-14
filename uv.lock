@@ -1330,7 +1330,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ojmicroline-thermostat", git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main" }]
+requires-dist = [{ name = "ojmicroline-thermostat", git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=feature%2Fwg4-local-gateway" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2046,7 +2046,7 @@ wheels = [
 [[package]]
 name = "ojmicroline-thermostat"
 version = "0.0.0"
-source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main#20fa609c137c30651e765271ebe1e301ff67fe0b" }
+source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=feature%2Fwg4-local-gateway#533217dd7adc8d04733ae2eca976bf149d784fe8" }
 dependencies = [
     { name = "aiohttp" },
     { name = "yarl" },

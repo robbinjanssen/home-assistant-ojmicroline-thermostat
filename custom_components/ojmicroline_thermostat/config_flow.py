@@ -52,6 +52,7 @@ from .const import (
     CONF_COMFORT_TEMPERATURE,
     CONF_CUSTOMER_ID,
     CONF_IDENTITY_HOST,
+    CONF_LOCAL_CONTROL,
     CONF_MODEL,
     CONF_USE_COMFORT_MODE,
     CONFIG_FLOW_VERSION,
@@ -64,6 +65,7 @@ from .const import (
     WD5_APPS,
     WG4_APPS,
 )
+from .local_profile import async_load_profile
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -505,13 +507,34 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
             The created config entry.
 
         """
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            if user_input.get(CONF_LOCAL_CONTROL):
+                try:
+                    await async_load_profile(self.hass, self.config_entry.entry_id)
+                except ValueError:
+                    errors["base"] = "local_profile_required"
+                user_input[CONF_USE_COMFORT_MODE] = False
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
 
         return self.async_show_form(
             step_id="init",
+            errors=errors,
             data_schema=probatio.Schema(
                 {
+                    **(
+                        {
+                            probatio.Optional(
+                                CONF_LOCAL_CONTROL,
+                                default=self.config_entry.options.get(
+                                    CONF_LOCAL_CONTROL, False
+                                ),
+                            ): bool
+                        }
+                        if self.config_entry.data.get(CONF_MODEL) == MODEL_WG4_SERIES
+                        else {}
+                    ),
                     probatio.Optional(
                         CONF_USE_COMFORT_MODE,
                         default=self.config_entry.options.get(

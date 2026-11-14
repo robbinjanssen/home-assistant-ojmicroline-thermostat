@@ -44,6 +44,7 @@ from .api import (
 )
 from .const import (
     API_TIMEOUT,
+    CONF_LOCAL_CONTROL,
     DOMAIN,
     ENERGY_RETRY_INTERVAL,
     ENERGY_UPDATE_INTERVAL,
@@ -54,6 +55,7 @@ from .const import (
 )
 from .energy import EnergyStatistics
 from .helpers import format_wd5, format_wd5_date
+from .local import WG4LocalTransport
 from .push import WD5PushClient
 
 if TYPE_CHECKING:
@@ -109,6 +111,14 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             model_api if isinstance(model_api, WG4API) else None
         )
         self.api = oj_microline_from_api(model_api, hass)
+        self.local: WG4LocalTransport | None = None
+        if entry.options.get(CONF_LOCAL_CONTROL, False):
+            if self.wg4_api is None:
+                msg = "Local control requires a WG4 thermostat."
+                raise OJMicrolineError(msg)
+            self.local = WG4LocalTransport(
+                hass, entry, model_api, self.api, self._async_handle_push_thermostat
+            )
         self.energy = EnergyStatistics(hass, self)
         self._unsubscribe_push: Callable[[], None] | None = None
 
@@ -169,6 +179,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         The API can invalidate a session before it is due to expire, after
         which requests fail with HTTP 401 until a new session is created.
         """
+        if self.local is not None:
+            msg = "Cloud services are disabled while local control is enabled."
+            raise OJMicrolineError(msg)
         await self.api.login()
         try:
             return await call()
@@ -185,6 +198,8 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         which is one extra request per thermostat. Energy usage changes
         slowly, so only refresh it every ENERGY_UPDATE_INTERVAL.
         """
+        if self.local is not None:
+            return await self.local.async_get_thermostats()
         api = self._model_api
         if not isinstance(api, SessionOJMicrolineAPI):
             async with asyncio.timeout(API_TIMEOUT):
@@ -235,6 +250,8 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         entry: it is stopped when the entry unloads, so reloading or
         removing the entry never leaks a subscription.
         """
+        if self.local is not None:
+            return
         if self.wd5_api is not None:
             WD5PushClient(
                 self.hass,
@@ -449,8 +466,8 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             HomeAssistantError: The API refused the update.
 
         """
-        if self.wd5_api is None:
-            msg = "The schedule can only be set on WD5-series thermostats."
+        if self.wd5_api is None and self.local is None:
+            msg = "This thermostat has no editable schedule."
             raise ServiceValidationError(msg)
         try:
             await self.async_set_schedule(thermostat, schedule)
@@ -476,6 +493,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             OJMicrolineError: The API refused the update.
 
         """
+        if self.local is not None:
+            await self.local.async_set_schedule(thermostat, schedule)
+            return
         await self._async_update_group(
             thermostat, {"Schedule": schedule}, exclude_vacation=True
         )
@@ -568,6 +588,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             OJMicrolineError: The API refused the update.
 
         """
+        if self.local is not None:
+            await self.local.async_set_mode(thermostat, regulation_mode, temperature)
+            return
         duration = duration or COMFORT_DURATION
         if self.wd5_api is None:
             await self.api.set_regulation_mode(

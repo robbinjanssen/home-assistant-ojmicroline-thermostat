@@ -127,3 +127,11 @@ dmypy.json
 .venv/
 
 # End of https://www.gitignore.io/api/python
+
+# Thermostat configuration and traffic belong in private HA storage.
+local_profile.json
+*.profile.json
+*.pcap
+*.pcapng
+*.key
+*.pem

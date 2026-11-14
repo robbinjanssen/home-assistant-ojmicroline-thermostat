@@ -195,12 +195,16 @@
                 "data": {
                     "use_comfort_mode": "Set the regulation to comfort mode when changing the temperature.",
                     "comfort_mode_duration": "The duration in minutes the comfort mode should be enabled.",
-                    "comfort_temperature": "Comfort temperature"
+                    "comfort_temperature": "Comfort temperature",
+                    "local_control": "Use local WG4 gateway"
                 },
                 "data_description": {
                     "comfort_temperature": "The temperature used when switching to the comfort preset. Leave empty to use the comfort temperature stored in the thermostat."
                 }
             }
+        },
+        "error": {
+            "local_profile_required": "Import a captured WG4 gateway profile before enabling local control. See the local-control documentation."
         }
     },
     "services": {

@@ -193,12 +193,16 @@
                 "data": {
                     "use_comfort_mode": "Zet de modus naar comfort wanneer de temperatuur wijzigd.",
                     "comfort_mode_duration": "De totale tijd in minuten dat de comfort mode aan moet staan.",
-                    "comfort_temperature": "Comforttemperatuur"
+                    "comfort_temperature": "Comforttemperatuur",
+                    "local_control": "Lokale WG4-gateway gebruiken"
                 },
                 "data_description": {
                     "comfort_temperature": "De temperatuur bij het overschakelen naar de comfort-preset. Laat leeg om de comforttemperatuur uit de thermostaat te gebruiken."
                 }
             }
+        },
+        "error": {
+            "local_profile_required": "Importeer eerst een vastgelegd WG4-gatewayprofiel. Zie de documentatie voor lokale bediening."
         }
     },
     "services": {

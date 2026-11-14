@@ -272,9 +272,11 @@ async def async_setup_entry(
                     )
                 )
 
-        # Only the WD5 series reports a schedule in the parsed format.
+        # Local devices upload the schedule after the platforms are set up.
         thermostat = coordinator.data[idx]
-        if is_wd5(thermostat) and thermostat.schedule is not None:
+        if coordinator.local is not None or (
+            is_wd5(thermostat) and thermostat.schedule is not None
+        ):
             entities.append(OJMicrolineScheduleSensor(coordinator, idx))
 
     async_add_entities(entities)
@@ -321,6 +323,13 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
             True if the data is up to date and the thermostat is online.
 
         """
+        if self.coordinator.local is not None and self.entity_description.key in {
+            "energy_usage",
+            "comfort_end_time",
+            "vacation_begin_time",
+            "vacation_end_time",
+        }:
+            return False
         return super().available and self.thermostat.online
 
     @property
@@ -340,7 +349,7 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
 
 
 class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
-    """The weekly schedule of a WD5-series thermostat's group.
+    """The weekly schedule of a thermostat.
 
     The state is the temperature the schedule prescribes right now; the
     attributes list each weekday's events.
@@ -358,6 +367,14 @@ class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
         self._attr_unique_id = f"{idx}_schedule"
 
     @property
+    def available(self) -> bool:
+        """Require an online device and decoded schedule in local mode."""
+        return super().available and (
+            self.coordinator.local is None
+            or (self.thermostat.online and self.thermostat.schedule is not None)
+        )
+
+    @property
     def native_value(self) -> float | None:
         """Return the temperature the schedule prescribes now."""
         schedule = self.thermostat.schedule
@@ -367,4 +384,9 @@ class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return the active events per weekday."""
         schedule = self.thermostat.schedule
-        return None if schedule is None else schedule_attributes(schedule)
+        if schedule is None:
+            return None
+        attributes: dict[str, Any] = schedule_attributes(schedule)
+        if self.coordinator.local is not None:
+            attributes["same_day_only"] = True
+        return attributes

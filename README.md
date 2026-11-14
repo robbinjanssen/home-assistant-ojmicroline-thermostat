@@ -109,7 +109,7 @@ For an account of another app, such as Danfoss LX, the name is not known yet, an
 
 **This is experimental.** Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
 
-- **WG4 series:** tested on one real thermostat. Connecting, the relay and local only work. A temperature set from Home Assistant was confirmed by the thermostat too late, so Home Assistant showed an error; that is being worked on.
+- **WG4 series:** tested twice on one real thermostat. Connecting, the relay, local only, and falling back to local while OJ's cloud was unreachable work. In the first test the thermostat confirmed a temperature set from Home Assistant too late, so Home Assistant showed an error. In the second test it confirmed every change within a few seconds. Why the two tests differed is not known yet.
 - **WD5 series:** not confirmed on a real thermostat with this integration yet. The protocol comes from an ioBroker adapter where it works on an OWD5 thermostat.
 
 Choose the connection under **Configure** in the integration's menu:

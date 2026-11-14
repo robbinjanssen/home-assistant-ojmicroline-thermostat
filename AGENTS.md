@@ -94,9 +94,10 @@ work on a branch.
   `_async_setup` and swaps its API for the library's `WG4LocalAPI` or
   `WD5LocalAPI`. The gateway and protocol live in the library; `local.py`
   only holds what Home Assistant keeps.
-  - The WG4 gateway ran against one real thermostat, with commands that were
-    confirmed too late; the WD5 gateway has not run against one. Keep both
-    marked experimental until that changes.
+  - The WG4 gateway ran against one real thermostat, twice: the first time
+    its commands were confirmed too late, the second time in time, for a
+    reason that is not known. The WD5 gateway has not run against one. Keep
+    both marked experimental until that changes.
   - `endpoint_for()` tells which device gateway the thermostats of an
     account look for, by WG4 application code or WD5 customer ID. The option
     is only offered when it knows one; add a brand there once its hostname

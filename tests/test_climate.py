@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from homeassistant.components.climate import (
+    ATTR_CURRENT_TEMPERATURE,
     ATTR_PRESET_MODE,
     SERVICE_SET_PRESET_MODE,
     SERVICE_SET_TEMPERATURE,
@@ -11,8 +12,11 @@ from homeassistant.components.climate import (
 from homeassistant.components.climate import (
     DOMAIN as CLIMATE_DOMAIN,
 )
-from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
+from homeassistant.components.climate.const import DATA_COMPONENT
+from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.exceptions import HomeAssistantError
+
+from custom_components.ojmicroline_thermostat.climate import OJMicrolineThermostat
 
 from .conftest import WG4_HOST
 
@@ -57,6 +61,28 @@ async def test_state(hass: HomeAssistant, setup_integration: object) -> None:
     assert state is not None
     assert state.state == "heat"
     assert state.attributes[ATTR_TEMPERATURE] == 26.0
+
+
+async def test_native_temperatures(
+    hass: HomeAssistant, setup_integration: object
+) -> None:
+    """The entity provides the native_ names that Home Assistant 2026.11 reads.
+
+    Without them Home Assistant warns that the old names stop working in
+    2027.11. Both names give the same values.
+    """
+    assert setup_integration
+    state = hass.states.get("climate.roomname")
+    assert state is not None
+    entity = hass.data[DATA_COMPONENT].get_entity("climate.roomname")
+    assert isinstance(entity, OJMicrolineThermostat)
+    # pylint: disable-next=protected-access
+    assert entity._attr_native_temperature_unit == UnitOfTemperature.CELSIUS
+    assert entity.native_current_temperature == entity.current_temperature
+    assert (
+        entity.native_current_temperature == state.attributes[ATTR_CURRENT_TEMPERATURE]
+    )
+    assert entity.native_target_temperature == entity.target_temperature == 26.0
 
 
 async def test_set_temperature(

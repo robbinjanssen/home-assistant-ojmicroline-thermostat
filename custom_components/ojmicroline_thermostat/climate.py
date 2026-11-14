@@ -145,6 +145,12 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TARGET_TEMPERATURE
     )
+    # Home Assistant 2026.11 reads the native_ names and stops reading the old
+    # ones in 2027.11; older versions only read the old ones. A class that
+    # provides both gets no deprecation warning. Drop the old names
+    # (_attr_temperature_unit, current_temperature, target_temperature) once
+    # the minimum version is 2026.11.
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_name = None
     _attr_translation_key = "ojthermostat"
@@ -215,26 +221,30 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         return VENDOR_TO_HA_STATE.get(self.thermostat.regulation_mode)  # type: ignore[return-value]
 
     @property
-    def current_temperature(self) -> float:
+    def native_current_temperature(self) -> float:
         """Return current temperature.
 
         Returns
         -------
-            The current temperature in a float format..
+            The current temperature in degrees Celsius.
 
         """
         return self.thermostat.get_current_temperature() / 100
 
+    current_temperature = native_current_temperature
+
     @property
-    def target_temperature(self) -> float:
+    def native_target_temperature(self) -> float:
         """Return target temperature.
 
         Returns
         -------
-            The target temperature in a float format.
+            The target temperature in degrees Celsius.
 
         """
         return target_temperature(self.thermostat) / 100
+
+    target_temperature = native_target_temperature
 
     @property
     def max_temp(self) -> float:

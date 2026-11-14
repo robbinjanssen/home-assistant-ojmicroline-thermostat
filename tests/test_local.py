@@ -6,9 +6,9 @@ port: the tests let it report as if a thermostat were connected.
 
 import json
 import ssl
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, PropertyMock, patch
+from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 import pytest
 from homeassistant.components.climate import (
@@ -28,11 +28,17 @@ from ojmicroline_thermostat import (
     DeviceProfile,
     GatewayMode,
     OJMicrolineConnectionError,
+    OJMicrolineError,
     UpstreamStatus,
     WD5Gateway,
     WG4Gateway,
 )
-from ojmicroline_thermostat.const import REGULATION_COMFORT, REGULATION_MANUAL
+from ojmicroline_thermostat.const import (
+    REGULATION_COMFORT,
+    REGULATION_FROST_PROTECTION,
+    REGULATION_MANUAL,
+    REGULATION_SCHEDULE,
+)
 from ojmicroline_thermostat.gateway.protobuf import encode_field, encode_frame
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -134,8 +140,18 @@ def _gateway(entry: MockConfigEntry) -> WG4Gateway:
 
 
 def _report(entry: MockConfigEntry, serial: str, **fields: Any) -> None:
-    """Let the gateway report something, as if a thermostat sent it."""
-    report = _gateway(entry).on_state
+    """Let the gateway report something, as if a thermostat sent it.
+
+    The thermostat counts as connected, answered locally, until it reports
+    that it is offline.
+    """
+    gateway = _gateway(entry)
+    links = gateway._links  # pylint: disable=protected-access
+    if fields.get("Online") is False:
+        links.pop(serial, None)
+    else:
+        links.setdefault(serial, Mock(upstream=None))
+    report = gateway.on_state
     assert report is not None
     report(serial, fields)
 
@@ -252,6 +268,10 @@ async def test_unknown_brand_has_no_gateway(
 def test_endpoint_for() -> None:
     """Test which device gateway the thermostats of an account look for."""
     assert local.endpoint_for(WG4_DATA) is WG4_NORTH_AMERICA
+    # Schlüter in North America, where schluter-local comes from.
+    assert local.endpoint_for({**WG4_DATA, "application": 7}) is WG4_NORTH_AMERICA
+    # Danfoss LX, whose thermostats may look elsewhere.
+    assert local.endpoint_for({**WG4_DATA, "application": 4}) is None
     # Without a customer ID the account is of the SWATT app.
     assert local.endpoint_for(WD5_DATA) is WD5_R1099
     schluter = local.endpoint_for({**WD5_DATA, "customer_id": 3})
@@ -279,7 +299,7 @@ async def test_wd5_setup(hass: HomeAssistant, listener: AsyncMock) -> None:
     assert gateway.allowed_serials == {WD5_SERIAL, WD5_OTHER}
     # A WD5 thermostat has no profile, and needs none to be answered.
     assert entry.runtime_data.local.profiles == {}
-    assert await local.async_has_profile(hass, entry)
+    assert await local.async_profiles(hass, entry) is None
 
     _report(entry, WD5_SERIAL, Online=True, RoomTemperature=2175, Heating=True)
     await _deliver(hass, entry)
@@ -381,7 +401,7 @@ async def test_port_in_use_retries_setup(
 @pytest.mark.usefixtures("mock_wg4_api")
 async def test_thermostat_reports_through_the_gateway(hass: HomeAssistant) -> None:
     """Test what a thermostat reports to the gateway reaches its entities."""
-    entry = _entry("relay")
+    entry = _entry("local")
     await _setup(hass, entry)
 
     _report(entry, SERIAL, Online=True)
@@ -394,11 +414,28 @@ async def test_thermostat_reports_through_the_gateway(hass: HomeAssistant) -> No
     # The other thermostat never connected, and is still the cloud's.
     assert _state(hass, "climate.secondroom").attributes["hvac_action"] == "idle"
 
-    # Once it disconnects, the thermostat is offline whatever the cloud says.
+    # Once it disconnects, the thermostat is offline whatever the cloud says:
+    # in local mode it does not reach the cloud.
     _report(entry, SERIAL, Online=False, Heating=False)
     await _deliver(hass, entry)
     assert _state(hass, "climate.roomname").attributes["hvac_action"] == "off"
     assert _state(hass, "binary_sensor.roomname_online").state == "off"
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_relayed_thermostat_that_left_is_the_clouds(
+    hass: HomeAssistant,
+) -> None:
+    """Test a thermostat that left a relaying gateway is as the cloud says.
+
+    It may connect to OJ's gateway directly then, which the cloud knows.
+    """
+    entry = _entry("relay")
+    await _setup(hass, entry)
+    _report(entry, SERIAL, Online=True)
+    _report(entry, SERIAL, Online=False)
+    await _deliver(hass, entry)
+    assert _state(hass, "binary_sensor.roomname_online").state == "on"
 
 
 async def test_set_temperature_goes_to_the_gateway(
@@ -519,7 +556,9 @@ async def test_profile_is_stored(
     # The gateway keeps the profile itself, and tells its listener.
     _gateway(entry).profiles[SERIAL] = PROFILE
     record(SERIAL, PROFILE)
-    assert await local.async_has_profile(hass, entry)
+    known = await local.async_profiles(hass, entry)
+    assert known is not None
+    assert known[0] == {SERIAL}
     async_fire_time_changed(
         hass, dt_util.utcnow() + timedelta(seconds=local.PROFILE_SAVE_DELAY + 1)
     )
@@ -750,14 +789,23 @@ async def test_options_flow_to_local_needs_a_profile(
         result = await hass.config_entries.options.async_configure(
             result["flow_id"], chosen
         )
-        result = await hass.config_entries.options.async_configure(
-            result["flow_id"], {}
-        )
+        # The first screen says so, where another mode can be chosen.
         assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "init"
         assert result["errors"] == {"base": "no_profile"}
 
         # A relayed session stored a profile in the meantime.
         hass_storage[STORE_KEY] = _stored()
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], chosen
+        )
+        # The other thermostat has no profile yet; that is a warning.
+        assert result["errors"] == {"base": "profile_missing"}
+        assert result["description_placeholders"] == {"thermostats": "SecondRoom"}
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], chosen
+        )
+        assert result["step_id"] == "gateway"
         result = await hass.config_entries.options.async_configure(
             result["flow_id"], {}
         )
@@ -840,3 +888,254 @@ async def test_options_flow_without_a_known_gateway(hass: HomeAssistant) -> None
         "use_comfort_mode": True,
         "comfort_mode_duration": 60,
     }
+
+
+def _updates(aioclient_mock: AiohttpClientMocker) -> list[dict[str, Any]]:
+    """Return the bodies of the group updates sent to the cloud."""
+    return [
+        call[2]
+        for call in aioclient_mock.mock_calls
+        if call[1].path == "/api/Group/UpdateGroup"
+    ]
+
+
+async def test_wd5_local_only_refuses_what_only_the_cloud_sets(
+    hass: HomeAssistant, mock_wd5_api: AiohttpClientMocker
+) -> None:
+    """Test a change the cloud would accept but never deliver is refused."""
+    entry = _wd5_entry("local")
+    await _setup(hass, entry)
+    _report(entry, WD5_SERIAL, Online=True)
+    await _deliver(hass, entry)
+    coordinator = entry.runtime_data
+    thermostat = coordinator.data[WD5_SERIAL]
+
+    with pytest.raises(OJMicrolineError, match="not connected"):
+        await coordinator.async_set_regulation_mode(
+            thermostat, REGULATION_FROST_PROTECTION
+        )
+    with pytest.raises(OJMicrolineError, match="not connected"):
+        await coordinator.async_set_schedule(thermostat, {})
+    with pytest.raises(OJMicrolineError, match="not connected"):
+        await coordinator.async_set_vacation(
+            thermostat, date(2026, 12, 1), date(2026, 12, 8), enabled=False
+        )
+    assert not _updates(mock_wd5_api)
+
+    # The thermostat that never connected here still reaches the cloud.
+    await coordinator.async_set_regulation_mode(
+        coordinator.data[WD5_OTHER], REGULATION_FROST_PROTECTION
+    )
+    assert len(_updates(mock_wd5_api)) == 1
+
+
+async def test_wd5_group_change_starts_from_the_cloud(
+    hass: HomeAssistant, mock_wd5_api: AiohttpClientMocker
+) -> None:
+    """Test a mode set on one thermostat does not spread over its group."""
+    entry = _wd5_entry("relay")
+    await _setup(hass, entry)
+    _report(entry, WD5_SERIAL, Online=True, RegulationMode=REGULATION_COMFORT)
+    # pylint: disable-next=protected-access
+    _gateway(entry)._links[WD5_SERIAL].upstream = Mock()
+    await _deliver(hass, entry)
+    coordinator = entry.runtime_data
+    thermostat = coordinator.data[WD5_SERIAL]
+    assert thermostat.regulation_mode == REGULATION_COMFORT
+
+    await coordinator.async_set_schedule(thermostat, {"Days": []})
+    group = _updates(mock_wd5_api)[-1]["SetGroup"]
+    assert group["RegulationMode"] == REGULATION_SCHEDULE
+    assert group["Schedule"] == {"Days": []}
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_comfort_is_left_where_only_the_gateway_reaches(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """Test a new temperature is manual where the gateway cannot set comfort.
+
+    That holds for a thermostat in comfort mode already, and in relay mode
+    for one that is answered locally because OJ's gateway cannot be used.
+    """
+    hass_storage[STORE_KEY] = _stored()
+    entry = _entry("local", use_comfort_mode=True)
+    await _setup(hass, entry)
+    send = AsyncMock()
+    _gateway(entry).set_mode = send  # type: ignore[method-assign]
+    _report(entry, SERIAL, Online=True, RegulationMode=REGULATION_COMFORT)
+    await _deliver(hass, entry)
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_TEMPERATURE,
+        {ATTR_ENTITY_ID: "climate.roomname", ATTR_TEMPERATURE: 21},
+        blocking=True,
+    )
+    send.assert_awaited_once_with(SERIAL, REGULATION_MANUAL, 2100)
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_relay_without_ojs_gateway_has_no_comfort(hass: HomeAssistant) -> None:
+    """Test a thermostat answered locally in relay mode is set to manual."""
+    entry = _entry("relay", use_comfort_mode=True)
+    await _setup(hass, entry)
+    send = AsyncMock()
+    _gateway(entry).set_mode = send  # type: ignore[method-assign]
+    _report(entry, SERIAL, Online=True, RegulationMode=REGULATION_SCHEDULE)
+    await _deliver(hass, entry)
+    state = _state(hass, "climate.roomname")
+    assert state.attributes["preset_modes"] == ["schedule", "manual"]
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_TEMPERATURE,
+        {ATTR_ENTITY_ID: "climate.roomname", ATTR_TEMPERATURE: 21},
+        blocking=True,
+    )
+    send.assert_awaited_once_with(SERIAL, REGULATION_MANUAL, 2100)
+
+
+async def test_energy_usage_of_a_thermostat_elsewhere_in_local_mode(
+    hass: HomeAssistant,
+    hass_storage: dict[str, Any],
+    mock_wg4_api: AiohttpClientMocker,
+) -> None:
+    """Test the cloud measures a thermostat that does not connect here."""
+    hass_storage[STORE_KEY] = _stored()
+    entry = _entry("local")
+    await _setup(hass, entry)
+
+    data = entry.runtime_data.data
+    # The thermostat with a profile is on the gateway, and not in the cloud.
+    assert data[SERIAL].energy is None
+    assert data[OTHER].energy is not None
+    assert _requests(mock_wg4_api, "/api/energyusage") > 0
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_back_on_the_cloud_forgets_what_was_stored(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """Test the snapshot, with the email address, goes in cloud mode."""
+    hass_storage[STORE_KEY] = _stored()
+    await _setup(hass, _entry("cloud"))
+    assert STORE_KEY not in hass_storage
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_one_gateway_per_port(hass: HomeAssistant) -> None:
+    """Test a second account cannot run a gateway on the port of the first."""
+    first = _entry("relay")
+    await _setup(hass, first)
+    second = MockConfigEntry(
+        domain=DOMAIN, title="Second account", version=2, data=WG4_DATA
+    )
+    await _setup(hass, second)
+    chosen = {
+        "use_comfort_mode": False,
+        "comfort_mode_duration": 240,
+        "connection_mode": "relay",
+    }
+
+    result = await hass.config_entries.options.async_init(second.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], chosen
+    )
+    assert result["errors"] == {"base": "port_in_use"}
+    assert result["description_placeholders"] == {"entry": first.title}
+
+    # One that was set to a local mode before does not start its gateway.
+    third = MockConfigEntry(
+        domain=DOMAIN, version=2, data=WG4_DATA, options={"connection_mode": "relay"}
+    )
+    third.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(third.entry_id)
+    assert third.state is ConfigEntryState.SETUP_ERROR
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_options_flow_keeps_the_mode_without_questions(
+    hass: HomeAssistant,
+) -> None:
+    """Test a change of the comfort settings alone saves at once."""
+    entry = _entry("relay")
+    await _setup(hass, entry)
+    chosen = {
+        "use_comfort_mode": True,
+        "comfort_mode_duration": 60,
+        "connection_mode": "relay",
+    }
+    with patch(f"{MODULE}.config_flow.async_dns_points_here", return_value=False):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], chosen
+        )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options == chosen
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_each_warning_is_shown_once(hass: HomeAssistant) -> None:
+    """Test the warning about leaving does not skip the check of the record."""
+    hass_storage_entry = _entry("local")
+    await _setup(hass, hass_storage_entry)
+    to_cloud = {
+        "use_comfort_mode": False,
+        "comfort_mode_duration": 240,
+        "connection_mode": "cloud",
+    }
+    to_relay = {**to_cloud, "connection_mode": "relay"}
+
+    result = await hass.config_entries.options.async_init(hass_storage_entry.entry_id)
+    with patch(f"{MODULE}.config_flow.async_dns_points_here", return_value=True):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], to_cloud
+        )
+    assert result["errors"] == {"base": "dns_still_local"}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], to_relay
+    )
+    assert result["step_id"] == "gateway"
+    with patch(f"{MODULE}.config_flow.async_dns_points_here", return_value=False):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {}
+        )
+    assert result["errors"] == {"base": "dns_not_detected"}
+
+
+def test_damaged_certificate_is_replaced(tmp_path: Path) -> None:
+    """Test a certificate that cannot be loaded is created anew."""
+    directory = tmp_path / DOMAIN
+    directory.mkdir()
+    (directory / "gateway.crt").write_text("-----BEGIN CERTIFICATE-----\n")
+    (directory / "gateway.key").write_text("")
+
+    context = load_ssl_context(directory)
+
+    assert isinstance(context, ssl.SSLContext)
+    assert (directory / "gateway.crt").read_text().count("BEGIN CERTIFICATE") == 1
+    assert (directory / "gateway.key").stat().st_size > 0
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_certificate_that_cannot_be_made_retries_setup(
+    hass: HomeAssistant,
+) -> None:
+    """Test an unwritable configuration directory fails the setup for now."""
+    entry = _entry("relay")
+    entry.add_to_hass(hass)
+    with patch(
+        f"{MODULE}.local._load_ssl_context", side_effect=PermissionError("read-only")
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_local_client_uses_the_same_session(hass: HomeAssistant) -> None:
+    """Test the client of the gateway's API takes over the HTTP session."""
+    with patch(f"{MODULE}.api.async_create_clientsession") as create:
+        await _setup(hass, _entry("relay"))
+    create.assert_not_called()

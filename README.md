@@ -101,11 +101,11 @@ A thermostat keeps a connection open to OJ's own gateway. With a DNS record on y
 
 | Series | Name the thermostat looks for | Port |
 | --- | --- | --- |
-| WG4 | `na-thermos.ojelectronics.com` | 9533 |
+| WG4, OJ Microline (mythermostat.info) or Schlüter in North America | `na-thermos.ojelectronics.com` | 9533 |
 | WD5, SWATT app (customer ID 99) | `owd5-r1099-thermostat.ojelectronics.com` | 9513 |
 | WD5, Schlüter in Europe (customer ID 3) | `owd5-sl003-thermostat.ojelectronics.com` | 9513 |
 
-For a WD5-series account of another app the name is not known yet, and the connection option is not shown. If you find the name in the DNS log of your router, please report it.
+For an account of another app, such as Danfoss LX, the name is not known yet, and the connection option is not shown. If you find the name in the DNS log of your router, please report it.
 
 **This is experimental.** Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
 
@@ -131,14 +131,17 @@ With the relay, Home Assistant passes the thermostat's connection on to OJ's gat
 
 If no thermostat has connected after ten minutes, a repair issue under **Settings → System → Repairs** tells you what to check. It disappears when a thermostat connects.
 
-To go back, choose **Cloud**, remove the DNS record and switch the thermostats off and on again.
+To go back, choose **Cloud**, remove the DNS record and switch the thermostats off and on again. Home Assistant then deletes what it stored for the local connection: the last answer of the cloud, which holds the email address of the account, and the recorded answers of OJ's gateway. Local only for a WG4-series thermostat then needs the relay once more.
+
+Only one account per series can use a local connection, because the thermostats of a series all connect to the same port.
 
 ### What changes in a local mode
 
 - The temperature, the mode and whether the floor is heating come straight from the thermostat, and a new temperature goes straight to it.
-- **WG4 series:** the schedule and manual presets are set on the thermostat directly. The comfort preset and the energy usage still need the cloud, so they only work with the relay, while the internet is up. In local only, the option to use comfort mode when changing the temperature is ignored.
-- **WD5 series:** the schedule, comfort, manual, boost and eco presets are set on the thermostat directly. Frost protection, the vacation, changes to the weekly schedule and the energy usage still need the cloud, so they only work with the relay, while the internet is up.
-- **WD5 series:** the cloud sets a preset for every thermostat in a group. A preset that goes straight to a thermostat only changes that thermostat.
+- **WG4 series:** the schedule and manual presets are set on the thermostat directly. The comfort preset and the energy usage still need the cloud, so they only work while the thermostat is relayed: with the relay, while the internet is up. Without that, the option to use comfort mode when changing the temperature is ignored.
+- **WD5 series:** the schedule, comfort, manual, boost and eco presets are set on the thermostat directly. Frost protection, the vacation, changes to the weekly schedule and the energy usage still need the cloud, so they only work while the thermostat is relayed. Without that, Home Assistant refuses such a change instead of sending it to a cloud that cannot pass it on.
+- **WD5 series:** the cloud sets a preset for every thermostat in a group. A preset that goes straight to a thermostat only changes that thermostat. A later change of the group in the cloud, such as the weekly schedule, starts from the preset the cloud knows for the group.
+- **WG4 series, local only:** a thermostat that has not connected through the relay yet cannot be answered. The setup screen names such thermostats before you switch.
 - **WD5 series:** a thermostat on the same account that does not connect to Home Assistant is no longer updated right away, but once every five minutes.
 - "Online" means the thermostat is connected to Home Assistant.
 - A thermostat on the same account that never connected to Home Assistant, for example one in another building, keeps working through the cloud.

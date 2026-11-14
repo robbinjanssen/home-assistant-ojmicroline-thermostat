@@ -70,9 +70,10 @@ from .const import (
 )
 from .local import (
     async_dns_points_here,
-    async_has_profile,
     async_host_ip,
+    async_profiles,
     endpoint_for,
+    local_entries_on_port,
 )
 
 if TYPE_CHECKING:
@@ -504,8 +505,15 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
     def __init__(self) -> None:
         """Start without chosen options, and without a warning shown."""
         self._options: dict[str, Any] = {}
-        # A warning about the DNS record is shown once; submitting again goes on.
-        self._warned = False
+        # Each warning is shown once; submitting again goes on.
+        self._warned: set[str] = set()
+
+    def _warn_once(self, warning: str) -> bool:
+        """Return whether a warning still has to be shown, and note it as shown."""
+        if warning in self._warned:
+            return False
+        self._warned.add(warning)
+        return True
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -522,30 +530,34 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
 
         """
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
         options = self.config_entry.options
         current_mode = options.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
         endpoint = endpoint_for(self.config_entry.data)
         if user_input is not None:
             self._options = user_input
-            if (
-                user_input.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
-                != CONNECTION_CLOUD
-            ):
-                return await self.async_step_gateway()
-            if (
-                current_mode != CONNECTION_CLOUD
-                and endpoint is not None
-                and not self._warned
-                and await async_dns_points_here(
-                    self.hass, endpoint, await async_host_ip(self.hass)
-                )
-            ):
-                # Left in place, the DNS record keeps the thermostats away
-                # from the cloud.
-                self._warned = True
-                errors["base"] = "dns_still_local"
-            else:
+            mode = user_input.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
+            if endpoint is None or mode == current_mode:
+                # Only the comfort settings changed.
                 return self.async_create_entry(title="", data=user_input)
+            if mode == CONNECTION_CLOUD:
+                if await async_dns_points_here(
+                    self.hass, endpoint, await async_host_ip(self.hass)
+                ) and self._warn_once("dns_still_local"):
+                    # Left in place, the DNS record keeps the thermostats
+                    # away from the cloud.
+                    errors["base"] = "dns_still_local"
+                else:
+                    return self.async_create_entry(title="", data=user_input)
+            elif others := local_entries_on_port(
+                self.hass, endpoint.port, self.config_entry.entry_id
+            ):
+                errors["base"] = "port_in_use"
+                placeholders["entry"] = others[0].title
+            elif error := await self._async_profile_problem(mode, placeholders):
+                errors["base"] = error
+            else:
+                return await self.async_step_gateway()
 
         # What was just entered comes back when the form is shown again.
         values = {**options, **self._options}
@@ -587,8 +599,33 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
                 )
             )
         return self.async_show_form(
-            step_id="init", data_schema=probatio.Schema(schema), errors=errors
+            step_id="init",
+            data_schema=probatio.Schema(schema),
+            errors=errors,
+            description_placeholders=placeholders,
         )
+
+    async def _async_profile_problem(
+        self, mode: str, placeholders: dict[str, str]
+    ) -> str | None:
+        """Return why local only would leave thermostats unanswered, if it does.
+
+        Without a profile, recorded while a thermostat is relayed, a WG4-series
+        thermostat cannot be answered locally.
+        """
+        known = await async_profiles(self.hass, self.config_entry)
+        if mode != CONNECTION_LOCAL or known is None:
+            return None
+        profiles, names = known
+        if not profiles:
+            return "no_profile"
+        missing = sorted(
+            name for serial, name in names.items() if serial not in profiles
+        )
+        if missing and self._warn_once("profile_missing"):
+            placeholders["thermostats"] = ", ".join(missing)
+            return "profile_missing"
+        return None
 
     async def async_step_gateway(
         self, user_input: dict[str, Any] | None = None
@@ -612,20 +649,11 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
             # without one the account stays on the cloud.
             return self.async_create_entry(title="", data=self._options)
         if user_input is not None:
-            if self._options[
-                CONF_CONNECTION_MODE
-            ] == CONNECTION_LOCAL and not await async_has_profile(
-                self.hass, self.config_entry
-            ):
-                # Without a relayed session there is nothing to answer a
-                # thermostat with.
-                errors["base"] = "no_profile"
-            elif not self._warned and not await async_dns_points_here(
+            if not await async_dns_points_here(
                 self.hass, endpoint, host_ip
-            ):
+            ) and self._warn_once("dns_not_detected"):
                 # The thermostats may use another DNS server than Home
                 # Assistant does, so this only warns.
-                self._warned = True
                 errors["base"] = "dns_not_detected"
             else:
                 return self.async_create_entry(title="", data=self._options)

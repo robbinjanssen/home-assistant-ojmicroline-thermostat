@@ -211,7 +211,9 @@
         "error": {
             "dns_not_detected": "Home Assistant does not see the DNS record yet. Your thermostats may use another DNS server than Home Assistant does. Submit again to continue anyway.",
             "dns_still_local": "The DNS record still points the thermostats at Home Assistant, so they cannot reach the cloud. Remove the record and switch the thermostats off and on again. Submit again to continue anyway.",
-            "no_profile": "Local only needs a thermostat that has connected through the relay once. Choose local with relay first, and switch after a thermostat has connected."
+            "no_profile": "Local only needs a thermostat that has connected through the relay once. Choose local with relay first, and switch after a thermostat has connected.",
+            "port_in_use": "The account “{entry}” already uses a local connection on the same port, and only one gateway can listen on it. Switch that account back to the cloud first.",
+            "profile_missing": "Local only cannot answer these thermostats yet, because they have not connected through the relay: {thermostats}. They would stop working. Keep local with relay until each has connected once. Submit again to continue anyway."
         }
     },
     "services": {

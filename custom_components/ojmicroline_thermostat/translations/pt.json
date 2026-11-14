@@ -209,7 +209,9 @@
         "error": {
             "dns_not_detected": "O Home Assistant ainda não vê o registo DNS. Os termóstatos podem utilizar um servidor DNS diferente do Home Assistant. Submeta novamente para continuar mesmo assim.",
             "dns_still_local": "O registo DNS ainda encaminha os termóstatos para o Home Assistant, pelo que não chegam à cloud. Remova o registo e desligue e volte a ligar os termóstatos. Submeta novamente para continuar mesmo assim.",
-            "no_profile": "O modo apenas local precisa de um termóstato que se tenha ligado uma vez através do relay. Escolha primeiro local com relay e mude depois de um termóstato se ter ligado."
+            "no_profile": "O modo apenas local precisa de um termóstato que se tenha ligado uma vez através do relay. Escolha primeiro local com relay e mude depois de um termóstato se ter ligado.",
+            "port_in_use": "A conta “{entry}” já utiliza uma ligação local na mesma porta, e só um gateway pode escutar nela. Mude primeiro essa conta de volta para a cloud.",
+            "profile_missing": "O modo apenas local ainda não consegue responder a estes termóstatos, porque ainda não se ligaram através do relay: {thermostats}. Deixariam de funcionar. Mantenha local com relay até cada um se ter ligado uma vez. Submeta novamente para continuar mesmo assim."
         }
     },
     "selector": {

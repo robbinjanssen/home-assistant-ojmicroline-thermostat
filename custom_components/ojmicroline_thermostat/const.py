@@ -61,6 +61,9 @@ APP_OTHER = "other"
 # with; apps without a host use the library default. Schlüter HEAT CONTROL
 # (Europe) was reported by a user (#466) and Microtemp on the Home Assistant
 # forum (2022); the maintainers have not tested them.
+# The customer ID of an entry that has none stored: the SWATT app.
+DEFAULT_WD5_CUSTOMER_ID = 99
+
 WD5_APPS: dict[str, dict[str, str | int]] = {
     "ojmicroline": {CONF_CUSTOMER_ID: 1},
     "swatt": {CONF_CUSTOMER_ID: 99},

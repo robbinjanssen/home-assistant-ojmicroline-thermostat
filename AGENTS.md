@@ -98,18 +98,26 @@ work on a branch.
     confirmed too late; the WD5 gateway has not run against one. Keep both
     marked experimental until that changes.
   - `endpoint_for()` tells which device gateway the thermostats of an
-    account look for. The option is only offered when it knows one; add a
-    WD5 brand there once its hostname is known.
+    account look for, by WG4 application code or WD5 customer ID. The option
+    is only offered when it knows one; add a brand there once its hostname
+    is known. One gateway per port: only one account per series can run one.
+  - Ask the library's API what reaches a thermostat: `on_gateway()`,
+    `cloud_reaches()` and `can_set()`. A change through the cloud for a
+    thermostat that only the gateway reaches is refused, not sent: the cloud
+    accepts it and never delivers it.
   - WD5: a preset the gateway can set goes to the thermostat
     (`_async_sets_locally`); everything else stays a group update in the
-    cloud. The hub in `push.py` is not used while a gateway runs: it would
-    report a thermostat offline that is only away from the cloud.
+    cloud, which starts from the cloud's view of the thermostat
+    (`cloud_thermostat()`), so a preset of one thermostat does not spread over
+    its group. The hub in `push.py` is not used while a gateway runs: it
+    would report a thermostat offline that is only away from the cloud.
   - A cloud failure must not stop the thermostats on the gateway: a
     rejected password starts reauthentication without failing the update.
   - `_async_with_session` logs in on the cloud API (`local.api.cloud`);
     logging in through `WG4LocalAPI` does nothing.
   - The stored snapshot holds the account's email address, and a profile
-    is specific to a thermostat. Neither belongs in diagnostics or logs.
+    is specific to a thermostat. Neither belongs in diagnostics or logs, and
+    both are deleted when the entry is back in cloud mode.
 
 ## Tests
 

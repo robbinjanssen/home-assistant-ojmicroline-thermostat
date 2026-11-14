@@ -209,7 +209,9 @@
         "error": {
             "dns_not_detected": "Home Assistant ziet het DNS-record nog niet. Mogelijk gebruiken je thermostaten een andere DNS-server dan Home Assistant. Verstuur opnieuw om toch door te gaan.",
             "dns_still_local": "Het DNS-record stuurt de thermostaten nog naar Home Assistant, dus ze bereiken de cloud niet. Verwijder het record en zet de thermostaten uit en weer aan. Verstuur opnieuw om toch door te gaan.",
-            "no_profile": "Alleen lokaal heeft een thermostaat nodig die één keer via de relay verbonden is geweest. Kies eerst lokaal met relay en schakel om nadat een thermostaat verbonden is."
+            "no_profile": "Alleen lokaal heeft een thermostaat nodig die één keer via de relay verbonden is geweest. Kies eerst lokaal met relay en schakel om nadat een thermostaat verbonden is.",
+            "port_in_use": "Het account ‘{entry}’ gebruikt al een lokale verbinding op dezelfde poort, en er kan maar één gateway op luisteren. Zet dat account eerst terug op de cloud.",
+            "profile_missing": "Alleen lokaal kan deze thermostaten nog niet beantwoorden, omdat ze nog niet via de relay verbonden zijn geweest: {thermostats}. Ze zouden niet meer werken. Houd lokaal met relay aan tot elke thermostaat één keer verbonden is. Verstuur opnieuw om toch door te gaan."
         }
     },
     "services": {

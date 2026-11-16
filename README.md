@@ -104,8 +104,11 @@ A thermostat keeps a connection open to OJ's own gateway. With a DNS record on y
 | WG4, OJ Microline (mythermostat.info) or Schlüter in North America | `na-thermos.ojelectronics.com` | 9533 |
 | WD5, SWATT app (customer ID 99) | `owd5-r1099-thermostat.ojelectronics.com` | 9513 |
 | WD5, Schlüter in Europe (customer ID 3) | `owd5-sl003-thermostat.ojelectronics.com` | 9513 |
+| WD5, OJ Microline app (OWD5, customer ID 1) | `owd5-oj001-thermostat.ojelectronics.com` | 9513 |
 
-For an account of another app, such as Danfoss LX, the name is not known yet, and the connection option is not shown. If you find the name in the DNS log of your router, please report it.
+For an account of another app, such as Danfoss LX or Microtemp, the name is not known yet, and the connection option is not shown. If you find the name in the DNS log of your router, please report it.
+
+The name the thermostat looks for is not the host in the integration's settings. That host, such as `owd5-sl003-app.ojelectronics.com`, is the cloud API that Home Assistant and the app use; do not point it at Home Assistant.
 
 **This is experimental.** Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
 

@@ -28,6 +28,7 @@ from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
 
 from ojmicroline_thermostat import (
+    WD5_OJ001,
     WD5_R1099,
     WD5_SL003,
     WG4_NORTH_AMERICA,
@@ -68,8 +69,8 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # The device gateway WD5-series thermostats look for, by the customer ID of
-# their brand: the SWATT app, and Schlüter in Europe.
-WD5_ENDPOINTS = {99: WD5_R1099, 3: WD5_SL003}
+# their brand: the SWATT app, Schlüter in Europe, and the OJ Microline app.
+WD5_ENDPOINTS = {99: WD5_R1099, 3: WD5_SL003, 1: WD5_OJ001}
 # The device gateway WG4-series thermostats look for, by the application code
 # of their app: mythermostat.info, where the gateway ran against a real
 # thermostat, and Schlüter in North America, where schluter-local comes from.

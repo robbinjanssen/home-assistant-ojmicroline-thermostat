@@ -255,8 +255,8 @@ async def test_unknown_brand_has_no_gateway(
     entry = MockConfigEntry(
         domain=DOMAIN,
         version=2,
-        # The OJ Microline app, whose device gateway is not known.
-        data={**WD5_DATA, "customer_id": 1},
+        # Microtemp, whose device gateway is not known.
+        data={**WD5_DATA, "customer_id": 111},
         options={"connection_mode": "relay"},
     )
     await _setup(hass, entry)
@@ -277,7 +277,11 @@ def test_endpoint_for() -> None:
     schluter = local.endpoint_for({**WD5_DATA, "customer_id": 3})
     assert schluter is not None
     assert schluter.host == "owd5-sl003-thermostat.ojelectronics.com"
-    assert local.endpoint_for({**WD5_DATA, "customer_id": 1}) is None
+    oj_microline = local.endpoint_for({**WD5_DATA, "customer_id": 1})
+    assert oj_microline is not None
+    assert oj_microline.host == "owd5-oj001-thermostat.ojelectronics.com"
+    # Microtemp, whose thermostats may look elsewhere.
+    assert local.endpoint_for({**WD5_DATA, "customer_id": 111}) is None
     assert local.endpoint_for({"model": "WG5 series"}) is None
 
 
@@ -869,7 +873,7 @@ async def test_options_flow_back_to_cloud_without_the_record(
 async def test_options_flow_without_a_known_gateway(hass: HomeAssistant) -> None:
     """Test an account whose device gateway is not known has no connection mode."""
     mock_wd5_config_entry = MockConfigEntry(
-        domain=DOMAIN, version=2, data={**WD5_DATA, "customer_id": 1}
+        domain=DOMAIN, version=2, data={**WD5_DATA, "customer_id": 111}
     )
     await _setup(hass, mock_wd5_config_entry)
 

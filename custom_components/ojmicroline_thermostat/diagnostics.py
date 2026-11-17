@@ -40,7 +40,9 @@ def _gateway_diagnostics(
 
     The history is what a report of a real thermostat needs: how its
     connection went, and every message by field number. It never holds a
-    login, which has the email address of the account.
+    login, which has the email address of the account. That of the gateway
+    before the last reload is kept as well: a reload is what a user tries
+    first when something goes wrong.
     """
     if (local := coordinator.local) is None:
         return None
@@ -56,6 +58,7 @@ def _gateway_diagnostics(
         "upstream_fingerprint": gateway.upstream_fingerprint,
         "cloud_error": None if cloud_error is None else repr(cloud_error),
         "history": list(gateway.history),
+        "history_before_reload": local.previous_history,
     }
 
 

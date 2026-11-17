@@ -12,10 +12,12 @@ from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 import pytest
 from homeassistant.components.climate import (
-    DOMAIN as CLIMATE_DOMAIN,
+    ATTR_PRESET_MODE,
+    SERVICE_SET_PRESET_MODE,
+    SERVICE_SET_TEMPERATURE,
 )
 from homeassistant.components.climate import (
-    SERVICE_SET_TEMPERATURE,
+    DOMAIN as CLIMATE_DOMAIN,
 )
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
@@ -355,6 +357,62 @@ async def test_wd5_set_temperature_goes_to_the_gateway(
     assert _requests(mock_wd5_api, "/api/Group/UpdateGroup") == 1
 
 
+async def test_wd5_relayed_thermostat_is_set_through_the_cloud(
+    hass: HomeAssistant, mock_wd5_api: AiohttpClientMocker
+) -> None:
+    """Test a relayed WD5 thermostat is set in the cloud, so the app shows it.
+
+    The cloud keeps the mode of a group and ignores what the thermostat
+    reports. Only when the cloud cannot be reached does the gateway step in.
+    """
+    entry = _wd5_entry("relay")
+    await _setup(hass, entry)
+    gateway = _gateway(entry)
+    send = AsyncMock()
+    gateway.set_mode = send  # type: ignore[method-assign]
+    gateway.is_relayed = Mock(return_value=True)  # type: ignore[method-assign]
+    _report(entry, WD5_SERIAL, Online=True)
+    await _deliver(hass, entry)
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_TEMPERATURE,
+        {ATTR_ENTITY_ID: "climate.woonkamer", ATTR_TEMPERATURE: 21},
+        blocking=True,
+    )
+    send.assert_not_awaited()
+    assert _requests(mock_wd5_api, "/api/Group/UpdateGroup") == 1
+
+    coordinator = entry.runtime_data
+    with patch.object(
+        coordinator,
+        "_async_update_group",
+        AsyncMock(side_effect=OJMicrolineConnectionError("unreachable")),
+    ):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {ATTR_ENTITY_ID: "climate.woonkamer", ATTR_TEMPERATURE: 22},
+            blocking=True,
+        )
+        send.assert_awaited_once()
+        assert send.await_args is not None
+        assert send.await_args.args == (WD5_SERIAL, REGULATION_MANUAL, 2200)
+
+        # Frost protection is set in the cloud only.
+        with pytest.raises(HomeAssistantError, match="unreachable"):
+            await hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_PRESET_MODE,
+                {
+                    ATTR_ENTITY_ID: "climate.woonkamer",
+                    ATTR_PRESET_MODE: "frost_protection",
+                },
+                blocking=True,
+            )
+    send.assert_awaited_once()
+
+
 @pytest.mark.usefixtures("mock_wd5_api")
 async def test_wd5_options_flow(hass: HomeAssistant, listener: AsyncMock) -> None:
     """Test a WD5-series account can go local only without the relay first."""
@@ -681,9 +739,30 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
         "cloud_error": None,
         # What happened on the gateway's connections; nothing yet.
         "history": [],
+        "history_before_reload": [],
     }
     assert "user@example.com" not in str(diagnostics)
     assert PROFILE.to_dict()["support"] not in str(diagnostics)
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_diagnostics_keep_the_history_of_a_reload(hass: HomeAssistant) -> None:
+    """Test the history before a reload still shows in the diagnostics.
+
+    A reload is what a user tries first when a thermostat stops responding,
+    and it starts a new gateway with an empty history.
+    """
+    entry = _entry("relay")
+    await _setup(hass, entry)
+    _gateway(entry)._event("Something went wrong")  # pylint: disable=protected-access
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    gateway = (await async_get_config_entry_diagnostics(hass, entry))["gateway"]
+    assert not any("Something went wrong" in line for line in gateway["history"])
+    assert len(gateway["history_before_reload"]) == 1
+    assert gateway["history_before_reload"][0].endswith("Something went wrong")
 
 
 def test_certificate_is_created_once(tmp_path: Path) -> None:

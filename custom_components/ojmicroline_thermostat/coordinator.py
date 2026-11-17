@@ -29,7 +29,9 @@ from ojmicroline_thermostat import (
     WG4API,
     GatewayMode,
     OJMicrolineAuthError,
+    OJMicrolineConnectionError,
     OJMicrolineError,
+    OJMicrolineTimeoutError,
     OJMicrolineUnauthorizedError,
     Thermostat,
 )
@@ -680,26 +682,44 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
                 thermostat, regulation_mode, temperature, duration
             )
             return
-        await self._async_update_group(
-            thermostat,
-            regulation_mode=regulation_mode,
-            temperature=temperature,
-            duration=duration,
-        )
+        try:
+            await self._async_update_group(
+                thermostat,
+                regulation_mode=regulation_mode,
+                temperature=temperature,
+                duration=duration,
+            )
+        except OJMicrolineConnectionError, OJMicrolineTimeoutError:
+            local = self.local
+            if (
+                local is None
+                or regulation_mode not in local.api.local_modes
+                or not local.api.on_gateway(thermostat.serial_number)
+            ):
+                raise
+            # The cloud API cannot be reached; the gateway still reaches the
+            # thermostat, though the vendor's app will not show the change.
+            _LOGGER.debug(
+                "The cloud API cannot be reached, the gateway sets %s",
+                thermostat.serial_number,
+            )
+            await local.api.set_on_gateway(
+                thermostat, regulation_mode, temperature, duration
+            )
 
     def _async_sets_locally(self, thermostat: Thermostat, regulation_mode: int) -> bool:
         """Return whether a mode goes straight to a WD5-series thermostat.
 
-        That is the case for a thermostat on the local gateway and a mode the
-        gateway can set. Anything else is a change of the thermostat's group
-        in the cloud, which only reaches a thermostat that is relayed.
+        That is the case for a mode the gateway can set, on a thermostat on
+        the local gateway that the cloud does not reach. A relayed thermostat
+        is set through the cloud, which keeps the mode of its group: a mode
+        the gateway set alone would not show in the vendor's app. Anything
+        else is a change of the group in the cloud, which only reaches a
+        thermostat that is relayed.
         """
         if self.local is None:
             return False
-        api = self.local.api
-        return regulation_mode in api.local_modes and api.on_gateway(
-            thermostat.serial_number
-        )
+        return self.local.api.sets_on_gateway(thermostat.serial_number, regulation_mode)
 
     def _async_group_view(self, thermostat: Thermostat) -> Thermostat:
         """Return a thermostat as the cloud knows it, for a change of its group.

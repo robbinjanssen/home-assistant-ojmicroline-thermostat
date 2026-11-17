@@ -88,6 +88,11 @@ PROFILE_SAVE_DELAY = 1
 # the DNS record, which is almost always what is missing.
 CONNECT_GRACE = 600
 
+# Where the history of a stopped gateway is kept, by entry ID, so the
+# diagnostics after a reload still show what happened before it. It does not
+# survive a restart of Home Assistant.
+PREVIOUS_HISTORY = f"{DOMAIN}_previous_history"
+
 CERTIFICATE = "gateway.crt"
 PRIVATE_KEY = "gateway.key"
 
@@ -280,6 +285,12 @@ class LocalGateway:
         self._cancel_check: CALLBACK_TYPE | None = None
 
     @property
+    def previous_history(self) -> list[str]:
+        """Return the history of the gateway before the last reload."""
+        kept: dict[str, list[str]] = self.hass.data.get(PREVIOUS_HISTORY, {})
+        return kept.get(self._entry_id, [])
+
+    @property
     def profiles(self) -> dict[str, DeviceProfile]:
         """Return the recorded profiles; only WG4-series thermostats have one."""
         return self.gateway.profiles if isinstance(self.gateway, WG4Gateway) else {}
@@ -362,6 +373,9 @@ class LocalGateway:
         for issue in (ISSUE_NO_THERMOSTAT, ISSUE_UNTRUSTED):
             ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(issue))
         await self.gateway.stop()
+        self.hass.data.setdefault(PREVIOUS_HISTORY, {})[self._entry_id] = list(
+            self.gateway.history
+        )
         await self._store.async_save(self._stored)
 
     def _issue_id(self, issue: str) -> str:

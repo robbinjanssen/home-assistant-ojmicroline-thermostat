@@ -106,11 +106,15 @@ work on a branch.
     `cloud_reaches()` and `can_set()`. A change through the cloud for a
     thermostat that only the gateway reaches is refused, not sent: the cloud
     accepts it and never delivers it.
-  - WD5: a preset the gateway can set goes to the thermostat
-    (`_async_sets_locally`); everything else stays a group update in the
-    cloud, which starts from the cloud's view of the thermostat
-    (`cloud_thermostat()`), so a preset of one thermostat does not spread over
-    its group. The hub in `push.py` is not used while a gateway runs: it
+  - WD5: a relayed thermostat is set through the cloud, because the cloud
+    keeps the mode of a group and ignores what a thermostat reports; the app
+    would not show a preset the gateway set (seen on a real OWD5). Only a
+    thermostat the cloud does not reach, or a connection error or timeout of
+    the cloud API, sends a preset the gateway can set to the thermostat.
+    `_async_sets_locally` asks the library's `sets_on_gateway()`. A group
+    update starts from the cloud's view of the thermostat
+    (`cloud_thermostat()`), so a preset the gateway set on one thermostat
+    does not spread over its group. The hub in `push.py` is not used while a gateway runs: it
     would report a thermostat offline that is only away from the cloud.
   - A cloud failure must not stop the thermostats on the gateway: a
     rejected password starts reauthentication without failing the update.

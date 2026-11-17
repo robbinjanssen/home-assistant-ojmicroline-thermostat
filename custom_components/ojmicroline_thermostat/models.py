@@ -10,6 +10,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import OJMicrolineDataUpdateCoordinator
+from .helpers import thermostat_name
 
 if TYPE_CHECKING:
     from ojmicroline_thermostat import Thermostat
@@ -63,5 +64,5 @@ class OJMicrolineEntity(CoordinatorEntity[OJMicrolineDataUpdateCoordinator], Ent
         """
         return DeviceInfo(
             identifiers={(DOMAIN, self.idx)},
-            name=self.thermostat.name,
+            name=thermostat_name(self.thermostat),
         )

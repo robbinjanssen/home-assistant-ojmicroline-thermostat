@@ -52,7 +52,7 @@ from .const import (
     SERVICE_SET_SCHEDULE,
     SERVICE_SET_VACATION,
 )
-from .helpers import target_temperature, wd5_date
+from .helpers import target_temperature, thermostat_name, wd5_date
 from .models import OJMicrolineEntity
 from .schedule import SLOTS, WEEKDAYS, ScheduleError, set_days
 
@@ -190,7 +190,7 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         return DeviceInfo(
             identifiers={(DOMAIN, self.idx)},
             manufacturer=MANUFACTURER,
-            name=self.thermostat.name,
+            name=thermostat_name(self.thermostat),
             sw_version=self.thermostat.software_version,
             model=self.thermostat.model,
         )

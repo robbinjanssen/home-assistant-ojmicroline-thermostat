@@ -6,18 +6,17 @@ port: the tests let it report as if a thermostat were connected.
 
 import json
 import ssl
+from dataclasses import replace
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 import pytest
 from homeassistant.components.climate import (
-    ATTR_PRESET_MODE,
-    SERVICE_SET_PRESET_MODE,
-    SERVICE_SET_TEMPERATURE,
+    DOMAIN as CLIMATE_DOMAIN,
 )
 from homeassistant.components.climate import (
-    DOMAIN as CLIMATE_DOMAIN,
+    SERVICE_SET_TEMPERATURE,
 )
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
@@ -40,6 +39,7 @@ from ojmicroline_thermostat.const import (
     REGULATION_FROST_PROTECTION,
     REGULATION_MANUAL,
     REGULATION_SCHEDULE,
+    REGULATION_VACATION,
 )
 from ojmicroline_thermostat.gateway.protobuf import encode_field, encode_frame
 from pytest_homeassistant_custom_component.common import (
@@ -51,6 +51,7 @@ from custom_components.ojmicroline_thermostat import local
 from custom_components.ojmicroline_thermostat.diagnostics import (
     async_get_config_entry_diagnostics,
 )
+from custom_components.ojmicroline_thermostat.helpers import thermostat_name
 
 from . import load_fixture
 from .conftest import DOMAIN, WD5_DATA, WG4_DATA, WG4_HOST
@@ -399,18 +400,20 @@ async def test_wd5_relayed_thermostat_is_set_through_the_cloud(
         assert send.await_args is not None
         assert send.await_args.args == (WD5_SERIAL, REGULATION_MANUAL, 2200)
 
-        # Frost protection is set in the cloud only.
-        with pytest.raises(HomeAssistantError, match="unreachable"):
-            await hass.services.async_call(
-                CLIMATE_DOMAIN,
-                SERVICE_SET_PRESET_MODE,
-                {
-                    ATTR_ENTITY_ID: "climate.woonkamer",
-                    ATTR_PRESET_MODE: "frost_protection",
-                },
-                blocking=True,
+        # Frost protection falls back to the gateway as well.
+        await coordinator.async_set_regulation_mode(
+            coordinator.data[WD5_SERIAL], REGULATION_FROST_PROTECTION
+        )
+        assert send.await_count == 2
+        assert send.await_args is not None
+        assert send.await_args.args[1] == REGULATION_FROST_PROTECTION
+
+        # The vacation is set in the cloud only.
+        with pytest.raises(OJMicrolineConnectionError, match="unreachable"):
+            await coordinator.async_set_regulation_mode(
+                coordinator.data[WD5_SERIAL], REGULATION_VACATION
             )
-    send.assert_awaited_once()
+    assert send.await_count == 2
 
 
 @pytest.mark.usefixtures("mock_wd5_api")
@@ -992,11 +995,12 @@ async def test_wd5_local_only_refuses_what_only_the_cloud_sets(
     await _deliver(hass, entry)
     coordinator = entry.runtime_data
     thermostat = coordinator.data[WD5_SERIAL]
+    send = AsyncMock()
+    _gateway(entry).set_mode = send  # type: ignore[method-assign]
 
-    with pytest.raises(OJMicrolineError, match="not connected"):
-        await coordinator.async_set_regulation_mode(
-            thermostat, REGULATION_FROST_PROTECTION
-        )
+    # Frost protection is a mode the gateway sets itself.
+    await coordinator.async_set_regulation_mode(thermostat, REGULATION_FROST_PROTECTION)
+    send.assert_awaited_once()
     with pytest.raises(OJMicrolineError, match="not connected"):
         await coordinator.async_set_schedule(thermostat, {})
     with pytest.raises(OJMicrolineError, match="not connected"):
@@ -1222,3 +1226,19 @@ async def test_local_client_uses_the_same_session(hass: HomeAssistant) -> None:
     with patch(f"{MODULE}.api.async_create_clientsession") as create:
         await _setup(hass, _entry("relay"))
     create.assert_not_called()
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_thermostat_without_a_name_of_its_own(hass: HomeAssistant) -> None:
+    """Test a thermostat with an empty name is named after its group.
+
+    An OWD5 thermostat reported an empty name while the cloud named it, and
+    its device became "Unnamed device".
+    """
+    entry = _wd5_entry("local")
+    await _setup(hass, entry)
+    thermostat = entry.runtime_data.data[WD5_SERIAL]
+
+    assert thermostat_name(replace(thermostat, name="")) == "Woonkamer"
+    assert thermostat_name(replace(thermostat, name="", zone_name="")) == WD5_SERIAL
+    assert thermostat_name(thermostat) == thermostat.name

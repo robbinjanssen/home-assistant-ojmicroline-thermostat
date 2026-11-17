@@ -67,6 +67,15 @@ def format_wd5_date(value: date) -> str:
     )
 
 
+def thermostat_name(thermostat: Thermostat) -> str:
+    """Return the name of a thermostat, never an empty one.
+
+    A WD5-series thermostat may have no name of its own; its group, and
+    otherwise its serial number, names it then.
+    """
+    return thermostat.name or thermostat.zone_name or thermostat.serial_number
+
+
 def target_temperature(thermostat: Thermostat) -> int:
     """Return the target temperature in 1/100 °C.
 

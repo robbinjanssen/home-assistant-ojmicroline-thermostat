@@ -57,6 +57,7 @@ from .const import (
     MODEL_WD5_SERIES,
     MODEL_WG4_SERIES,
 )
+from .helpers import thermostat_name
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -189,7 +190,7 @@ async def async_profiles(
         if coordinator.local is not None:
             profiles |= set(coordinator.local.profiles)
         names |= {
-            serial: thermostat.name or serial
+            serial: thermostat_name(thermostat)
             for serial, thermostat in (coordinator.data or {}).items()
         }
     return profiles, names

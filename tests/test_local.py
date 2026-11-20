@@ -20,9 +20,15 @@ from homeassistant.components.climate import (
     SERVICE_SET_TEMPERATURE,
 )
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
-from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    ATTR_TEMPERATURE,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+)
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from ojmicroline_thermostat import (
     WD5_R1099,
@@ -1650,6 +1656,54 @@ async def test_wd5_comfort_that_the_thermostat_does_not_confirm_stays_an_error(
     send.assert_awaited_once()
     assert send.await_args is not None
     assert send.await_args.args[1] == REGULATION_COMFORT
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_temperature_is_unknown_until_the_thermostat_measured_it(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """Test a thermostat on the gateway does not show what the cloud measured.
+
+    The cloud does not hear from a thermostat in local only. A tester saw
+    the temperature sensors drop to 0 after every restart, until the
+    thermostat reported its first measurement.
+    """
+    # The thermostat connected before the restart, so it is the gateway's
+    # from the start: its sensors have to be there without a measurement.
+    hass_storage[STORE_KEY] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": STORE_KEY,
+        "data": {"known": [WD5_SERIAL]},
+    }
+    entry = _wd5_entry("local")
+    await _setup(hass, entry)
+    registry = er.async_get(hass)
+    room = registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{WD5_SERIAL}_temperature_room"
+    )
+    floor = registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{WD5_SERIAL}_temperature_floor"
+    )
+    assert room is not None
+    assert floor is not None
+    assert _state(hass, room).state == STATE_UNAVAILABLE
+
+    _report(entry, WD5_SERIAL, Online=True)
+    await _deliver(hass, entry)
+    assert _state(hass, room).state == STATE_UNKNOWN
+    assert _state(hass, floor).state == STATE_UNKNOWN
+    assert _state(hass, "climate.woonkamer").attributes["current_temperature"] is None
+
+    _report(entry, WD5_SERIAL, RoomTemperature=2150, FloorTemperature=2300)
+    await _deliver(hass, entry)
+    assert _state(hass, room).state == "21.5"
+    assert _state(hass, floor).state == "23.0"
+    assert _state(hass, "climate.woonkamer").attributes["current_temperature"] in {
+        21.5,
+        22.3,
+        23.0,
+    }
 
 
 def test_replaced_key_is_only_readable_for_the_owner(tmp_path: Path) -> None:

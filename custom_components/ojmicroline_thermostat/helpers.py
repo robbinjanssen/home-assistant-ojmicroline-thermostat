@@ -94,6 +94,23 @@ def target_temperature(thermostat: Thermostat) -> int:
     return thermostat.get_target_temperature()
 
 
+def current_temperature(thermostat: Thermostat) -> int | None:
+    """Return the measured temperature in 1/100 °C; None while it is not known.
+
+    A thermostat on the local gateway measures for itself, and reports about
+    once a minute. Until its first report after it connected, the library has
+    no measurement, for which it returns 0.
+    """
+    measured = (
+        thermostat.temperature,
+        thermostat.temperature_room,
+        thermostat.temperature_floor,
+    )
+    if all(value is None for value in measured):
+        return None
+    return thermostat.get_current_temperature()
+
+
 def scheduled_temperature(schedule: dict[str, Any], now: datetime) -> int | None:
     """Return the temperature (1/100 °C) a WD5 schedule prescribes at a local time."""
     events: dict[int, list[tuple[int, int]]] = {}

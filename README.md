@@ -147,6 +147,7 @@ Only one account per series can use a local connection, because the thermostats 
 - **WG4 series, local only:** a thermostat that has not connected through the relay yet cannot be answered. The setup screen names such thermostats before you switch.
 - A thermostat on the same account that does not connect to Home Assistant is no longer updated right away, but once a minute.
 - "Online" means the thermostat is connected to Home Assistant.
+- A thermostat reports its temperature about once a minute. Right after it connected, for example after a restart of Home Assistant, the measured temperature is unknown until that first report.
 - A thermostat on the same account that never connected to Home Assistant, for example one in another building, keeps working through the cloud.
 - **Local only:** a thermostat that connected to Home Assistant once is expected there from then on, also after a restart. If you later let it connect to OJ's cloud again, choose **Cloud** once, so Home Assistant forgets it, and then **Local only** again.
 - With the DNS record in place, the app only works while Home Assistant is running.

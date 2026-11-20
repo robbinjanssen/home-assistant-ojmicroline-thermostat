@@ -121,6 +121,11 @@ work on a branch.
     after that fetch, from the group it is handed (`GroupChanges`,
     `ScheduleEdit`): a value read before it would bring back what the fetch
     replaced.
+  - What a thermostat on the gateway measures is `None` until its first
+    report, about a minute after it connected: the cloud's value is not
+    used, because the cloud does not hear from it in local only (a tester's
+    sensors showed 0). Use `helpers.current_temperature()`, and give a sensor that
+    can be without a value `create_for`, or it is not created at a restart.
   - The hub in `push.py` is not used while a gateway runs: it would report a
     thermostat offline that is only away from the cloud. Thermostats that
     are not on the gateway are polled every minute for that reason.

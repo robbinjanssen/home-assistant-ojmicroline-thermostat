@@ -53,7 +53,12 @@ from .const import (
     SERVICE_SET_SCHEDULE,
     SERVICE_SET_VACATION,
 )
-from .helpers import target_temperature, thermostat_name, wd5_date
+from .helpers import (
+    current_temperature,
+    target_temperature,
+    thermostat_name,
+    wd5_date,
+)
 from .models import OJMicrolineEntity
 from .schedule import SLOTS, WEEKDAYS, ScheduleError, set_days
 
@@ -224,15 +229,17 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         return VENDOR_TO_HA_STATE.get(self.thermostat.regulation_mode)  # type: ignore[return-value]
 
     @property
-    def native_current_temperature(self) -> float:
+    def native_current_temperature(self) -> float | None:
         """Return current temperature.
 
         Returns
         -------
-            The current temperature in degrees Celsius.
+            The current temperature in degrees Celsius; None while the
+            thermostat has not measured one yet.
 
         """
-        return self.thermostat.get_current_temperature() / 100
+        measured = current_temperature(self.thermostat)
+        return None if measured is None else measured / 100
 
     current_temperature = native_current_temperature
 

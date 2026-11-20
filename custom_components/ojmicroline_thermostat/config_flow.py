@@ -559,8 +559,9 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
             else:
                 return await self.async_step_gateway()
 
-        # What was just entered comes back when the form is shown again.
-        values = {**options, **self._options}
+        # What was just entered comes back when the form is shown again,
+        # also a field that was emptied.
+        values = dict(options) if user_input is None else user_input
         schema: dict[Any, Any] = {
             probatio.Optional(
                 CONF_USE_COMFORT_MODE,

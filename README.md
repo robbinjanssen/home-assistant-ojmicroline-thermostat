@@ -141,20 +141,21 @@ Only one account per series can use a local connection, because the thermostats 
 ### What changes in a local mode
 
 - The temperature, the mode and whether the floor is heating come straight from the thermostat, and a new temperature goes straight to it.
-- **WG4 series:** the schedule and manual presets are set on the thermostat directly. The comfort preset and the energy usage still need the cloud, so they only work while the thermostat is relayed: with the relay, while the internet is up. Without that, the option to use comfort mode when changing the temperature is ignored.
+- **WG4 series:** the schedule and manual presets are set on the thermostat directly. The comfort preset and the energy usage still need the cloud, so they only work while the thermostat is relayed: with the relay, while the internet is up. Without that, the option to use comfort mode when changing the temperature is ignored. When the thermostat is relayed but the cloud cannot be reached, a new temperature becomes a manual one, which stays until you change the preset; Home Assistant logs a warning when that happens.
 - **WD5 series, with the relay:** presets still go through the cloud, as in cloud mode, so the app shows them: the cloud ignores a preset that a thermostat reports itself. The cloud sets a preset for every thermostat in a group. Only when the cloud cannot be reached does Home Assistant set the schedule, comfort, manual, boost, eco and frost protection presets on the thermostat directly; the app does not see those.
 - **WD5 series, local only, or with the relay while OJ's cloud is unreachable:** the schedule, comfort, manual, boost, eco and frost protection presets are set on the thermostat directly, and only change that thermostat. The vacation, changes to the weekly schedule and the energy usage need the cloud, so Home Assistant refuses them instead of sending them to a cloud that cannot pass them on. A later change of the group in the cloud starts from the preset the cloud knows for the group.
 - **WG4 series, local only:** a thermostat that has not connected through the relay yet cannot be answered. The setup screen names such thermostats before you switch.
-- **WD5 series:** a thermostat on the same account that does not connect to Home Assistant is no longer updated right away, but once every five minutes.
+- A thermostat on the same account that does not connect to Home Assistant is no longer updated right away, but once a minute.
 - "Online" means the thermostat is connected to Home Assistant.
 - A thermostat on the same account that never connected to Home Assistant, for example one in another building, keeps working through the cloud.
+- **Local only:** a thermostat that connected to Home Assistant once is expected there from then on, also after a restart. If you later let it connect to OJ's cloud again, choose **Cloud** once, so Home Assistant forgets it, and then **Local only** again.
 - With the DNS record in place, the app only works while Home Assistant is running.
 - The port from the table above has to be free on the machine that runs Home Assistant, and reachable for the thermostats. With Home Assistant in a container, use host networking or publish the port. Every device on your network can reach it: use a local mode only on a network you trust, and do not open the port to the internet.
 - If OJ's gateway ever shows another certificate than the one this integration knows, nothing is passed on to it and a repair issue tells you. Thermostats that connected before are then served by Home Assistant.
 
 ### Reporting how it goes
 
-A local mode has not been confirmed on a real thermostat yet, so a report helps, whether it works or not. Two things show what happened:
+The local connection has only run on a few thermostats, so a report helps, whether it works or not. Two things show what happened:
 
 - **Diagnostics.** Under **Settings → Devices & services → OJ Microline Thermostat**, open the **⋮** menu and choose **Download diagnostics**. The `gateway` part holds the last 300 events: every connection and whether its TLS handshake succeeded, every message between thermostat and gateway by field number and decoded temperature, each command and its answer, and why OJ's gateway could not be used. The times are in UTC. `history_before_reload` holds the events from before the integration was last reloaded, so a reload does not lose them; a restart of Home Assistant does. A command that a thermostat did not answer or refused also shows as a warning in the Home Assistant log. Attach the file to an [issue](https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/issues).
 - **Debug logging.** In the same menu, choose **Enable debug logging**, reproduce the problem, and disable it again to download the log. It has the same events without the limit of 300.

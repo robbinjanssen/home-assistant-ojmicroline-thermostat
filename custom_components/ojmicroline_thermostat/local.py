@@ -9,6 +9,8 @@ stored snapshot and profiles, and the repair issues.
 from __future__ import annotations
 
 import datetime
+import hashlib
+import json
 import logging
 import socket
 import ssl
@@ -21,6 +23,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 from homeassistant.components.network import async_get_source_ip
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import CONF_USERNAME
 from homeassistant.core import CALLBACK_TYPE, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
@@ -45,6 +48,7 @@ from ojmicroline_thermostat import (
     server_ssl_context,
 )
 
+from .api import api_from_config_entry_data
 from .const import (
     CONF_APPLICATION,
     CONF_CONNECTION_MODE,
@@ -182,9 +186,16 @@ async def async_profiles(
     """
     if entry.data.get(CONF_MODEL) != MODEL_WG4_SERIES:
         return None
-    stored = await gateway_store(hass, entry.entry_id).async_load() or {}
-    profiles = set(stored.get("profiles", {}))
-    names = {serial: serial for serial in stored.get("snapshot", {})}
+    stored = _stored_for(
+        _account(entry.data), await gateway_store(hass, entry.entry_id).async_load()
+    )
+    # A profile that cannot be used does not answer a thermostat.
+    profiles = {
+        serial
+        for serial, data in stored["profiles"].items()
+        if _profile(data) is not None
+    }
+    names = {serial: serial for serial in stored["snapshot"]}
     if entry.state is ConfigEntryState.LOADED:
         coordinator = entry.runtime_data
         if coordinator.local is not None:
@@ -194,6 +205,53 @@ async def async_profiles(
             for serial, thermostat in (coordinator.data or {}).items()
         }
     return profiles, names
+
+
+def _account(data: Mapping[str, Any]) -> str:
+    """Return what tells the account of an entry apart, without naming it.
+
+    What is stored for one account is of no use to another: after a
+    reconfigure to another account or brand it is left behind. The settings
+    count as they are used: a reconfigure writes out the defaults that an
+    older entry leaves to the integration, which makes it no other account.
+    """
+    endpoint = endpoint_for(data)
+    identity = json.dumps(
+        [
+            data.get(CONF_MODEL),
+            api_from_config_entry_data(data).host,
+            data.get(CONF_USERNAME),
+            None if endpoint is None else endpoint.host,
+        ]
+    )
+    return hashlib.sha256(identity.encode()).hexdigest()
+
+
+def _stored_for(account: str, stored: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Return what a store holds for an account: nothing of another account.
+
+    A store without an account is from before the account was kept, and
+    belongs to the entry.
+    """
+    if not stored or stored.get("account", account) != account:
+        stored = {}
+    return {
+        "account": account,
+        # The JSON of each thermostat, as the cloud API returned it last.
+        "snapshot": dict(stored.get("snapshot", {})),
+        # The recorded profile of each WG4-series thermostat.
+        "profiles": dict(stored.get("profiles", {})),
+        # The thermostats that connected to the gateway before.
+        "known": list(stored.get("known", [])),
+    }
+
+
+def _profile(data: Any) -> DeviceProfile | None:
+    """Read a stored profile; None if it cannot be used."""
+    try:
+        return DeviceProfile.from_dict(data)
+    except KeyError, TypeError, ValueError:
+        return None
 
 
 async def async_forget(hass: HomeAssistant, entry_id: str) -> None:
@@ -226,7 +284,9 @@ def _create_certificate(certfile: Path, keyfile: Path) -> None:
     )
     certfile.parent.mkdir(parents=True, exist_ok=True)
     # Create the key file unreadable for others before the key goes into it.
+    # A file that was there keeps its mode on touch(), so set it as well.
     keyfile.touch(mode=0o600)
+    keyfile.chmod(0o600)
     keyfile.write_bytes(
         key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -282,7 +342,8 @@ class LocalGateway:
         self._entry_id = entry.entry_id
         self._cloud = cloud
         self._store = gateway_store(hass, entry.entry_id)
-        self._stored: dict[str, Any] = {"snapshot": {}, "profiles": {}}
+        self._account = _account(entry.data)
+        self._stored = _stored_for(self._account, None)
         self._cancel_check: CALLBACK_TYPE | None = None
 
     @property
@@ -305,18 +366,18 @@ class LocalGateway:
             OJMicrolineError: The certificate of the gateway cannot be made.
 
         """
-        if stored := await self._store.async_load():
-            self._stored = {
-                "snapshot": stored.get("snapshot", {}),
-                "profiles": stored.get("profiles", {}),
-            }
+        self._stored = _stored_for(self._account, await self._store.async_load())
         profiles: dict[str, DeviceProfile] = {}
-        for serial, data in self._stored["profiles"].items():
-            try:
-                profiles[serial] = DeviceProfile.from_dict(data)
-            except ValueError:
+        for serial, data in list(self._stored["profiles"].items()):
+            profile = _profile(data)
+            if profile is None:
                 # The thermostat is relayed again, which records a new one.
-                _LOGGER.warning("Ignoring a stored profile that is damaged")
+                # Until then it counts as a thermostat without a profile.
+                _LOGGER.warning("Removing a stored profile that is damaged")
+                del self._stored["profiles"][serial]
+                self._store.async_delay_save(self._data_to_save, PROFILE_SAVE_DELAY)
+                continue
+            profiles[serial] = profile
 
         try:
             context = await self.hass.async_add_executor_job(
@@ -336,6 +397,7 @@ class LocalGateway:
                 wg4,
                 snapshot=self._stored["snapshot"],
                 on_snapshot=self._async_snapshot_changed,
+                known=self._stored["known"],
             )
         else:
             wd5 = WD5Gateway(context, mode=self.mode, endpoint=self.endpoint)
@@ -345,21 +407,10 @@ class LocalGateway:
                 wd5,
                 snapshot=self._stored["snapshot"],
                 on_snapshot=self._async_snapshot_changed,
+                known=self._stored["known"],
             )
         self.gateway.on_upstream = self._async_upstream_changed
-        # The API listens to what the thermostats report. Listen along, to
-        # know when the first thermostat has found its way here.
-        report = self.gateway.on_state
-
-        def on_state(serial: str, fields: dict[str, Any]) -> None:
-            if report is not None:
-                report(serial, fields)
-            if fields.get("Online"):
-                ir.async_delete_issue(
-                    self.hass, DOMAIN, self._issue_id(ISSUE_NO_THERMOSTAT)
-                )
-
-        self.gateway.on_state = on_state
+        self.gateway.on_connected = self._async_connected
         await self.gateway.start()
         self._cancel_check = async_call_later(
             self.hass, CONNECT_GRACE, self._async_check_connected
@@ -390,6 +441,19 @@ class LocalGateway:
     def _async_snapshot_changed(self, snapshot: dict[str, dict[str, Any]]) -> None:
         self._stored["snapshot"] = snapshot
         self._store.async_delay_save(self._data_to_save, SNAPSHOT_SAVE_DELAY)
+
+    @callback
+    def _async_connected(self, serial: str) -> None:
+        """Remember a thermostat that found its way to the gateway.
+
+        In local only such a thermostat does not reach the cloud, which has
+        to be known after a restart too, before it connects again.
+        """
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_NO_THERMOSTAT))
+        if serial not in self._stored["known"]:
+            # The API keeps them; this only stores what it knows.
+            self._stored["known"] = sorted({*self.api.known, serial})
+            self._store.async_delay_save(self._data_to_save, PROFILE_SAVE_DELAY)
 
     @callback
     def _async_profile_recorded(self, serial: str, profile: DeviceProfile) -> None:

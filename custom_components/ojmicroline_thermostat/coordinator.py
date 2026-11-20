@@ -29,11 +29,11 @@ from ojmicroline_thermostat import (
     WG4API,
     GatewayMode,
     OJMicrolineAuthError,
-    OJMicrolineConnectionError,
     OJMicrolineError,
-    OJMicrolineTimeoutError,
+    OJMicrolineResultsError,
     OJMicrolineUnauthorizedError,
     Thermostat,
+    WG4LocalAPI,
 )
 from ojmicroline_thermostat.const import (
     COMFORT_DURATION,
@@ -81,6 +81,11 @@ NOT_RELAYED = (
 )
 
 type OJMicrolineConfigEntry = ConfigEntry["OJMicrolineDataUpdateCoordinator"]
+# Returns what a change of a group sets, given the group as the cloud knows
+# it at that moment.
+type GroupChanges = Callable[[Thermostat], dict[str, Any]]
+# Returns the new schedule of a group, given the schedule it has now.
+type ScheduleEdit = Callable[[dict[str, Any]], dict[str, Any]]
 
 
 def device_in_account(device: dr.DeviceEntry, data: dict[str, Thermostat]) -> bool:
@@ -150,10 +155,11 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         mode = self.config_entry.options.get(CONF_CONNECTION_MODE, CONNECTION_CLOUD)
         cloud = self.wg4_api or self.wd5_api
         endpoint = endpoint_for(self.config_entry.data)
-        if cloud is None or endpoint is None:
+        if cloud is None:
             return
-        if mode == CONNECTION_CLOUD:
-            # What a local mode stored, the email address among it, goes.
+        if endpoint is None or mode == CONNECTION_CLOUD:
+            # What a local mode stored, the email address among it, goes:
+            # also after a reconfigure to a brand that has no local gateway.
             await async_forget(self.hass, self.config_entry.entry_id)
             return
         for other in local_entries_on_port(
@@ -208,7 +214,34 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         data = {resource.serial_number: resource for resource in thermostats}
         self._async_remove_stale_devices(data)
+        self._async_set_gateway_interval(data)
         return data
+
+    @callback
+    def _async_set_gateway_interval(self, data: dict[str, Thermostat]) -> bool:
+        """Poll as often as the thermostats that are not on the gateway need.
+
+        A thermostat on the gateway reports for itself. One that is served by
+        the cloud, because it never connected here or has not yet, only
+        changes through polling while a gateway runs.
+
+        Returns
+        -------
+            Whether polling became more frequent, so the poll that is
+            planned comes too late.
+
+        """
+        if self.local is None or self._unsubscribe_push is None:
+            return False
+        api = self.local.api
+        # An account without thermostats is a cloud that has to be asked again.
+        on_gateway = bool(data) and all(api.on_gateway(serial) for serial in data)
+        interval = timedelta(
+            seconds=PUSH_UPDATE_INTERVAL if on_gateway else UPDATE_INTERVAL
+        )
+        sooner = self.update_interval is None or interval < self.update_interval
+        self.update_interval = interval
+        return sooner
 
     @callback
     def _async_remove_stale_devices(self, data: dict[str, Thermostat]) -> None:
@@ -364,6 +397,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             return
         entry.async_on_unload(self.async_stop_push)
         self.update_interval = timedelta(seconds=PUSH_UPDATE_INTERVAL)
+        self._async_set_gateway_interval(self.data or {})
 
     @callback
     def async_stop_push(self) -> None:
@@ -395,6 +429,10 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         # Unlike async_set_updated_data this keeps the polling schedule.
         self.data = data
         self.async_update_listeners()
+        if self._async_set_gateway_interval(data):
+            # A thermostat left the gateway: from now on the cloud tells
+            # about it, and the poll that was planned is minutes away.
+            self.hass.async_create_task(self.async_request_refresh())
 
     @callback
     def _async_handle_push_connection(self, connected: bool) -> None:  # noqa: FBT001
@@ -493,25 +531,25 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             OJMicrolineError: The API refused the update.
 
         """
-        regulation_mode = self._async_group_view(thermostat).regulation_mode
-        if enabled and dt_util.start_of_local_day(start) <= dt_util.now():
-            regulation_mode = REGULATION_VACATION
-        elif regulation_mode == REGULATION_VACATION:
-            regulation_mode = (
-                REGULATION_SCHEDULE
-                if thermostat.last_primary_mode_is_auto
-                else REGULATION_MANUAL
-            )
 
-        await self._async_update_group(
-            thermostat,
-            {
+        def changes(group: Thermostat) -> dict[str, Any]:
+            regulation_mode = group.regulation_mode
+            if enabled and dt_util.start_of_local_day(start) <= dt_util.now():
+                regulation_mode = REGULATION_VACATION
+            elif regulation_mode == REGULATION_VACATION:
+                regulation_mode = (
+                    REGULATION_SCHEDULE
+                    if group.last_primary_mode_is_auto
+                    else REGULATION_MANUAL
+                )
+            return {
                 "RegulationMode": regulation_mode,
                 "VacationEnabled": enabled,
                 "VacationBeginDay": format_wd5_date(start),
                 "VacationEndDay": format_wd5_date(end),
-            },
-        )
+            }
+
+        await self._async_update_group(thermostat, changes)
 
     async def async_change_vacation(
         self,
@@ -545,7 +583,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         await self.async_request_delayed_refresh()
 
     async def async_change_schedule(
-        self, thermostat: Thermostat, schedule: dict[str, Any]
+        self, thermostat: Thermostat, edit: ScheduleEdit
     ) -> None:
         """Apply a schedule change requested by the user.
 
@@ -559,7 +597,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             msg = "The schedule can only be set on WD5-series thermostats."
             raise ServiceValidationError(msg)
         try:
-            await self.async_set_schedule(thermostat, schedule)
+            await self.async_set_schedule(thermostat, edit)
         except OJMicrolineError as error:
             raise HomeAssistantError(str(error)) from error
         await self.async_request_delayed_refresh()
@@ -573,18 +611,27 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         await self.async_request_refresh()
 
     async def async_set_schedule(
-        self, thermostat: Thermostat, schedule: dict[str, Any]
+        self, thermostat: Thermostat, edit: ScheduleEdit
     ) -> None:
-        """Set the weekly schedule of a thermostat's group.
+        """Change the weekly schedule of a thermostat's group.
 
-        Raises
+        Args:
+        ----
+            thermostat: The thermostat whose group to update.
+            edit: Returns the new schedule, given the one the group has now.
+                With a local gateway that is the schedule the cloud holds at
+                this moment, which can be newer than the thermostat's here.
+
+        Raises:
         ------
             OJMicrolineError: The API refused the update.
 
         """
-        await self._async_update_group(
-            thermostat, {"Schedule": schedule}, exclude_vacation=True
-        )
+
+        def changes(group: Thermostat) -> dict[str, Any]:
+            return {"Schedule": edit(group.schedule or thermostat.schedule or {})}
+
+        await self._async_update_group(thermostat, changes, exclude_vacation=True)
 
     async def async_fetch_energy(
         self, thermostat: Thermostat, view_type: int, day: date, history: int
@@ -650,7 +697,15 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         if api is None:
             msg = "This is only supported on WG4-series thermostats."
             raise OJMicrolineError(msg)
-        await self._async_with_session(lambda: api.set_energy_price(thermostat, price))
+        # With a gateway its API remembers the price, or the next report of
+        # the thermostat would show the old one.
+        local = self.local
+        setter: WG4API | WG4LocalAPI = api
+        if local is not None and isinstance(local.api, WG4LocalAPI):
+            setter = local.api
+        await self._async_with_session(
+            lambda: setter.set_energy_price(thermostat, price)
+        )
         self.async_set_updated_data(
             {
                 **self.data,
@@ -675,51 +730,33 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
 
         """
         duration = duration or COMFORT_DURATION
-        if self.wd5_api is None or self._async_sets_locally(
-            thermostat, regulation_mode
-        ):
+        if self.wd5_api is None:
             await self.api.set_regulation_mode(
                 thermostat, regulation_mode, temperature, duration
             )
             return
-        try:
+
+        async def update_group() -> None:
             await self._async_update_group(
                 thermostat,
                 regulation_mode=regulation_mode,
                 temperature=temperature,
                 duration=duration,
             )
-        except OJMicrolineConnectionError, OJMicrolineTimeoutError:
-            local = self.local
-            if (
-                local is None
-                or regulation_mode not in local.api.local_modes
-                or not local.api.on_gateway(thermostat.serial_number)
-            ):
-                raise
-            # The cloud API cannot be reached; the gateway still reaches the
-            # thermostat, though the vendor's app will not show the change.
-            _LOGGER.debug(
-                "The cloud API cannot be reached, the gateway sets %s",
-                thermostat.serial_number,
-            )
-            await local.api.set_on_gateway(
-                thermostat, regulation_mode, temperature, duration
-            )
 
-    def _async_sets_locally(self, thermostat: Thermostat, regulation_mode: int) -> bool:
-        """Return whether a mode goes straight to a WD5-series thermostat.
-
-        That is the case for a mode the gateway can set, on a thermostat on
-        the local gateway that the cloud does not reach. A relayed thermostat
-        is set through the cloud, which keeps the mode of its group: a mode
-        the gateway set alone would not show in the vendor's app. Anything
-        else is a change of the group in the cloud, which only reaches a
-        thermostat that is relayed.
-        """
         if self.local is None:
-            return False
-        return self.local.api.sets_on_gateway(thermostat.serial_number, regulation_mode)
+            await update_group()
+            return
+        # The library knows whether the cloud or the gateway sets the mode,
+        # and lets the gateway step in when the cloud cannot be reached. A
+        # mode in the cloud is a change of the group, which is made here.
+        await self.local.api.set_regulation_mode(
+            thermostat,
+            regulation_mode,
+            temperature,
+            duration,
+            through_cloud=update_group,
+        )
 
     def _async_group_view(self, thermostat: Thermostat) -> Thermostat:
         """Return a thermostat as the cloud knows it, for a change of its group.
@@ -735,7 +772,7 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
     async def _async_update_group(  # noqa: PLR0913 # pylint: disable=too-many-arguments
         self,
         thermostat: Thermostat,
-        changes: dict[str, Any] | None = None,
+        changes: GroupChanges | None = None,
         *,
         regulation_mode: int | None = None,
         temperature: int | None = None,
@@ -748,16 +785,31 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         settings are sent along with the changes. Date/times are sent back as
         the wall clock times the API returned (see helpers.py), except for the
         comfort/boost end time when that mode is being set.
+
+        The changes are asked for once the settings of the group are known:
+        with a local gateway those are fetched first, and a change that was
+        worked out before that would bring back what the fetch replaced.
         """
         api = self.wd5_api
         if api is None:
             msg = "This is only supported on WD5-series thermostats."
             raise OJMicrolineError(msg)
-        if self.local is not None and not self.local.api.cloud_reaches(
-            thermostat.serial_number
-        ):
-            # The cloud would accept the change, which then never arrives.
-            raise OJMicrolineError(NOT_RELAYED)
+        if self.local is not None:
+            if not self.local.api.cloud_reaches(thermostat.serial_number):
+                # The cloud would accept the change, which then never arrives.
+                raise OJMicrolineError(NOT_RELAYED)
+            # The body replaces every setting of the group, so it starts from
+            # what the cloud knows now: without the cloud's own push, the
+            # last answer can be minutes old.
+            try:
+                await self.local.api.refresh()
+            except OJMicrolineResultsError as error:
+                # The cloud answers, though not with thermostats that can be
+                # read. That is no reason to refuse the change: what the
+                # cloud said last has to do.
+                _LOGGER.debug(
+                    "Changing a group from the last known settings: %s", error
+                )
         thermostat = self._async_group_view(thermostat)
 
         body = api.update_regulation_mode_body(
@@ -776,7 +828,8 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             group["ComfortEndTime"] = format_wd5(thermostat.comfort_end_time)
         if regulation_mode != REGULATION_BOOST:
             group["BoostEndTime"] = format_wd5(thermostat.boost_end_time)
-        group.update(changes or {})
+        if changes is not None:
+            group.update(changes(thermostat))
 
         response = await self._async_with_session(
             lambda: api.request(

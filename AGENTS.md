@@ -109,21 +109,41 @@ work on a branch.
     accepts it and never delivers it.
   - WD5: a relayed thermostat is set through the cloud, because the cloud
     keeps the mode of a group and ignores what a thermostat reports; the app
-    would not show a preset the gateway set (seen on a real OWD5). Only a
-    thermostat the cloud does not reach, or a connection error or timeout of
-    the cloud API, sends a preset the gateway can set to the thermostat.
-    `_async_sets_locally` asks the library's `sets_on_gateway()`. A group
-    update starts from the cloud's view of the thermostat
-    (`cloud_thermostat()`), so a preset the gateway set on one thermostat
-    does not spread over its group. The hub in `push.py` is not used while a gateway runs: it
-    would report a thermostat offline that is only away from the cloud.
+    would not show a preset the gateway set (seen on a real OWD5). The
+    library chooses the route and lets the gateway step in when the cloud
+    cannot be reached: the coordinator only passes its group update as
+    `through_cloud`. Do not decide between cloud and gateway here.
+  - A group update replaces every setting of the group, so with a gateway
+    it fetches the cloud first (`refresh()`) and starts from the cloud's
+    view of the thermostat (`cloud_thermostat()`). That way neither a change
+    made in the app a moment ago is undone, nor a preset the gateway set on
+    one thermostat spread over its group. What a change sets is worked out
+    after that fetch, from the group it is handed (`GroupChanges`,
+    `ScheduleEdit`): a value read before it would bring back what the fetch
+    replaced.
+  - The hub in `push.py` is not used while a gateway runs: it would report a
+    thermostat offline that is only away from the cloud. Thermostats that
+    are not on the gateway are polled every minute for that reason.
   - A cloud failure must not stop the thermostats on the gateway: a
     rejected password starts reauthentication without failing the update.
   - `_async_with_session` logs in on the cloud API (`local.api.cloud`);
     logging in through `WG4LocalAPI` does nothing.
   - The stored snapshot holds the account's email address, and a profile
     is specific to a thermostat. Neither belongs in diagnostics or logs, and
-    both are deleted when the entry is back in cloud mode.
+    both are deleted when the entry is back in cloud mode or has no local
+    gateway. The store names its account (a hash): what was stored before a
+    reconfigure to another account is not used. The hash is made of the
+    settings as they are used, with their defaults, because a reconfigure
+    writes out defaults that an older entry leaves out.
+  - The store also keeps the serial numbers of the thermostats that
+    connected (`known`). In local only they do not reach the cloud, which
+    has to hold after a restart too, before they connect again. They are
+    only forgotten with the store, by going back to cloud mode.
+  - A WG4 thermostat that is relayed gets a manual temperature when the
+    comfort mode fails because the cloud cannot be reached
+    (`_gateway_sets_manual()`). That only holds where the gateway cannot
+    set the comfort mode itself: where it can, the error may be that of a
+    thermostat that did not answer.
 
 ## Tests
 

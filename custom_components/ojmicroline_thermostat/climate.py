@@ -1,6 +1,7 @@
 """Climate sensors for OJMicroline."""
 
 import asyncio
+import logging
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
@@ -22,7 +23,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from ojmicroline_thermostat import OJMicrolineError
+from ojmicroline_thermostat import OJMicrolineError, cloud_unreachable
 from ojmicroline_thermostat.const import (
     REGULATION_BOOST,
     REGULATION_COMFORT,
@@ -66,6 +67,8 @@ if TYPE_CHECKING:
     from ojmicroline_thermostat import Thermostat
 
     from .coordinator import OJMicrolineConfigEntry, OJMicrolineDataUpdateCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 VENDOR_TO_HA_STATE = {
     REGULATION_SCHEDULE: PRESET_SCHEDULE,
@@ -331,7 +334,41 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
             )
             regulation_mode = REGULATION_COMFORT if use_comfort else REGULATION_MANUAL
 
-        await self._async_set_regulation_mode(regulation_mode, round(temperature * 100))
+        target = round(temperature * 100)
+        try:
+            await self._async_set_regulation_mode(regulation_mode, target)
+        except HomeAssistantError as error:
+            if regulation_mode != REGULATION_COMFORT or not self._gateway_sets_manual(
+                error.__cause__
+            ):
+                raise
+            # The comfort mode needs the cloud, which cannot be reached; the
+            # gateway still reaches the thermostat with a manual temperature.
+            # That one does not end by itself, so it is worth telling.
+            _LOGGER.warning(
+                "The cloud cannot be reached, so %s gets a manual temperature "
+                "in place of a comfort one; it stays until the preset is changed",
+                self.entity_id,
+            )
+            await self._async_set_regulation_mode(REGULATION_MANUAL, target)
+
+    def _gateway_sets_manual(self, error: BaseException | None) -> bool:
+        """Return whether a manual temperature can replace a failed comfort one.
+
+        That is when the comfort mode needs the cloud and the cloud cannot be
+        reached, as opposed to refusing the change, while the local gateway
+        sets the manual mode itself. Where the gateway sets the comfort mode
+        too, the error may be that of a thermostat that does not answer,
+        which a manual temperature does not solve.
+        """
+        local = self.coordinator.local
+        return (
+            local is not None
+            and REGULATION_COMFORT not in local.api.local_modes
+            and isinstance(error, OJMicrolineError)
+            and cloud_unreachable(error)
+            and local.api.sets_on_gateway(self.idx, REGULATION_MANUAL)
+        )
 
     def _comfort_temperature(self, thermostat: Thermostat) -> int:
         """Return the temperature to use for the comfort preset, in 1/100 °C.
@@ -426,15 +463,23 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         if thermostat.schedule is None:
             msg = "The schedule can only be set on WD5-series thermostats."
             raise ServiceValidationError(msg)
-        try:
-            schedule = set_days(
-                thermostat.schedule,
+
+        def edit(schedule: dict[str, Any]) -> dict[str, Any]:
+            return set_days(
+                schedule,
                 days,
                 [(event[ATTR_TIME], event[ATTR_TEMPERATURE]) for event in events],
             )
+
+        try:
+            # Whether the events fit does not depend on the schedule they go
+            # into, so this tells before anything is sent.
+            edit(thermostat.schedule)
         except ScheduleError as error:
             raise ServiceValidationError(str(error)) from error
-        await self.coordinator.async_change_schedule(thermostat, schedule)
+        # The coordinator applies the change to the schedule the group has
+        # at that moment, which with a local gateway can be newer than this.
+        await self.coordinator.async_change_schedule(thermostat, edit)
 
     async def _async_delayed_request_refresh(self) -> None:
         """Get delayed data from the coordinator.

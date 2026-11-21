@@ -494,12 +494,18 @@ async def test_thermostat_reports_through_the_gateway(hass: HomeAssistant) -> No
     # The other thermostat never connected, and is still the cloud's.
     assert _state(hass, "climate.secondroom").attributes["hvac_action"] == "idle"
 
+    assert _state(hass, "binary_sensor.roomname_heating").state == "on"
+
     # Once it disconnects, the thermostat is offline whatever the cloud says:
-    # in local mode it does not reach the cloud.
-    _report(entry, SERIAL, Online=False, Heating=False)
+    # in local mode it does not reach the cloud. What it reported last, that
+    # it was heating, is not what it does now.
+    _report(entry, SERIAL, Online=False)
     await _deliver(hass, entry)
-    assert _state(hass, "climate.roomname").attributes["hvac_action"] == "off"
     assert _state(hass, "binary_sensor.roomname_online").state == "off"
+    assert _state(hass, "binary_sensor.roomname_heating").state == STATE_UNAVAILABLE
+    assert _state(hass, "climate.roomname").state == STATE_UNAVAILABLE
+    # The thermostat the cloud serves is not touched by that.
+    assert _state(hass, "climate.secondroom").state != STATE_UNAVAILABLE
 
 
 @pytest.mark.usefixtures("mock_wg4_api")

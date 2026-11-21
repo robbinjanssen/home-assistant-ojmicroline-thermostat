@@ -73,7 +73,10 @@ work on a branch.
   ID. Wrap such calls in `_async_with_session`, which logs in again and retries
   once when the API rejects the session (HTTP 401).
 - **Entities**: `_attr_has_entity_name = True` with a `translation_key`; the
-  device is named after the thermostat. Keep entity IDs stable for existing
+  device is named after the thermostat. While a thermostat is offline its
+  climate entity, sensors and binary sensors are unavailable, except the
+  sensor that tells it is offline: what it reported last is not what it
+  does now. The settings of its group (vacation, schedule) stay available. Keep entity IDs stable for existing
   users. Features that only one series supports check the series first (for
   example `is_wd5()`).
 - **Translations**: Home Assistant loads `translations/*.json` for custom
@@ -94,9 +97,10 @@ work on a branch.
   `_async_setup` and swaps its API for the library's `WG4LocalAPI` or
   `WD5LocalAPI`. The gateway and protocol live in the library; `local.py`
   only holds what Home Assistant keeps.
-  - The WG4 gateway ran against one real thermostat, twice: the first time
-    its commands were confirmed too late, the second time in time, for a
-    reason that is not known. The WD5 gateway ran against OWD5 thermostats
+  - The WG4 gateway ran against four real thermostats of two users: on the
+    first one its commands were confirmed too late in one test and in time
+    in the next, for a reason that is not known. The WD5 gateway ran
+    against OWD5 thermostats
     of three testers, with the relay and in local only. Keep both marked
     experimental until more models and brands have been seen.
   - `endpoint_for()` tells which device gateway the thermostats of an

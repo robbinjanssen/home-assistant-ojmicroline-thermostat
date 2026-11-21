@@ -279,6 +279,15 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         return self.thermostat.min_temperature / 100
 
     @property
+    def available(self) -> bool:
+        """Return whether the thermostat can be read and set.
+
+        A thermostat that is offline does neither: what it reported last is
+        not what it does now, and a change does not reach it.
+        """
+        return super().available and self.thermostat.online
+
+    @property
     def hvac_action(self) -> HVACAction | None:
         """Indicates whether the thermostat is currently heating.
 

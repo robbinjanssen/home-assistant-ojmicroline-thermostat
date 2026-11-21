@@ -95,6 +95,17 @@ class OJMicrolineBinarySensor(OJMicrolineEntity, BinarySensorEntity):
         self._attr_unique_id = f"{idx}_{entity_description.key}"
 
     @property
+    def available(self) -> bool:
+        """Return whether the sensor has something to tell.
+
+        Whether a thermostat is online is known as long as the data is. What
+        it reported before it went offline is not what it does now.
+        """
+        if self.entity_description.key == "online":
+            return super().available
+        return super().available and self.thermostat.online
+
+    @property
     def is_on(self) -> bool | None:
         """Return the status of the binary sensor.
 

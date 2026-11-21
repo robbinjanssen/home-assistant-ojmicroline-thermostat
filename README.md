@@ -80,6 +80,8 @@ WD5-series thermostats receive live updates through the same notification servic
 
 WG4-series thermostats receive live updates through the notification long-poll of the mythermostat.info API, provided by the `ojmicroline-thermostat` library. Changes arrive within seconds and periodic temperature reports about every minute. While subscribed, the integration polls only every 5 minutes as a fallback; failed requests are retried automatically with an increasing delay.
 
+While a thermostat is offline, its climate entity and its sensors are unavailable; only the "Online" sensor keeps telling that it is disconnected. The vacation and schedule entities of a WD5-series group stay available, because the cloud keeps those settings.
+
 ## Energy statistics (WD5 and WG4 series)
 For every WD5 and WG4-series thermostat the integration imports the energy usage history into a long-term statistic named "<thermostat> energy" (`ojmicroline_thermostat:energy_<serial>`): the last 12 months per month, the last 5 weeks per day and the last week per hour, kept up to date per hour from then on. Add it under **Settings → Dashboards → Energy → Individual devices** to see the usage per day, week, month and year, like the apps' statistics screen.
 
@@ -112,7 +114,7 @@ The name the thermostat looks for is not the host in the integration's settings.
 
 **This is experimental.** Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
 
-- **WG4 series:** tested twice on one real thermostat. Connecting, the relay, local only, and falling back to local while OJ's cloud was unreachable work. In the first test the thermostat confirmed a temperature set from Home Assistant too late, so Home Assistant showed an error. In the second test it confirmed every change within a few seconds. Why the two tests differed is not known yet.
+- **WG4 series:** tested on four real thermostats of two users. Connecting, the relay, local only, and falling back to local while OJ's cloud was unreachable work. In the first test on one thermostat it confirmed a temperature set from Home Assistant too late, so Home Assistant showed an error. In the second test it confirmed every change within a few seconds. Why the two tests differed is not known yet. On three UWG4 thermostats of the second user the relay worked at once: the app, Home Assistant and the thermostat itself each follow the others.
 - **WD5 series:** tested on OWD5 thermostats of three users, with the relay and in local only: connecting, the relay and presets work. The protocol comes from an ioBroker adapter where it works on an OWD5 thermostat.
 
 Choose the connection under **Configure** in the integration's menu:
@@ -146,7 +148,7 @@ Only one account per series can use a local connection, because the thermostats 
 - **WD5 series, local only, or with the relay while OJ's cloud is unreachable:** the schedule, comfort, manual, boost, eco and frost protection presets are set on the thermostat directly, and only change that thermostat. The vacation, changes to the weekly schedule and the energy usage need the cloud, so Home Assistant refuses them instead of sending them to a cloud that cannot pass them on. A later change of the group in the cloud starts from the preset the cloud knows for the group.
 - **WG4 series, local only:** a thermostat that has not connected through the relay yet cannot be answered. The setup screen names such thermostats before you switch.
 - A thermostat on the same account that does not connect to Home Assistant is no longer updated right away, but once a minute.
-- "Online" means the thermostat is connected to Home Assistant.
+- "Online" means the thermostat is connected to Home Assistant. A thermostat that loses power or its network is shown offline within 100 seconds: it only reports once a minute, and nothing tells Home Assistant sooner that a silent connection is gone.
 - A thermostat reports its temperature about once a minute. Right after it connected, for example after a restart of Home Assistant, the measured temperature is unknown until that first report.
 - A thermostat on the same account that never connected to Home Assistant, for example one in another building, keeps working through the cloud.
 - **Local only:** a thermostat that connected to Home Assistant once is expected there from then on, also after a restart. If you later let it connect to OJ's cloud again, choose **Cloud** once, so Home Assistant forgets it, and then **Local only** again.

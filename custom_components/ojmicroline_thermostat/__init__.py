@@ -16,6 +16,7 @@ from .coordinator import (
     OJMicrolineDataUpdateCoordinator,
     device_in_account,
 )
+from .local import gateway_store
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -100,6 +101,20 @@ async def async_unload_entry(
 
     """
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(
+    hass: HomeAssistant, entry: OJMicrolineConfigEntry
+) -> None:
+    """Forget what the local gateway stored for a removed entry.
+
+    Args:
+    ----
+        hass: The HomeAssistant instance.
+        entry: The ConfigEntry that was removed.
+
+    """
+    await gateway_store(hass, entry.entry_id).async_remove()
 
 
 async def async_remove_config_entry_device(

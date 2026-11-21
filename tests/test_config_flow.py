@@ -123,6 +123,8 @@ async def test_options_flow(
     assert mock_config_entry.options == {
         "use_comfort_mode": True,
         "comfort_mode_duration": 60,
+        # A WG4-series account can choose how its thermostats are reached.
+        "connection_mode": "cloud",
     }
 
 

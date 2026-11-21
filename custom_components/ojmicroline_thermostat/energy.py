@@ -45,6 +45,7 @@ from ojmicroline_thermostat import OJMicrolineError, Thermostat
 from ojmicroline_thermostat.wg4 import week_index
 
 from .const import DOMAIN
+from .helpers import thermostat_name
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -109,7 +110,7 @@ def _year_view_date(today: date) -> date:
 def _metadata(thermostat: Thermostat) -> StatisticMetaData:
     metadata: dict[str, Any] = {
         "has_sum": True,
-        "name": f"{thermostat.name} energy",
+        "name": f"{thermostat_name(thermostat)} energy",
         "source": DOMAIN,
         "statistic_id": statistic_id(thermostat),
         "unit_of_measurement": UnitOfEnergy.KILO_WATT_HOUR,

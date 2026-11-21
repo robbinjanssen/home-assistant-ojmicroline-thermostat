@@ -25,7 +25,9 @@ package = false
 
 [tool.uv.sources]
 # Develop against the library's main branch, the manifest pins the release.
-ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "main" }
+# TEMPORARY: the local gateway is not merged in the library yet (pull request
+# 708 there). Point this back at main before this branch is merged.
+ojmicroline-thermostat = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git", branch = "feature/wg4-local-gateway" }
 
 [tool.mypy]
 # Specify the target platform details in config, so your developers are

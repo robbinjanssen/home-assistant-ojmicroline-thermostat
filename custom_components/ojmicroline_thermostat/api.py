@@ -13,6 +13,7 @@ from .const import (
     CONF_IDENTITY_HOST,
     CONF_MODEL,
     DEFAULT_WD5_API_KEY,
+    DEFAULT_WD5_CUSTOMER_ID,
     DEFAULT_WG4_APPLICATION,
     MODEL_WD5_SERIES,
     MODEL_WG4_SERIES,
@@ -22,6 +23,7 @@ from .const import (
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    from aiohttp import ClientSession
     from homeassistant.core import HomeAssistant
 
     from ojmicroline_thermostat import Thermostat
@@ -35,9 +37,14 @@ def oj_microline_from_config_entry_data(
     return oj_microline_from_api(api_from_config_entry_data(data), hass)
 
 
-def oj_microline_from_api(api: Any, hass: HomeAssistant) -> OJMicroline:
-    """Construct an OJMicroline object around an already created API object."""
-    return OJMicroline(api=api, session=async_create_clientsession(hass))
+def oj_microline_from_api(
+    api: Any, hass: HomeAssistant, session: ClientSession | None = None
+) -> OJMicroline:
+    """Construct an OJMicroline object around an already created API object.
+
+    Pass the session of a client that this one replaces, so it is used again.
+    """
+    return OJMicroline(api=api, session=session or async_create_clientsession(hass))
 
 
 def api_from_config_entry_data(data: Mapping[str, Any]) -> Any:
@@ -54,7 +61,7 @@ def api_from_config_entry_data(data: Mapping[str, Any]) -> Any:
             username=data[CONF_USERNAME],
             password=data[CONF_PASSWORD],
             api_key=data.get(CONF_API_KEY) or DEFAULT_WD5_API_KEY,
-            customer_id=data.get(CONF_CUSTOMER_ID, 99),
+            customer_id=data.get(CONF_CUSTOMER_ID, DEFAULT_WD5_CUSTOMER_ID),
             **extra_args,
         )
     if model == MODEL_WG4_SERIES:

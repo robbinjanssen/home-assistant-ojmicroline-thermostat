@@ -541,9 +541,9 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
                 # Only the comfort settings changed.
                 return self.async_create_entry(title="", data=user_input)
             if mode == CONNECTION_CLOUD:
-                if await async_dns_points_here(
-                    self.hass, endpoint, await async_host_ip(self.hass)
-                ) and self._warn_once("dns_still_local"):
+                if await async_dns_points_here(self.hass, endpoint) and self._warn_once(
+                    "dns_still_local"
+                ):
                     # Left in place, the DNS record keeps the thermostats
                     # away from the cloud.
                     errors["base"] = "dns_still_local"
@@ -650,9 +650,9 @@ class OJMicrolineOptionsFlowHandler(OptionsFlowWithReload):
             # without one the account stays on the cloud.
             return self.async_create_entry(title="", data=self._options)
         if user_input is not None:
-            if not await async_dns_points_here(
-                self.hass, endpoint, host_ip
-            ) and self._warn_once("dns_not_detected"):
+            if not await async_dns_points_here(self.hass, endpoint) and self._warn_once(
+                "dns_not_detected"
+            ):
                 # The thermostats may use another DNS server than Home
                 # Assistant does, so this only warns.
                 errors["base"] = "dns_not_detected"

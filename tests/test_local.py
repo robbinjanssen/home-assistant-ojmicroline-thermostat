@@ -832,15 +832,54 @@ async def test_dns_check(hass: HomeAssistant) -> None:
 
     endpoint = WG4_NORTH_AMERICA
     with patch.object(hass.loop, "getaddrinfo", resolves_to("10.10.10.10")):
-        assert await local.async_dns_points_here(hass, endpoint, "10.10.10.10")
+        assert await local.async_dns_points_here(hass, endpoint)
     with patch.object(hass.loop, "getaddrinfo", resolves_to("52.165.43.242")):
-        assert not await local.async_dns_points_here(hass, endpoint, "10.10.10.10")
+        assert not await local.async_dns_points_here(hass, endpoint)
     with patch.object(hass.loop, "getaddrinfo", AsyncMock(side_effect=OSError)):
-        assert not await local.async_dns_points_here(hass, endpoint, "10.10.10.10")
+        assert not await local.async_dns_points_here(hass, endpoint)
 
     # Without a known address the instructions show a question mark.
     with patch(f"{MODULE}.local.async_get_source_ip", side_effect=HomeAssistantError):
         assert await local.async_host_ip(hass) == "?"
+
+
+async def test_dns_check_other_address(hass: HomeAssistant) -> None:
+    """Test that a record may point at any address of Home Assistant.
+
+    The gateway listens on all of them, so a record that points at a second
+    address, such as one on the thermostats' own network, works too.
+    """
+
+    def adapter(name: str, address: str) -> dict[str, Any]:
+        return {
+            "name": name,
+            "index": None,
+            "enabled": True,
+            "auto": True,
+            "default": False,
+            "ipv4": [{"address": address, "network_prefix": 24}],
+            "ipv6": [],
+        }
+
+    adapters = [
+        adapter("lo", "127.0.0.1"),
+        adapter("eth0", "10.10.10.10"),
+        adapter("eth1", "192.168.30.11"),
+    ]
+
+    def resolves_to(address: str) -> AsyncMock:
+        return AsyncMock(return_value=[(2, 1, 6, "", (address, 9513))])
+
+    endpoint = WD5_R1099
+    with patch(f"{MODULE}.local.async_get_adapters", return_value=adapters):
+        assert await local.async_host_ips(hass) == {"10.10.10.10", "192.168.30.11"}
+        with patch.object(hass.loop, "getaddrinfo", resolves_to("192.168.30.11")):
+            assert await local.async_dns_points_here(hass, endpoint)
+        # The loopback address is no address the thermostats can reach.
+        with patch.object(hass.loop, "getaddrinfo", resolves_to("127.0.0.1")):
+            assert not await local.async_dns_points_here(hass, endpoint)
+        with patch.object(hass.loop, "getaddrinfo", resolves_to("192.168.30.99")):
+            assert not await local.async_dns_points_here(hass, endpoint)
 
 
 @pytest.mark.usefixtures("mock_wg4_api")

@@ -49,6 +49,11 @@ def _gateway_diagnostics(
     gateway = local.gateway
     status = gateway.upstream_status
     cloud_error = local.api.cloud_error
+    today = dt_util.now().date()
+    counted = {
+        serial: coordinator.energy.counted_here(thermostat, today)
+        for serial, thermostat in (coordinator.data or {}).items()
+    }
     return {
         "mode": local.mode.value,
         "connected": len(gateway.connected),
@@ -57,6 +62,12 @@ def _gateway_diagnostics(
         "upstream": None if status is None else status.value,
         "upstream_fingerprint": gateway.upstream_fingerprint,
         "cloud_error": None if cloud_error is None else repr(cloud_error),
+        # The kWh the gateway counted today, for the thermostats it counts.
+        "energy_counted_today": {
+            serial: round(sum(hours), 4)
+            for serial, hours in counted.items()
+            if hours is not None
+        },
         "history": list(gateway.history),
         "history_before_reload": local.previous_history,
     }

@@ -29,6 +29,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from ojmicroline_thermostat import (
     WD5_OJ001,
@@ -89,6 +90,12 @@ STORAGE_VERSION = 1
 SNAPSHOT_SAVE_DELAY = 60
 # A recorded profile is what local mode depends on; write it soon.
 PROFILE_SAVE_DELAY = 1
+# What the thermostats used is added to with every report, once a minute,
+# so writing it may wait longer.
+USAGE_SAVE_DELAY = 300
+# How long the usage per hour is kept: a day longer than the energy
+# statistics look back per hour, so a day they fill in again is whole.
+USAGE_DAYS = 8
 # How long the thermostats get to connect before a repair issue points at
 # the DNS record, which is almost always what is missing.
 CONNECT_GRACE = 600
@@ -243,6 +250,24 @@ def _stored_for(account: str, stored: Mapping[str, Any] | None) -> dict[str, Any
         "profiles": dict(stored.get("profiles", {})),
         # The thermostats that connected to the gateway before.
         "known": list(stored.get("known", [])),
+        # What each thermostat used that the cloud does not count: the kWh
+        # by the start of the hour, in seconds since 1970 (UTC).
+        "usage": _usage(stored.get("usage")),
+    }
+
+
+def _usage(stored: Any) -> dict[str, dict[str, float]]:
+    """Read the stored usage; what cannot be read is left out."""
+    if not isinstance(stored, dict):
+        return {}
+    return {
+        str(serial): {
+            str(start): float(energy)
+            for start, energy in hours.items()
+            if str(start).isdecimal() and isinstance(energy, int | float)
+        }
+        for serial, hours in stored.items()
+        if isinstance(hours, dict)
     }
 
 
@@ -344,6 +369,8 @@ class LocalGateway:
         self._store = gateway_store(hass, entry.entry_id)
         self._account = _account(entry.data)
         self._stored = _stored_for(self._account, None)
+        # Whether a write of the usage is planned already.
+        self._usage_unsaved = False
         self._cancel_check: CALLBACK_TYPE | None = None
 
     @property
@@ -398,6 +425,7 @@ class LocalGateway:
                 snapshot=self._stored["snapshot"],
                 on_snapshot=self._async_snapshot_changed,
                 known=self._stored["known"],
+                on_usage=self._async_usage,
             )
         else:
             wd5 = WD5Gateway(context, mode=self.mode, endpoint=self.endpoint)
@@ -408,6 +436,7 @@ class LocalGateway:
                 snapshot=self._stored["snapshot"],
                 on_snapshot=self._async_snapshot_changed,
                 known=self._stored["known"],
+                on_usage=self._async_usage,
             )
         self.gateway.on_upstream = self._async_upstream_changed
         self.gateway.on_connected = self._async_connected
@@ -433,14 +462,52 @@ class LocalGateway:
     def _issue_id(self, issue: str) -> str:
         return f"{issue}_{self._entry_id}"
 
+    def usage(self, serial: str) -> dict[datetime.datetime, float]:
+        """Return what a thermostat used that the cloud does not count.
+
+        That is what it used while OJ's gateway did not get its reports: in
+        local only, and with the relay while OJ's gateway was unreachable.
+
+        Returns
+        -------
+            The kWh by the start of the hour (UTC) it was used in, for the
+            hours of the last days in which the gateway counted; empty if it
+            did not count this thermostat.
+
+        """
+        return {
+            dt_util.utc_from_timestamp(int(start)): energy
+            for start, energy in self._stored["usage"].get(serial, {}).items()
+        }
+
     @callback
     def _data_to_save(self) -> dict[str, Any]:
+        self._usage_unsaved = False
         return self._stored
 
     @callback
     def _async_snapshot_changed(self, snapshot: dict[str, dict[str, Any]]) -> None:
         self._stored["snapshot"] = snapshot
         self._store.async_delay_save(self._data_to_save, SNAPSHOT_SAVE_DELAY)
+
+    @callback
+    def _async_usage(self, serial: str, energy: float) -> None:
+        """Add what a thermostat used to the hour it used it in.
+
+        The library tells this for every report that OJ's gateway does not
+        get, also when the floor is not heating: an hour with 0 kWh is an
+        hour that was counted.
+        """
+        hour = int(dt_util.utcnow().timestamp()) // 3600 * 3600
+        hours = self._stored["usage"].setdefault(serial, {})
+        hours[str(hour)] = round(hours.get(str(hour), 0.0) + energy, 6)
+        oldest = hour - USAGE_DAYS * 86400
+        for start in [start for start in hours if int(start) < oldest]:
+            del hours[start]
+        if not self._usage_unsaved:
+            # Asking on every report would put the write off again and again.
+            self._usage_unsaved = True
+            self._store.async_delay_save(self._data_to_save, USAGE_SAVE_DELAY)
 
     @callback
     def _async_connected(self, serial: str) -> None:

@@ -7,7 +7,7 @@ port: the tests let it report as if a thermostat were connected.
 import json
 import ssl
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
@@ -19,6 +19,8 @@ from homeassistant.components.climate import (
 from homeassistant.components.climate import (
     SERVICE_SET_TEMPERATURE,
 )
+from homeassistant.components.recorder import get_instance
+from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import (
     ATTR_ENTITY_ID,
@@ -54,6 +56,9 @@ from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_time_changed,
 )
+from pytest_homeassistant_custom_component.components.recorder.common import (
+    async_wait_recording_done,
+)
 
 from custom_components.ojmicroline_thermostat import local
 from custom_components.ojmicroline_thermostat.const import (
@@ -72,6 +77,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from pathlib import Path
 
+    from freezegun.api import FrozenDateTimeFactory
     from homeassistant.core import HomeAssistant, State
     from homeassistant.helpers import issue_registry as ir
     from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -774,6 +780,8 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
         "upstream": None,
         "upstream_fingerprint": None,
         "cloud_error": None,
+        # The gateway did not count the usage of a thermostat.
+        "energy_counted_today": {},
         # What happened on the gateway's connections; nothing yet.
         "history": [],
         "history_before_reload": [],
@@ -1724,3 +1732,181 @@ def test_replaced_key_is_only_readable_for_the_owner(tmp_path: Path) -> None:
     load_ssl_context(directory)
 
     assert keyfile.stat().st_mode & 0o777 == 0o600
+
+
+# What a floor of 4010 W uses in a minute, in kWh.
+MINUTE = 4010 * 60 / 3_600_000
+NOON = datetime(2026, 11, 22, 12, tzinfo=UTC)
+
+
+async def _statistics(
+    hass: HomeAssistant, serial: str
+) -> list[tuple[datetime, float, float]]:
+    """Return the energy statistics of a thermostat: start, kWh and sum per hour."""
+    await hass.async_block_till_done(wait_background_tasks=True)
+    await async_wait_recording_done(hass)
+    statistic_id = f"{DOMAIN}:energy_{serial}"
+    rows = await get_instance(hass).async_add_executor_job(
+        statistics_during_period,
+        hass,
+        dt_util.utc_from_timestamp(0),
+        None,
+        {statistic_id},
+        "hour",
+        None,
+        {"state", "sum"},
+    )
+    return [
+        (
+            dt_util.utc_from_timestamp(row["start"]),
+            float(row["state"] or 0.0),
+            float(row["sum"] or 0.0),
+        )
+        for row in rows.get(statistic_id, [])
+    ]
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_local_only_counts_the_energy_usage(
+    hass: HomeAssistant,
+    hass_storage: dict[str, Any],
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test the usage of a thermostat that only the gateway hears is counted.
+
+    The cloud counts the minutes of heating times the load, from the reports
+    it gets. In local only it gets none, so the gateway counts them.
+    """
+    freezer.move_to(NOON + timedelta(minutes=30))
+    # The thermostat connected before, so the cloud does not hear it.
+    hass_storage[STORE_KEY] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": STORE_KEY,
+        "data": {"known": [WD5_SERIAL]},
+    }
+    entry = _wd5_entry("local")
+    await _setup(hass, entry)
+    coordinator = entry.runtime_data
+
+    # Until the thermostat tells its load, there is nothing to count.
+    _report(entry, WD5_SERIAL, Online=True, Heating=True)
+    await coordinator.async_refresh()
+    assert coordinator.data[WD5_SERIAL].energy is None
+    assert _state(hass, "sensor.woonkamer_energy_usage").state == STATE_UNKNOWN
+
+    _report(entry, WD5_SERIAL, LoadWatts=4010)
+    for _ in range(2):
+        freezer.tick(60)
+        _report(entry, WD5_SERIAL, RoomTemperature=2098, Heating=True)
+    await coordinator.async_refresh()
+
+    assert coordinator.data[WD5_SERIAL].energy == [round(2 * MINUTE, 4)]
+    assert _state(hass, "sensor.woonkamer_energy_usage").state == "0.1337"
+    # The thermostat that never connected is still measured by the cloud.
+    assert coordinator.data[WD5_OTHER].energy == [81.1356]
+    assert await _statistics(hass, WD5_SERIAL) == [(NOON, 0.1337, 0.1337)]
+
+    # The hour that was written last is written again with what came after.
+    freezer.tick(60)
+    _report(entry, WD5_SERIAL, Heating=True)
+    # In the next hour the floor is off: an hour with nothing used.
+    freezer.move_to(NOON + timedelta(hours=1, seconds=30))
+    _report(entry, WD5_SERIAL, Heating=False)
+    coordinator.energy.schedule_import_counted(coordinator.data[WD5_SERIAL])
+    assert await _statistics(hass, WD5_SERIAL) == [
+        (NOON, 0.2005, 0.2005),
+        (NOON + timedelta(hours=1), 0.0, 0.2005),
+    ]
+
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    assert diagnostics["gateway"]["energy_counted_today"] == {WD5_SERIAL: 0.2005}
+
+    # What was counted is kept, by the hour.
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert hass_storage[STORE_KEY]["data"]["usage"] == {
+        WD5_SERIAL: {
+            str(int(NOON.timestamp())): pytest.approx(3 * MINUTE, abs=1e-5),
+            str(int(NOON.timestamp()) + 3600): 0.0,
+        }
+    }
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_relay_adds_what_the_cloud_did_not_count(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Test what a thermostat used while OJ was away is added to the cloud's.
+
+    The cloud counts the reports that OJ's gateway gets. While that gateway
+    is unreachable the thermostat is answered here, and counted here.
+    """
+    freezer.move_to(NOON + timedelta(minutes=30))
+    entry = _wd5_entry("relay")
+    await _setup(hass, entry)
+    coordinator = entry.runtime_data
+    assert coordinator.data[WD5_SERIAL].energy == [81.1356]
+
+    # The thermostat connects, and OJ's gateway does not answer.
+    _report(entry, WD5_SERIAL, Online=True, LoadWatts=4010)
+    _report(entry, WD5_SERIAL, Heating=True)
+    await coordinator.async_refresh()
+    # The cloud is not asked about a thermostat it does not hear; what it
+    # told last stays until it can be asked again.
+    assert coordinator.data[WD5_SERIAL].energy == [81.1356]
+
+    # OJ's gateway is back, and gets the reports again.
+    _gateway(entry)._links[WD5_SERIAL] = Mock(upstream=object())  # pylint: disable=protected-access
+    coordinator._energy_next.clear()  # pylint: disable=protected-access
+    await coordinator.async_refresh()
+    assert coordinator.data[WD5_SERIAL].energy == [round(81.1356 + MINUTE, 4)]
+    # The statistics are written in the background; let that finish.
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_counted_usage_survives_a_restart(
+    hass: HomeAssistant,
+    hass_storage: dict[str, Any],
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test what the gateway counted is stored, and read again at a start."""
+    freezer.move_to(NOON + timedelta(minutes=30))
+    hour = int(NOON.timestamp())
+    hass_storage[STORE_KEY] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": STORE_KEY,
+        "data": {
+            "known": [WD5_SERIAL],
+            "usage": {
+                # This hour, an hour that is too long ago to matter, and
+                # what a damaged file could hold.
+                WD5_SERIAL: {
+                    str(hour): 1.5,
+                    str(hour - 9 * 86400): 2.0,
+                    "soon": 1.0,
+                    str(hour - 3600): "a lot",
+                },
+                WD5_OTHER: "damaged",
+            },
+        },
+    }
+    entry = _wd5_entry("local")
+    await _setup(hass, entry)
+    coordinator = entry.runtime_data
+
+    # The thermostat has not connected yet, and its usage of today is there.
+    assert coordinator.data[WD5_SERIAL].energy == [1.5]
+
+    # The next report is added to it, and is written a while later.
+    _report(entry, WD5_SERIAL, Online=True, LoadWatts=4010)
+    _report(entry, WD5_SERIAL, Heating=True)
+    freezer.tick(60)
+    _report(entry, WD5_SERIAL, Heating=True)
+    freezer.tick(local.USAGE_SAVE_DELAY + 1)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass_storage[STORE_KEY]["data"]["usage"] == {
+        WD5_SERIAL: {str(hour): pytest.approx(1.5 + 2 * MINUTE, abs=1e-5)}
+    }

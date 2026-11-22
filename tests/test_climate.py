@@ -1,5 +1,6 @@
 """Tests for the OJ Microline Thermostat climate entities."""
 
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -195,6 +196,39 @@ async def test_removed_thermostat_unavailable(
     state = hass.states.get("climate.roomname")
     assert state is not None
     assert state.state == "unavailable"
+
+
+async def test_offline_thermostat_unavailable(
+    hass: HomeAssistant, setup_integration: object, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test an offline thermostat only tells that it is offline.
+
+    What it reported last, such as that it was heating, is not what it does
+    now, and a change would not reach it.
+    """
+    assert setup_integration
+    coordinator = mock_config_entry.runtime_data
+    serial = "42424242"
+
+    coordinator.async_set_updated_data(
+        {
+            **coordinator.data,
+            serial: replace(coordinator.data[serial], online=False, heating=True),
+        }
+    )
+    await hass.async_block_till_done()
+
+    for entity_id in ("climate.roomname", "binary_sensor.roomname_heating"):
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.state == "unavailable"
+    online = hass.states.get("binary_sensor.roomname_online")
+    assert online is not None
+    assert online.state == "off"
+    # Another thermostat of the account is not touched by that.
+    other = hass.states.get("climate.secondroom")
+    assert other is not None
+    assert other.state != "unavailable"
 
 
 @pytest.mark.parametrize(

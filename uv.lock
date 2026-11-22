@@ -2046,7 +2046,7 @@ wheels = [
 [[package]]
 name = "ojmicroline-thermostat"
 version = "0.0.0"
-source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main#20fa609c137c30651e765271ebe1e301ff67fe0b" }
+source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main#427816be682d9437314356cd2d11b940e620c620" }
 dependencies = [
     { name = "aiohttp" },
     { name = "yarl" },

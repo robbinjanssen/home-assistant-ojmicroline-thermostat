@@ -66,6 +66,10 @@ class OJMicrolineSensorInfo:
     # Create the sensor even without a value, e.g. when the first energy
     # request failed.
     always_create: bool = False
+    # Create the sensor for these thermostats even without a value: a
+    # thermostat on the local gateway has not measured anything right after
+    # it connected, or after a restart.
+    create_for: Callable[[Thermostat], bool] | None = None
 
 
 def _get_value(
@@ -90,9 +94,9 @@ def _mode_time(thermostat: Thermostat, value: Any, *, active: bool) -> Any:
     return wd5_local_time(value) if is_wd5(thermostat) else value
 
 
-def _temp_formatter(temp: Any) -> float:
-    """Format the temperature."""
-    return float(temp) / 100
+def _temp_formatter(temp: Any) -> float | None:
+    """Format the temperature; None while it is not known."""
+    return None if temp is None else float(temp) / 100
 
 
 SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
@@ -106,6 +110,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             key="temperature_room",
         ),
         formatter=_temp_formatter,
+        create_for=is_wd5,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -117,6 +122,7 @@ SENSOR_TYPES: list[OJMicrolineSensorInfo] = [
             key="temperature_floor",
         ),
         formatter=_temp_formatter,
+        create_for=is_wd5,
     ),
     OJMicrolineSensorInfo(
         SensorEntityDescription(
@@ -261,7 +267,8 @@ async def async_setup_entry(
             thermostat = coordinator.data[idx]
             raw = getattr(thermostat, info.entity_description.key, None)
             val = _get_value(thermostat, info.entity_description, info.value_getter)
-            if info.always_create or raw is not None or val is not None:
+            wanted = info.create_for is not None and info.create_for(thermostat)
+            if info.always_create or wanted or raw is not None or val is not None:
                 entities.append(
                     OJMicrolineSensor(
                         coordinator,

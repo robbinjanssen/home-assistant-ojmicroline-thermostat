@@ -15,8 +15,8 @@ Three thermostat series, each with its own API in the library:
 
 | Series | Library API | Notes |
 | --- | --- | --- |
-| WD5 (OWD5, MWD5, WCD5) | `WD5API` | session API; push via the SignalR hub in `push.py`; schedule, vacation and energy history |
-| WG4 (UWG4, AWG4) | `WG4API` | session API; push via the library's `subscribe()`; energy history and power |
+| WD5 (OWD5, MWD5, WCD5) | `WD5API`, `WD5LocalAPI` | session API; push via the SignalR hub in `push.py`; schedule, vacation and energy history; optional local gateway (experimental) |
+| WG4 (UWG4, AWG4) | `WG4API`, `WG4LocalAPI` | session API; push via the library's `subscribe()`; energy history and power; optional local gateway (experimental) |
 | WG5 (UWG5) | `WG5API` | OAuth API; polled; tested by users with a real thermostat (#302), not by the maintainers |
 
 ```text
@@ -26,6 +26,8 @@ custom_components/ojmicroline_thermostat/
   config_flow.py   user, wd5/wg4/wg5, reauth, reconfigure and options flow
   coordinator.py   polling, push handling, session retry, WD5 group updates
   energy.py        long-term energy statistics (WD5, WG4)
+  local.py         local gateway of a WG4 or WD5 account: certificate,
+                   stored snapshot and profiles, repair issues
   push.py          WD5 push client
   climate.py, sensor.py, binary_sensor.py, date.py, switch.py, schedule.py
   frontend/        schedule card served by async_setup
@@ -71,7 +73,10 @@ work on a branch.
   ID. Wrap such calls in `_async_with_session`, which logs in again and retries
   once when the API rejects the session (HTTP 401).
 - **Entities**: `_attr_has_entity_name = True` with a `translation_key`; the
-  device is named after the thermostat. Keep entity IDs stable for existing
+  device is named after the thermostat. While a thermostat is offline its
+  climate entity, sensors and binary sensors are unavailable, except the
+  sensor that tells it is offline: what it reported last is not what it
+  does now. The settings of its group (vacation, schedule) stay available. Keep entity IDs stable for existing
   users. Features that only one series supports check the series first (for
   example `is_wd5()`).
 - **Translations**: Home Assistant loads `translations/*.json` for custom
@@ -87,6 +92,67 @@ work on a branch.
   Do not add a config entry update listener next to these; Home Assistant
   2026.12 rejects that combination.
 - **Diagnostics**: redact credentials and API keys.
+- **Local connection (WG4, WD5)**: with the `connection_mode` option on
+  `relay` or `local`, the coordinator starts a `LocalGateway` in
+  `_async_setup` and swaps its API for the library's `WG4LocalAPI` or
+  `WD5LocalAPI`. The gateway and protocol live in the library; `local.py`
+  only holds what Home Assistant keeps.
+  - The WG4 gateway ran against four real thermostats of two users: on the
+    first one its commands were confirmed too late in one test and in time
+    in the next, for a reason that is not known. The WD5 gateway ran
+    against OWD5 thermostats
+    of three testers, with the relay and in local only. Keep both marked
+    experimental until more models and brands have been seen.
+  - `endpoint_for()` tells which device gateway the thermostats of an
+    account look for, by WG4 application code or WD5 customer ID. The option
+    is only offered when it knows one; add a brand there once its hostname
+    is known. One gateway per port: only one account per series can run one.
+  - Ask the library's API what reaches a thermostat: `on_gateway()`,
+    `cloud_reaches()` and `can_set()`. A change through the cloud for a
+    thermostat that only the gateway reaches is refused, not sent: the cloud
+    accepts it and never delivers it.
+  - WD5: a relayed thermostat is set through the cloud, because the cloud
+    keeps the mode of a group and ignores what a thermostat reports; the app
+    would not show a preset the gateway set (seen on a real OWD5). The
+    library chooses the route and lets the gateway step in when the cloud
+    cannot be reached: the coordinator only passes its group update as
+    `through_cloud`. Do not decide between cloud and gateway here.
+  - A group update replaces every setting of the group, so with a gateway
+    it fetches the cloud first (`refresh()`) and starts from the cloud's
+    view of the thermostat (`cloud_thermostat()`). That way neither a change
+    made in the app a moment ago is undone, nor a preset the gateway set on
+    one thermostat spread over its group. What a change sets is worked out
+    after that fetch, from the group it is handed (`GroupChanges`,
+    `ScheduleEdit`): a value read before it would bring back what the fetch
+    replaced.
+  - What a thermostat on the gateway measures is `None` until its first
+    report, about a minute after it connected: the cloud's value is not
+    used, because the cloud does not hear from it in local only (a tester's
+    sensors showed 0). Use `helpers.current_temperature()`, and give a sensor that
+    can be without a value `create_for`, or it is not created at a restart.
+  - The hub in `push.py` is not used while a gateway runs: it would report a
+    thermostat offline that is only away from the cloud. Thermostats that
+    are not on the gateway are polled every minute for that reason.
+  - A cloud failure must not stop the thermostats on the gateway: a
+    rejected password starts reauthentication without failing the update.
+  - `_async_with_session` logs in on the cloud API (`local.api.cloud`);
+    logging in through `WG4LocalAPI` does nothing.
+  - The stored snapshot holds the account's email address, and a profile
+    is specific to a thermostat. Neither belongs in diagnostics or logs, and
+    both are deleted when the entry is back in cloud mode or has no local
+    gateway. The store names its account (a hash): what was stored before a
+    reconfigure to another account is not used. The hash is made of the
+    settings as they are used, with their defaults, because a reconfigure
+    writes out defaults that an older entry leaves out.
+  - The store also keeps the serial numbers of the thermostats that
+    connected (`known`). In local only they do not reach the cloud, which
+    has to hold after a restart too, before they connect again. They are
+    only forgotten with the store, by going back to cloud mode.
+  - A WG4 thermostat that is relayed gets a manual temperature when the
+    comfort mode fails because the cloud cannot be reached
+    (`_gateway_sets_manual()`). That only holds where the gateway cannot
+    set the comfort mode itself: where it can, the error may be that of a
+    thermostat that did not answer.
 
 ## Tests
 

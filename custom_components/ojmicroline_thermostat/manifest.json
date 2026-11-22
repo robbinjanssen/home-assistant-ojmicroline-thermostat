@@ -19,7 +19,7 @@
         "ojmicroline_thermostat"
     ],
     "requirements": [
-        "ojmicroline-thermostat@git+https://github.com/robbinjanssen/python-ojmicroline-thermostat.git@feature/wg4-local-gateway"
+        "ojmicroline-thermostat==3.8.0"
     ],
     "version": "0.0.0"
 }

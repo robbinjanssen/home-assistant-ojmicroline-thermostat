@@ -1330,7 +1330,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ojmicroline-thermostat", git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=feature%2Flocal-energy-usage" }]
+requires-dist = [{ name = "ojmicroline-thermostat", git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2046,7 +2046,7 @@ wheels = [
 [[package]]
 name = "ojmicroline-thermostat"
 version = "0.0.0"
-source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=feature%2Flocal-energy-usage#281380f4aa1cc94e896420200f0d0c3b0ca594f2" }
+source = { git = "https://github.com/robbinjanssen/python-ojmicroline-thermostat.git?branch=main#af4f6b7e995e624f8ac53dec6638d51042f67dad" }
 dependencies = [
     { name = "aiohttp" },
     { name = "yarl" },

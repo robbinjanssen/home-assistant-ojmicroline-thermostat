@@ -19,7 +19,7 @@
         "ojmicroline_thermostat"
     ],
     "requirements": [
-        "ojmicroline-thermostat@git+https://github.com/robbinjanssen/python-ojmicroline-thermostat.git@feature/local-energy-usage"
+        "ojmicroline-thermostat==3.9.0"
     ],
     "version": "0.0.0"
 }

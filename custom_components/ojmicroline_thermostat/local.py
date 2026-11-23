@@ -154,21 +154,28 @@ async def async_host_ip(hass: HomeAssistant) -> str:
 
 
 async def async_host_ips(hass: HomeAssistant) -> set[str]:
-    """Return every IPv4 address of Home Assistant, but the loopback one.
+    """Return the IPv4 addresses of Home Assistant a thermostat may use.
 
     The gateway listens on all of them, so a DNS record may point at any:
     on a machine with a leg on the thermostats' own network, that address
-    keeps their connection off the router.
+    keeps their connection off the router. Loopback and link-local
+    addresses are left out, as no thermostat reaches those. The adapters
+    are the ones Home Assistant read when it started.
     """
-    addresses = {
-        ipv4["address"]
-        for adapter in await async_get_adapters(hass)
-        for ipv4 in adapter["ipv4"]
-        if not ipaddress.ip_address(ipv4["address"]).is_loopback
-    }
+    try:
+        adapters = await async_get_adapters(hass)
+    except HomeAssistantError, OSError:
+        # Without the adapters the suggested address is still checked.
+        adapters = []
+    addresses = {ipv4["address"] for adapter in adapters for ipv4 in adapter["ipv4"]}
     if (host_ip := await async_host_ip(hass)) != "?":
         addresses.add(host_ip)
-    return addresses
+    return {
+        address
+        for address in addresses
+        if not (ip := ipaddress.ip_address(address)).is_loopback
+        and not ip.is_link_local
+    }
 
 
 async def async_dns_points_here(hass: HomeAssistant, endpoint: GatewayEndpoint) -> bool:

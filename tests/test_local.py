@@ -881,6 +881,34 @@ async def test_dns_check_other_address(hass: HomeAssistant) -> None:
         with patch.object(hass.loop, "getaddrinfo", resolves_to("192.168.30.99")):
             assert not await local.async_dns_points_here(hass, endpoint)
 
+    # Nor are the link-local address of an adapter without DHCP, or the
+    # loopback address the source address falls back to without an IPv4.
+    adapters.append(adapter("eth2", "169.254.10.20"))
+    with (
+        patch(f"{MODULE}.local.async_get_adapters", return_value=adapters),
+        patch(f"{MODULE}.local.async_get_source_ip", return_value="127.0.0.1"),
+    ):
+        assert await local.async_host_ips(hass) == {"10.10.10.10", "192.168.30.11"}
+
+
+@pytest.mark.parametrize("error", [HomeAssistantError, OSError])
+async def test_dns_check_without_adapters(
+    hass: HomeAssistant, error: type[Exception]
+) -> None:
+    """Test that the check falls back to the source address.
+
+    A failure to list the adapters must not end the flow: the record is then
+    checked against the address the instructions suggest, as before.
+    """
+    endpoint = WD5_R1099
+    resolves_here = AsyncMock(return_value=[(2, 1, 6, "", ("10.10.10.10", 9513))])
+    with (
+        patch(f"{MODULE}.local.async_get_adapters", side_effect=error),
+        patch.object(hass.loop, "getaddrinfo", resolves_here),
+    ):
+        assert await local.async_host_ips(hass) == {"10.10.10.10"}
+        assert await local.async_dns_points_here(hass, endpoint)
+
 
 @pytest.mark.usefixtures("mock_wg4_api")
 async def test_options_flow_to_relay(

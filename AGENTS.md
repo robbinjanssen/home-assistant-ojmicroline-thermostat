@@ -16,7 +16,7 @@ Three thermostat series, each with its own API in the library:
 | Series | Library API | Notes |
 | --- | --- | --- |
 | WD5 (OWD5, MWD5, WCD5) | `WD5API`, `WD5LocalAPI` | session API; push via the SignalR hub in `push.py`; schedule, vacation and energy history; optional local gateway (experimental) |
-| WG4 (UWG4, AWG4) | `WG4API`, `WG4LocalAPI` | session API; push via the library's `subscribe()`; energy history and power; optional local gateway (experimental) |
+| WG4 (UWG4, AWG4) | `WG4API`, `WG4LocalAPI` | session API; push via the library's `subscribe()`; energy history and power; schedule (changed through the local gateway only); optional local gateway (experimental) |
 | WG5 (UWG5) | `WG5API` | OAuth API; polled; tested by users with a real thermostat (#302), not by the maintainers |
 
 ```text
@@ -168,6 +168,16 @@ work on a branch.
     connected (`known`). In local only they do not reach the cloud, which
     has to hold after a restart too, before they connect again. They are
     only forgotten with the store, by going back to cloud mode.
+  - WG4 schedule: the library reads it from the cloud or the thermostat
+    into `Thermostat.schedule` (the WD5 form, without events on the next
+    day). Only `WG4LocalAPI.set_schedule()` changes it, for a thermostat on
+    the gateway; how the cloud would take a schedule is not known, so cloud
+    mode refuses the change. The library checks the events with the rules of
+    the thermostat and confirms the schedule by making the thermostat
+    reconnect, which takes up to about 90 seconds. The schedule sensor tells
+    the card the series (`series` attribute). The `set_schedule` action stays
+    in °C; the card converts to and from Fahrenheit, and sends the exact °C
+    value of an event whose temperature was not changed.
   - A WG4 thermostat that is relayed gets a manual temperature when the
     comfort mode fails because the cloud cannot be reached
     (`_gateway_sets_manual()`). That only holds where the gateway cannot

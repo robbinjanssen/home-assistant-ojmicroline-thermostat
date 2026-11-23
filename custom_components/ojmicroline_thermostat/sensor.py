@@ -279,9 +279,12 @@ async def async_setup_entry(
                     )
                 )
 
-        # Only the WD5 series reports a schedule in the parsed format.
+        # The WD5 and WG4 series report a schedule; the WG5 series does not.
+        # A WG4 thermostat on the local connection reports its own, which may
+        # come after the setup.
         thermostat = coordinator.data[idx]
-        if is_wd5(thermostat) and thermostat.schedule is not None:
+        local_wg4 = coordinator.wg4_api is not None and coordinator.local is not None
+        if thermostat.schedule is not None or local_wg4:
             entities.append(OJMicrolineScheduleSensor(coordinator, idx))
 
     async_add_entities(entities)
@@ -347,10 +350,15 @@ class OJMicrolineSensor(OJMicrolineEntity, SensorEntity):
 
 
 class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
-    """The weekly schedule of a WD5-series thermostat's group.
+    """The weekly schedule of a WD5 thermostat's group, or of a WG4 thermostat.
 
     The state is the temperature the schedule prescribes right now; the
-    attributes list each weekday's events.
+    attributes list each weekday's events, the series, whose rules the
+    schedule card follows, and the limits of the thermostat in °C.
+
+    The schedule of a WD5 group is a setting of the group, which stays
+    available while a thermostat is offline. That of a WG4 thermostat is its
+    own, and is what it reported last.
     """
 
     _attr_has_entity_name = True
@@ -372,6 +380,18 @@ class OJMicrolineScheduleSensor(OJMicrolineEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return the active events per weekday."""
-        schedule = self.thermostat.schedule
-        return None if schedule is None else schedule_attributes(schedule)
+        """Return the active events per weekday, the series and the limits."""
+        thermostat = self.thermostat
+        if thermostat.schedule is None:
+            return None
+        return {
+            **schedule_attributes(thermostat.schedule),
+            "series": "wd5" if is_wd5(thermostat) else "wg4",
+            "min_temperature": thermostat.min_temperature / 100,
+            "max_temperature": thermostat.max_temperature / 100,
+        }
+
+    @property
+    def available(self) -> bool:
+        """Return whether the schedule is known, see the class."""
+        return super().available and (is_wd5(self.thermostat) or self.thermostat.online)

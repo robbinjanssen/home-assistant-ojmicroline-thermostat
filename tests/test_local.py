@@ -36,7 +36,7 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from ojmicroline_thermostat import (
@@ -47,6 +47,7 @@ from ojmicroline_thermostat import (
     OJMicrolineConnectionError,
     OJMicrolineError,
     OJMicrolineTimeoutError,
+    OJMicrolineUnconfirmedError,
     UpstreamStatus,
     WD5Gateway,
     WG4Gateway,
@@ -2073,3 +2074,168 @@ async def test_heating_load_is_for_a_local_connection(
     assert _state(hass, "number.roomname_heating_load").state == "1100"
     assert _state(hass, "number.secondroom_heating_load").state == "320"
     assert local._loads("damaged") == {}  # pylint: disable=protected-access
+
+
+def _schedule_call(
+    hass: HomeAssistant, entity_id: str = "climate.roomname", **data: Any
+) -> Any:
+    """Call the action that sets the schedule, on Sunday and Monday by default."""
+    return hass.services.async_call(
+        DOMAIN,
+        "set_schedule",
+        {
+            ATTR_ENTITY_ID: entity_id,
+            "days": ["sunday", "monday"],
+            "events": [
+                {"time": "06:00", "temperature": 21.5},
+                {"time": "22:30", "temperature": 17},
+            ],
+            **data,
+        },
+        blocking=True,
+    )
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_wg4_schedule_sensor(hass: HomeAssistant) -> None:
+    """Test a WG4 thermostat shows the schedule of the cloud, then its own."""
+    entry = _entry("local")
+    await _setup(hass, entry)
+
+    state = _state(hass, "sensor.roomname_schedule")
+    assert state.attributes["series"] == "wg4"
+    assert state.attributes["min_temperature"] == 5
+    assert state.attributes["max_temperature"] == 40
+    assert state.attributes["monday"] == [
+        {"time": "06:00", "temperature": 32.22},
+        {"time": "23:00", "temperature": 23.33},
+    ]
+
+    # The thermostat reports its own schedule through the gateway.
+    days = [
+        {
+            "WeekDayGrpNo": number,
+            "Events": [
+                {
+                    "ScheduleType": 0,
+                    "Clock": "07:15:00",
+                    "TempFloor": 2050,
+                    "Active": True,
+                }
+            ],
+        }
+        for number in range(1, 8)
+    ]
+    _report(entry, SERIAL, Online=True, Schedules=days)
+    await _deliver(hass, entry)
+    state = _state(hass, "sensor.roomname_schedule")
+    assert state.attributes["sunday"] == [{"time": "07:15", "temperature": 20.5}]
+    assert state.state == "20.5"
+
+    # It is the thermostat's own schedule, not known while it is offline;
+    # in local only, the cloud does not hear from it either.
+    _report(entry, SERIAL, Online=False)
+    await _deliver(hass, entry)
+    assert _state(hass, "sensor.roomname_schedule").state == STATE_UNAVAILABLE
+
+
+async def test_wg4_schedule_sensor_without_a_schedule_in_the_cloud(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test the sensor exists for a schedule that only the thermostat reports."""
+    groups = json.loads(load_fixture("wg4_group.json"))
+    for group in groups["Groups"]:
+        for item in group["Thermostats"]:
+            item.pop("Schedules", None)
+    aioclient_mock.post(
+        f"{WG4_HOST}/api/authenticate/user",
+        json={"SessionId": "f00b4r", "ErrorCode": 0},
+        headers=JSON,
+    )
+    aioclient_mock.get(f"{WG4_HOST}/api/thermostats", json=groups, headers=JSON)
+    aioclient_mock.get(
+        f"{WG4_HOST}/api/energyusage",
+        text=load_fixture("wg4_energy.json"),
+        headers=JSON,
+    )
+    entry = _entry("relay")
+    await _setup(hass, entry)
+    assert "monday" not in _state(hass, "sensor.roomname_schedule").attributes
+
+    days = [
+        {
+            "WeekDayGrpNo": number,
+            "Events": [
+                {
+                    "ScheduleType": 0,
+                    "Clock": "07:15:00",
+                    "TempFloor": 2050,
+                    "Active": True,
+                }
+            ],
+        }
+        for number in range(1, 8)
+    ]
+    _report(entry, SERIAL, Online=True, Schedules=days)
+    await _deliver(hass, entry)
+    state = _state(hass, "sensor.roomname_schedule")
+    assert state.attributes["monday"] == [{"time": "07:15", "temperature": 20.5}]
+
+
+async def test_wg4_set_schedule_goes_to_the_gateway(
+    hass: HomeAssistant, mock_wg4_api: AiohttpClientMocker
+) -> None:
+    """Test a new schedule goes to the thermostat, in 1/100 °C and day numbers."""
+    entry = _entry("relay")
+    await _setup(hass, entry)
+    send = AsyncMock()
+    _gateway(entry).set_schedule = send  # type: ignore[method-assign]
+    _report(entry, SERIAL, Online=True)
+    await _deliver(hass, entry)
+    requests = len(mock_wg4_api.mock_calls)
+
+    await _schedule_call(hass)
+    send.assert_awaited_once_with(
+        SERIAL, frozenset({0, 6}), [(6 * 3600, 2150), (22 * 3600 + 1800, 1700)]
+    )
+    assert len(mock_wg4_api.mock_calls) == requests
+
+    # What does not fit the rules of the thermostat is refused before it is sent.
+    send.reset_mock()
+    for events, error in (
+        ([{"time": "06:00", "temperature": 45}], "between 5 and 40"),
+        ([{"time": "06:10", "temperature": 20}], "quarter of an hour"),
+        (
+            [
+                {"time": "22:00", "temperature": 20},
+                {"time": "01:00", "temperature": 17},
+            ],
+            "in order",
+        ),
+    ):
+        with pytest.raises(ServiceValidationError, match=error):
+            await _schedule_call(hass, events=events)
+    send.assert_not_awaited()
+
+    # A schedule that was accepted but not confirmed says so.
+    send.side_effect = OJMicrolineUnconfirmedError("not confirmed")
+    with pytest.raises(HomeAssistantError, match="did not confirm"):
+        await _schedule_call(hass)
+    send.side_effect = OJMicrolineError("The thermostat refused the command.")
+    with pytest.raises(HomeAssistantError, match="refused"):
+        await _schedule_call(hass)
+
+    # A thermostat that is not connected cannot take a schedule.
+    send.reset_mock()
+    with pytest.raises(ServiceValidationError, match="connected to Home Assistant"):
+        await _schedule_call(hass, "climate.secondroom")
+    send.assert_not_awaited()
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_wg4_schedule_needs_the_local_connection(hass: HomeAssistant) -> None:
+    """Test the schedule of a WG4 thermostat in cloud mode can be seen, not set."""
+    await _setup(hass, _entry("cloud"))
+    assert _state(hass, "sensor.roomname_schedule").attributes["series"] == "wg4"
+    with pytest.raises(ServiceValidationError, match="local connection"):
+        await _schedule_call(hass)

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+import ipaddress
 import json
 import logging
 import socket
@@ -21,7 +22,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from homeassistant.components.network import async_get_source_ip
+from homeassistant.components.network import async_get_adapters, async_get_source_ip
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_USERNAME
 from homeassistant.core import CALLBACK_TYPE, callback
@@ -159,9 +160,32 @@ async def async_host_ip(hass: HomeAssistant) -> str:
         return "?"
 
 
-async def async_dns_points_here(
-    hass: HomeAssistant, endpoint: GatewayEndpoint, host_ip: str
-) -> bool:
+async def async_host_ips(hass: HomeAssistant) -> set[str]:
+    """Return the IPv4 addresses of Home Assistant a thermostat may use.
+
+    The gateway listens on all of them, so a DNS record may point at any:
+    on a machine with a leg on the thermostats' own network, that address
+    keeps their connection off the router. Loopback and link-local
+    addresses are left out, as no thermostat reaches those. The adapters
+    are the ones Home Assistant read when it started.
+    """
+    try:
+        adapters = await async_get_adapters(hass)
+    except HomeAssistantError, OSError:
+        # Without the adapters the suggested address is still checked.
+        adapters = []
+    addresses = {ipv4["address"] for adapter in adapters for ipv4 in adapter["ipv4"]}
+    if (host_ip := await async_host_ip(hass)) != "?":
+        addresses.add(host_ip)
+    return {
+        address
+        for address in addresses
+        if not (ip := ipaddress.ip_address(address)).is_loopback
+        and not ip.is_link_local
+    }
+
+
+async def async_dns_points_here(hass: HomeAssistant, endpoint: GatewayEndpoint) -> bool:
     """Return whether Home Assistant resolves the gateway's name to itself.
 
     The thermostats may use another DNS server than Home Assistant does, so
@@ -173,7 +197,7 @@ async def async_dns_points_here(
         )
     except OSError:
         return False
-    return host_ip in {info[4][0] for info in infos}
+    return not (await async_host_ips(hass)).isdisjoint(info[4][0] for info in infos)
 
 
 async def async_profiles(

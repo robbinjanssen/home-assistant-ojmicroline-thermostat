@@ -140,7 +140,7 @@ With the relay, Home Assistant passes the thermostat's connection on to OJ's gat
 
 1. Give Home Assistant a fixed IP address, with a DHCP reservation on your router.
 2. On the DNS server your thermostats use, add a record that points the name from the table above at that address. Pi-hole and AdGuard Home (also available as a Home Assistant add-on) call this a local DNS record or DNS rewrite. Many routers of internet providers cannot do this. Redirect only this name: it is the one the thermostat connects to, not the name of the app or the website.
-3. Under **Configure**, choose **Local with relay**. The next screen shows the record to create, and warns if Home Assistant does not see it.
+3. Under **Configure**, choose **Local with relay**. The next screen shows the record to create, and warns if Home Assistant does not see it. It suggests the address Home Assistant uses to reach the internet. The gateway listens on every address, so the record may point at any IPv4 address of the machine that your thermostats can reach, for example a second one on the network your thermostats are on. Home Assistant reads its addresses when it starts, so after adding one, restart Home Assistant before this screen recognises a record that points at it.
 4. Switch each thermostat off and on again, so it looks up the address again. Changing the DNS record does not move the connection a thermostat already has. A factory reset is not needed: the thermostat keeps its Wi-Fi settings and its schedule.
 
 If no thermostat has connected after ten minutes, a repair issue under **Settings → System → Repairs** tells you what to check. It disappears when a thermostat connects.

@@ -130,6 +130,26 @@ work on a branch.
     used, because the cloud does not hear from it in local only (a tester's
     sensors showed 0). Use `helpers.current_temperature()`, and give a sensor that
     can be without a value `create_for`, or it is not created at a restart.
+  - The cloud counts the energy usage from the reports of a thermostat
+    that OJ's gateway gets: minutes of heating times the load (compared
+    with a power meter on an OWD5). The library tells what the other
+    reports are worth (`on_usage`); `local.py` adds that up per hour (UTC)
+    and stores it, for eight days. `EnergyStatistics.async_hourly()` adds
+    it to the cloud's hours, so the two never count the same report. For
+    a thermostat that only the gateway hears, in local only, it is the
+    whole usage: `_async_count_here()` sets the sensor from it and
+    `schedule_import_counted()` writes the statistics, from the last hour
+    written on, without asking the cloud. Earlier hours are left alone:
+    the cloud may have counted those.
+  - The gateway counts with the load a thermostat knows, unless the user
+    set one: the **Heating load** number (`number.py`), which the store
+    keeps as `loads` and `LocalGateway.async_start()` hands to the library
+    again. It shows the load that is counted with, and 0 clears it. It is
+    only created with a local connection, because it changes nothing the
+    cloud counts.
+  - Ask the store to save the usage once per write (`_usage_unsaved`):
+    `Store.async_delay_save()` puts a planned write off when it is asked
+    again, and a report comes every minute.
   - The hub in `push.py` is not used while a gateway runs: it would report a
     thermostat offline that is only away from the cloud. Thermostats that
     are not on the gateway are polled every minute for that reason.

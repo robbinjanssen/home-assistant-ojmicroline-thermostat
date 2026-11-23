@@ -295,6 +295,31 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
             thermostat.serial_number
         )
 
+    @callback
+    def _async_count_here(self, local: LocalGateway, thermostat: Thermostat) -> None:
+        """Set the energy usage of a thermostat that only the gateway hears.
+
+        In local only the cloud never hears such a thermostat: what the
+        gateway counted from its reports is all of its usage. With the relay
+        the cloud is asked again as soon as it can be, and what the gateway
+        counted meanwhile is added to its answer then.
+        """
+        serial_number = thermostat.serial_number
+        if local.mode is not GatewayMode.LOCAL or not local.api.on_gateway(
+            serial_number
+        ):
+            return
+        today = self.energy.counted_here(thermostat, dt_util.now().date())
+        if today is None:
+            # Nothing was counted: its load is not known, or it has not
+            # reported yet.
+            return
+        thermostat.energy = [round(sum(today), 4)]
+        now = monotonic()
+        if now >= self._energy_next.get(serial_number, 0):
+            self._energy_next[serial_number] = now + ENERGY_UPDATE_INTERVAL
+            self.energy.schedule_import_counted(thermostat)
+
     async def _async_fetch_thermostats(self) -> list[Thermostat]:
         """Fetch the thermostats, reusing recent energy usage where possible.
 
@@ -315,9 +340,11 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
                 if self._async_cloud_measures(local, thermostat):
                     measured.append(thermostat)
                     continue
-                # Without the cloud there is no new energy usage.
+                # Without the cloud there is no new energy usage, unless the
+                # gateway counts it.
                 previous = (self.data or {}).get(thermostat.serial_number)
                 thermostat.energy = None if previous is None else previous.energy
+                self._async_count_here(local, thermostat)
         elif not isinstance(api, SessionOJMicrolineAPI):
             async with asyncio.timeout(API_TIMEOUT):
                 return await self.api.get_thermostats()
@@ -424,6 +451,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         _LOGGER.debug("Push update received for %s", thermostat.serial_number)
         # Pushed data has no energy usage; keep the polled value.
         thermostat.energy = current.energy
+        if self.local is not None:
+            # Unless the gateway counts it: this report may have added to it.
+            self._async_count_here(self.local, thermostat)
         data = dict(self.data)
         data[thermostat.serial_number] = thermostat
         # Unlike async_set_updated_data this keeps the polling schedule.

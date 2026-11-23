@@ -22,6 +22,12 @@ This module turns that into today's usage for the energy sensor, and imports
 the history into long-term statistics (one per thermostat) for the energy
 dashboard: hourly for the last week, daily for the last 5 weeks and monthly
 before that.
+
+With a local connection the cloud only counts the reports of a thermostat
+that OJ's gateway gets. What a thermostat uses while its reports stay in Home
+Assistant is counted by the gateway there, and added here: to the cloud's
+hours for a thermostat that the cloud hears as well, and on its own for one
+that only the gateway hears.
 """
 
 from __future__ import annotations
@@ -29,6 +35,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import UTC, date, datetime, timedelta
+from itertools import zip_longest
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.recorder import get_instance
@@ -48,6 +55,8 @@ from .const import DOMAIN
 from .helpers import thermostat_name
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
     from homeassistant.core import HomeAssistant
 
     from .coordinator import OJMicrolineDataUpdateCoordinator
@@ -85,6 +94,13 @@ def _hour_starts(day: date, count: int) -> list[datetime]:
     """Return the UTC start of each of the day's local hours."""
     start = dt_util.start_of_local_day(day).astimezone(UTC)
     return [start + timedelta(hours=hour) for hour in range(count)]
+
+
+def _hours_in(day: date) -> int:
+    """Return how many hours a local day has: 23 or 25 when the clock changes."""
+    start = dt_util.start_of_local_day(day)
+    end = dt_util.start_of_local_day(day + timedelta(days=1))
+    return round((end - start).total_seconds() / 3600)
 
 
 def _local_midnight(day: date) -> datetime:
@@ -152,7 +168,38 @@ class EnergyStatistics:
                     thermostat, VIEW_HOURS, day + timedelta(days=1), 0
                 )
             )
-        return list(reversed(hours))
+        hours = list(reversed(hours))
+        counted = self.counted_here(thermostat, day)
+        if counted is None:
+            return hours
+        # The cloud counted the reports it got, the gateway the others.
+        return [
+            round(cloud + here, 4)
+            for cloud, here in zip_longest(hours, counted, fillvalue=0.0)
+        ]
+
+    def counted_here(self, thermostat: Thermostat, day: date) -> list[float] | None:
+        """Return the kWh per local hour of a day that the gateway counted.
+
+        That is what a thermostat used while OJ's gateway did not get its
+        reports, so the cloud knows nothing of it.
+
+        Returns
+        -------
+            The kWh of every hour of the day, oldest first; None if the
+            gateway did not count this thermostat in the last days.
+
+        """
+        local = self._coordinator.local
+        usage = {} if local is None else local.usage(thermostat.serial_number)
+        if not usage:
+            return None
+        # The gateway counts by the hour in UTC, which is the local hour
+        # wherever the time zone is a whole number of hours from UTC.
+        return [
+            usage.get(start.replace(minute=0, second=0, microsecond=0), 0.0)
+            for start in _hour_starts(day, _hours_in(day))
+        ]
 
     async def _async_daily(self, thermostat: Thermostat, today: date) -> list[float]:
         """Return the kWh per day of the last weeks, starting with today."""
@@ -189,22 +236,80 @@ class EnergyStatistics:
 
     def schedule_import(self, thermostat: Thermostat, today: list[float]) -> None:
         """Update the thermostat's statistics in the background."""
+        self._schedule(thermostat, lambda: self._async_import_locked(thermostat, today))
+
+    def schedule_import_counted(self, thermostat: Thermostat) -> None:
+        """Write what the gateway counted to the statistics, in the background.
+
+        This is for a thermostat that only the gateway hears: the cloud has
+        nothing to add, and is not asked.
+        """
+        self._schedule(thermostat, lambda: self._async_import_counted(thermostat))
+
+    def _schedule(
+        self, thermostat: Thermostat, work: Callable[[], Coroutine[Any, Any, None]]
+    ) -> None:
         lock = self._locks.setdefault(thermostat.serial_number, asyncio.Lock())
         if lock.locked():
             return
         self._hass.async_create_background_task(
-            self._async_import(lock, thermostat, today),
+            self._async_import(lock, work),
             f"{DOMAIN} energy statistics {thermostat.serial_number}",
         )
 
     async def _async_import(
-        self, lock: asyncio.Lock, thermostat: Thermostat, today: list[float]
+        self, lock: asyncio.Lock, work: Callable[[], Coroutine[Any, Any, None]]
     ) -> None:
         async with lock:
             try:
-                await self._async_import_locked(thermostat, today)
+                await work()
             except OJMicrolineError as error:
                 _LOGGER.debug("Could not update energy statistics: %s", error)
+
+    async def _async_import_counted(self, thermostat: Thermostat) -> None:
+        """Write the hours the gateway counted, from the last hour written on.
+
+        What the statistics hold of earlier hours stays as it is: the cloud
+        may have counted those, before the thermostat was the gateway's alone.
+        The last hour is written again, because it was not over yet; if the
+        cloud wrote it, what the cloud counted of that one hour is lost.
+        """
+        local = self._coordinator.local
+        points = {} if local is None else local.usage(thermostat.serial_number)
+        stat_id = statistic_id(thermostat)
+        last = await get_instance(self._hass).async_add_executor_job(
+            get_last_statistics,
+            self._hass,
+            1,
+            stat_id,
+            True,  # noqa: FBT003
+            {"state", "sum"},
+        )
+        total = 0.0
+        if rows := last.get(stat_id):
+            written = dt_util.utc_from_timestamp(rows[0]["start"])
+            total = rows[0]["sum"] or 0.0
+            points = {
+                start: energy for start, energy in points.items() if start >= written
+            }
+            if written in points:
+                total -= rows[0]["state"] or 0.0
+        statistics = []
+        for start in sorted(points):
+            total += points[start]
+            statistics.append(
+                {
+                    "start": start,
+                    "state": round(points[start], 4),
+                    "sum": round(total, 4),
+                }
+            )
+        if statistics:
+            async_add_external_statistics(
+                self._hass,
+                _metadata(thermostat),
+                statistics,  # type: ignore[arg-type]
+            )
 
     async def _async_import_locked(  # pylint: disable=too-many-locals
         self, thermostat: Thermostat, today_hours: list[float]

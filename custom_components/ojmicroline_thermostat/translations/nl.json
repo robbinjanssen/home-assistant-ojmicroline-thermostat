@@ -169,6 +169,9 @@
         "number": {
             "energy_price": {
                 "name": "Energieprijs"
+            },
+            "heating_load": {
+                "name": "Vermogen verwarming"
             }
         },
         "binary_sensor": {

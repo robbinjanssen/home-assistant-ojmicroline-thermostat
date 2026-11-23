@@ -171,6 +171,9 @@
         "number": {
             "energy_price": {
                 "name": "Energy price"
+            },
+            "heating_load": {
+                "name": "Heating load"
             }
         },
         "binary_sensor": {

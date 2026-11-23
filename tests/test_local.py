@@ -19,6 +19,13 @@ from homeassistant.components.climate import (
 from homeassistant.components.climate import (
     SERVICE_SET_TEMPERATURE,
 )
+from homeassistant.components.number import (
+    ATTR_VALUE,
+    SERVICE_SET_VALUE,
+)
+from homeassistant.components.number import (
+    DOMAIN as NUMBER_DOMAIN,
+)
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
@@ -780,6 +787,8 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
         "upstream": None,
         "upstream_fingerprint": None,
         "cloud_error": None,
+        # The loads the cloud tells for these thermostats.
+        "heating_load": {SERIAL: 1218, OTHER: 320},
         # The gateway did not count the usage of a thermostat.
         "energy_counted_today": {},
         # What happened on the gateway's connections; nothing yet.
@@ -1799,7 +1808,8 @@ async def test_local_only_counts_the_energy_usage(
     for _ in range(2):
         freezer.tick(60)
         _report(entry, WD5_SERIAL, RoomTemperature=2098, Heating=True)
-    await coordinator.async_refresh()
+    # The sensor follows the reports; it does not wait for the next poll.
+    await _deliver(hass, entry)
 
     assert coordinator.data[WD5_SERIAL].energy == [round(2 * MINUTE, 4)]
     assert _state(hass, "sensor.woonkamer_energy_usage").state == "0.1337"
@@ -1910,3 +1920,89 @@ async def test_counted_usage_survives_a_restart(
     assert hass_storage[STORE_KEY]["data"]["usage"] == {
         WD5_SERIAL: {str(hour): pytest.approx(1.5 + 2 * MINUTE, abs=1e-5)}
     }
+
+
+@pytest.mark.usefixtures("mock_wd5_api")
+async def test_heating_load_can_be_set(
+    hass: HomeAssistant,
+    hass_storage: dict[str, Any],
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test the usage is counted with the load of the user, where one is set.
+
+    The load a thermostat knows was entered at its installation; a power
+    meter showed the heating to draw a few percent less.
+    """
+    freezer.move_to(NOON + timedelta(minutes=30))
+    hass_storage[STORE_KEY] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": STORE_KEY,
+        "data": {"known": [WD5_SERIAL]},
+    }
+    entry = _wd5_entry("local")
+    await _setup(hass, entry)
+    load = "number.woonkamer_heating_load"
+
+    # The load is not known until the thermostat tells it, and then it is
+    # the thermostat's own.
+    assert _state(hass, load).state == STATE_UNKNOWN
+    _report(entry, WD5_SERIAL, Online=True, LoadWatts=4010, Heating=True)
+    await _deliver(hass, entry)
+    assert _state(hass, load).state == "4010"
+
+    await hass.services.async_call(
+        NUMBER_DOMAIN,
+        SERVICE_SET_VALUE,
+        {ATTR_ENTITY_ID: load, ATTR_VALUE: 3900},
+        blocking=True,
+    )
+    assert _state(hass, load).state == "3900"
+    freezer.tick(60)
+    _report(entry, WD5_SERIAL, Heating=True)
+    await _deliver(hass, entry)
+    # A minute with the load of the thermostat, and one with the user's.
+    counted = entry.runtime_data.data[WD5_SERIAL].energy
+    assert counted == [round(MINUTE + 3900 * 60 / 3_600_000, 4)]
+
+    # It is kept, and counted with again after a restart.
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass_storage[STORE_KEY]["data"]["loads"] == {WD5_SERIAL: 3900}
+    assert _state(hass, load).state == "3900"
+
+    # Setting 0 returns to the load of the thermostat, once it told it again.
+    await hass.services.async_call(
+        NUMBER_DOMAIN,
+        SERVICE_SET_VALUE,
+        {ATTR_ENTITY_ID: load, ATTR_VALUE: 0},
+        blocking=True,
+    )
+    assert _state(hass, load).state == STATE_UNKNOWN
+    _report(entry, WD5_SERIAL, Online=True, LoadWatts=4010)
+    await _deliver(hass, entry)
+    assert _state(hass, load).state == "4010"
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert hass_storage[STORE_KEY]["data"]["loads"] == {}
+
+
+@pytest.mark.usefixtures("mock_wg4_api")
+async def test_heating_load_is_for_a_local_connection(
+    hass: HomeAssistant,
+    hass_storage: dict[str, Any],
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test the load is only offered where the gateway counts with it."""
+    await _setup(hass, mock_config_entry)
+    assert hass.states.get("number.roomname_heating_load") is None
+
+    # With a gateway it is there, for a WG4 thermostat with the load the
+    # cloud tells; what a damaged file holds is left out.
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+    hass_storage[STORE_KEY] = _stored()
+    hass_storage[STORE_KEY]["data"]["loads"] = {SERIAL: 1100, OTHER: "many", "x": -5}
+    entry = _entry("relay")
+    await _setup(hass, entry)
+    assert _state(hass, "number.roomname_heating_load").state == "1100"
+    assert _state(hass, "number.secondroom_heating_load").state == "320"
+    assert local._loads("damaged") == {}  # pylint: disable=protected-access

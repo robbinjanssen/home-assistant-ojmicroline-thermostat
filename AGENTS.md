@@ -141,6 +141,12 @@ work on a branch.
     `schedule_import_counted()` writes the statistics, from the last hour
     written on, without asking the cloud. Earlier hours are left alone:
     the cloud may have counted those.
+  - The gateway counts with the load a thermostat knows, unless the user
+    set one: the **Heating load** number (`number.py`), which the store
+    keeps as `loads` and `LocalGateway.async_start()` hands to the library
+    again. It shows the load that is counted with, and 0 clears it. It is
+    only created with a local connection, because it changes nothing the
+    cloud counts.
   - Ask the store to save the usage once per write (`_usage_unsaved`):
     `Store.async_delay_save()` puts a planned write off when it is asked
     again, and a report comes every minute.

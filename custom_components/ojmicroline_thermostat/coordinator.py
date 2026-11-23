@@ -451,6 +451,9 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         _LOGGER.debug("Push update received for %s", thermostat.serial_number)
         # Pushed data has no energy usage; keep the polled value.
         thermostat.energy = current.energy
+        if self.local is not None:
+            # Unless the gateway counts it: this report may have added to it.
+            self._async_count_here(self.local, thermostat)
         data = dict(self.data)
         data[thermostat.serial_number] = thermostat
         # Unlike async_set_updated_data this keeps the polling schedule.

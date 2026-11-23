@@ -253,6 +253,20 @@ def _stored_for(account: str, stored: Mapping[str, Any] | None) -> dict[str, Any
         # What each thermostat used that the cloud does not count: the kWh
         # by the start of the hour, in seconds since 1970 (UTC).
         "usage": _usage(stored.get("usage")),
+        # The loads in W to count that usage with, where the user set one
+        # in the place of the load a thermostat knows itself.
+        "loads": _loads(stored.get("loads")),
+    }
+
+
+def _loads(stored: Any) -> dict[str, int]:
+    """Read the stored loads; what cannot be read is left out."""
+    if not isinstance(stored, dict):
+        return {}
+    return {
+        str(serial): load
+        for serial, load in stored.items()
+        if isinstance(load, int) and load > 0
     }
 
 
@@ -438,6 +452,8 @@ class LocalGateway:
                 known=self._stored["known"],
                 on_usage=self._async_usage,
             )
+        for serial, load in self._stored["loads"].items():
+            self.api.set_load(serial, load)
         self.gateway.on_upstream = self._async_upstream_changed
         self.gateway.on_connected = self._async_connected
         await self.gateway.start()
@@ -479,6 +495,20 @@ class LocalGateway:
             dt_util.utc_from_timestamp(int(start)): energy
             for start, energy in self._stored["usage"].get(serial, {}).items()
         }
+
+    @callback
+    def async_set_load(self, serial: str, load: int | None) -> None:
+        """Count the usage of a thermostat with a load of the user's own.
+
+        Without one, the gateway counts with the load the thermostat knows
+        itself, which can be a few percent off what its heating draws.
+        """
+        self.api.set_load(serial, load)
+        if load:
+            self._stored["loads"][serial] = load
+        else:
+            self._stored["loads"].pop(serial, None)
+        self._store.async_delay_save(self._data_to_save, PROFILE_SAVE_DELAY)
 
     @callback
     def _data_to_save(self) -> dict[str, Any]:

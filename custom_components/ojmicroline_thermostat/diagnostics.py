@@ -62,6 +62,11 @@ def _gateway_diagnostics(
         "upstream": None if status is None else status.value,
         "upstream_fingerprint": gateway.upstream_fingerprint,
         "cloud_error": None if cloud_error is None else repr(cloud_error),
+        # The load in W the gateway counts with: the thermostat's own, or
+        # the one the user set.
+        "heating_load": {
+            serial: local.api.load(serial) for serial in coordinator.data or {}
+        },
         # The kWh the gateway counted today, for the thermostats it counts.
         "energy_counted_today": {
             serial: round(sum(hours), 4)

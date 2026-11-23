@@ -15,8 +15,8 @@ Three thermostat series, each with its own API in the library:
 
 | Series | Library API | Notes |
 | --- | --- | --- |
-| WD5 (OWD5, MWD5, WCD5) | `WD5API`, `WD5LocalAPI` | session API; push via the SignalR hub in `push.py`; schedule, vacation and energy history; optional local gateway (experimental) |
-| WG4 (UWG4, AWG4) | `WG4API`, `WG4LocalAPI` | session API; push via the library's `subscribe()`; energy history and power; schedule (changed through the local gateway only); optional local gateway (experimental) |
+| WD5 (OWD5, MWD5, WCD5) | `WD5API`, `WD5LocalAPI` | session API; push via the SignalR hub in `push.py`; schedule, vacation and energy history; optional local gateway |
+| WG4 (UWG4, AWG4) | `WG4API`, `WG4LocalAPI` | session API; push via the library's `subscribe()`; energy history and power; schedule (changed through the local gateway only); optional local gateway |
 | WG5 (UWG5) | `WG5API` | OAuth API; polled; tested by users with a real thermostat (#302), not by the maintainers |
 
 ```text
@@ -100,9 +100,10 @@ work on a branch.
   - The WG4 gateway ran against four real thermostats of two users: on the
     first one its commands were confirmed too late in one test and in time
     in the next, for a reason that is not known. The WD5 gateway ran
-    against OWD5 thermostats
-    of three testers, with the relay and in local only. Keep both marked
-    experimental until more models and brands have been seen.
+    against OWD5 thermostats of four testers, with the relay and in local
+    only. Neither is called experimental any more, which was the
+    maintainer's choice. The README tells what the local connection ran on
+    and what was never tested; keep that list up to date.
   - `endpoint_for()` tells which device gateway the thermostats of an
     account look for, by WG4 application code or WD5 customer ID. The option
     is only offered when it knows one; add a brand there once its hostname

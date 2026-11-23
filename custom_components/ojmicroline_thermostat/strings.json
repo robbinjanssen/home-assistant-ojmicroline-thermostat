@@ -203,7 +203,7 @@
                 },
                 "data_description": {
                     "comfort_temperature": "The temperature used when switching to the comfort preset. Leave empty to use the comfort temperature stored in the thermostat.",
-                    "connection_mode": "How Home Assistant reaches the thermostats. The local modes are experimental and need a DNS record on your network; read the documentation before you choose one."
+                    "connection_mode": "How Home Assistant reaches the thermostats. The local modes need a DNS record on your network; read the documentation before you choose one."
                 }
             },
             "gateway": {
@@ -280,8 +280,8 @@
         "connection_mode": {
             "options": {
                 "cloud": "Cloud",
-                "relay": "Local with relay (experimental)",
-                "local": "Local only (experimental)"
+                "relay": "Local with relay",
+                "local": "Local only"
             }
         }
     },

@@ -201,7 +201,7 @@
                 },
                 "data_description": {
                     "comfort_temperature": "A temperatura usada ao mudar para a predefinição de conforto. Deixe em branco para usar a temperatura de conforto guardada no termóstato.",
-                    "connection_mode": "Como o Home Assistant chega aos termóstatos. Os modos locais são experimentais e precisam de um registo DNS na sua rede; leia primeiro a documentação."
+                    "connection_mode": "Como o Home Assistant chega aos termóstatos. Os modos locais precisam de um registo DNS na sua rede; leia primeiro a documentação."
                 }
             },
             "gateway": {
@@ -233,8 +233,8 @@
         "connection_mode": {
             "options": {
                 "cloud": "Cloud",
-                "relay": "Local com relay (experimental)",
-                "local": "Apenas local (experimental)"
+                "relay": "Local com relay",
+                "local": "Apenas local"
             }
         }
     },

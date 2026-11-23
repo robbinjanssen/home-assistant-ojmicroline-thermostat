@@ -87,7 +87,7 @@ For every WD5 and WG4-series thermostat the integration imports the energy usage
 
 The "Energy Usage" sensor shows today's usage (from local midnight). Use either the statistic or the sensor in the energy dashboard, not both, or the usage is counted twice.
 
-With a [local connection](#local-connection-wg4-and-wd5-series-experimental), Home Assistant counts the usage itself wherever OJ's cloud does not hear the thermostat: in local only, and with the relay while OJ's cloud is unreachable. It counts the way the cloud does: the time a thermostat reports that its floor is heating, times the load of the heating. With the relay, what Home Assistant counted is added to what the cloud counted.
+With a [local connection](#local-connection-wg4-and-wd5-series), Home Assistant counts the usage itself wherever OJ's cloud does not hear the thermostat: in local only, and with the relay while OJ's cloud is unreachable. It counts the way the cloud does: the time a thermostat reports that its floor is heating, times the load of the heating. With the relay, what Home Assistant counted is added to what the cloud counted.
 
 - A power meter confirmed this way of counting on an OWD5 thermostat: over four hours, what the cloud counted was within a percent of what the house drew for the floor. Home Assistant's own count is new, and on a WG4-series thermostat nothing has been compared yet.
 - It is as good as the load it counts with. A WD5-series thermostat tells its load itself; for a WG4-series thermostat it comes from the cloud. That load was entered at the installation or measured by the thermostat, and a floor can draw something else: on an OWD5 thermostat a power meter showed 3900 W where the thermostat told 4010 W. The real draw also moves a few percent with the mains voltage.
@@ -106,7 +106,9 @@ WG4-series thermostats store the price per kWh that the app uses to show the ene
 
 The entity is disabled by default: the cloud applies a new price to all stored usage, including earlier days, so the costs in the app are only right for one constant price. Do not use it to follow changing tariffs; Home Assistant's energy dashboard tracks costs with changing prices itself.
 
-## Local connection (WG4 and WD5 series, experimental)
+<a name="local-connection-wg4-and-wd5-series-experimental"></a>
+
+## Local connection (WG4 and WD5 series)
 
 A thermostat keeps a connection open to OJ's own gateway. With a DNS record on your network that points the name of that gateway at Home Assistant, the thermostat connects to Home Assistant instead, and keeps working when your internet or OJ's cloud is down. Nothing on the thermostat changes, and removing the record undoes it.
 
@@ -121,10 +123,11 @@ For an account of another app, such as Danfoss LX or Microtemp, the name is not 
 
 The name the thermostat looks for is not the host in the integration's settings. That host, such as `owd5-sl003-app.ojelectronics.com`, is the cloud API that Home Assistant and the app use; do not point it at Home Assistant.
 
-**This is experimental.** Stay on the cloud connection unless you are comfortable editing DNS on your network, and please report what you find.
+Stay on the cloud connection unless you are comfortable editing DNS on your network. This is what the local connection has run on so far; please report what you find, most of all on another model or brand:
 
 - **WG4 series:** tested on four real thermostats of two users. Connecting, the relay, local only, and falling back to local while OJ's cloud was unreachable work. In the first test on one thermostat it confirmed a temperature set from Home Assistant too late, so Home Assistant showed an error. In the second test it confirmed every change within a few seconds. Why the two tests differed is not known yet. On three UWG4 thermostats of the second user the relay worked at once: the app, Home Assistant and the thermostat itself each follow the others.
-- **WD5 series:** tested on OWD5 thermostats of three users, with the relay and in local only: connecting, the relay and presets work. The protocol comes from an ioBroker adapter where it works on an OWD5 thermostat.
+- **WD5 series:** tested on OWD5 thermostats of four users, with firmware 1013W213 and 1013W220, with the relay and in local only: connecting, the relay, presets and falling back to local while OJ's cloud was unreachable work. The protocol comes from an ioBroker adapter where it works on an OWD5 thermostat.
+- **Not tested yet:** Schlüter thermostats in North America, and the other models of both series.
 
 Choose the connection under **Configure** in the integration's menu:
 

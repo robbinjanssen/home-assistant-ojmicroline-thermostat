@@ -201,7 +201,7 @@
                 },
                 "data_description": {
                     "comfort_temperature": "De temperatuur bij het overschakelen naar de comfort-preset. Laat leeg om de comforttemperatuur uit de thermostaat te gebruiken.",
-                    "connection_mode": "Hoe Home Assistant de thermostaten bereikt. De lokale modi zijn experimenteel en hebben een DNS-record in je netwerk nodig; lees eerst de documentatie."
+                    "connection_mode": "Hoe Home Assistant de thermostaten bereikt. De lokale modi hebben een DNS-record in je netwerk nodig; lees eerst de documentatie."
                 }
             },
             "gateway": {
@@ -278,8 +278,8 @@
         "connection_mode": {
             "options": {
                 "cloud": "Cloud",
-                "relay": "Lokaal met relay (experimenteel)",
-                "local": "Alleen lokaal (experimenteel)"
+                "relay": "Lokaal met relay",
+                "local": "Alleen lokaal"
             }
         }
     },

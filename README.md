@@ -85,12 +85,25 @@ Please see [CONTRIBUTING](.github/CONTRIBUTING.md) and [CODE_OF_CONDUCT](.github
 
 ## References & Thanks
 
-- https://community.home-assistant.io/t/mwd5-wifi-thermostat-oj-electronics-microtemp/445601
-- https://mdapp.medium.com/the-android-emulator-and-charles-proxy-a-love-story-595c23484e02
-- https://github.com/radubacaran/mwd5
-- https://github.com/klaasnicolaas
-- https://github.com/adamjernst
-- https://github.com/ViPeR5000
+Built on what others found out:
+
+- [radubacaran/mwd5](https://github.com/radubacaran/mwd5) and the [Microtemp thread](https://community.home-assistant.io/t/mwd5-wifi-thermostat-oj-electronics-microtemp/445601) on the Home Assistant forum: the WD5 cloud API.
+- [The Android emulator and Charles Proxy](https://mdapp.medium.com/the-android-emulator-and-charles-proxy-a-love-story-595c23484e02): how to read the traffic of the apps.
+- [peskyAdmin/schluter-local](https://github.com/peskyAdmin/schluter-local) (WG4) and [patricknitsch/ioBroker.schlueter-thermostat](https://github.com/patricknitsch/ioBroker.schlueter-thermostat) (WD5): the protocol of the local connection.
+
+Thanks to everyone who contributed code to this integration or the [library](https://github.com/robbinjanssen/python-ojmicroline-thermostat):
+
+- [laurensdehoorne](https://github.com/laurensdehoorne): push updates, schedule and vacation, energy history (WD5)
+- [adamjernst](https://github.com/adamjernst): the WG4 series and its push updates
+- [snoack](https://github.com/snoack): energy usage and power (WG4)
+- [TorStava](https://github.com/TorStava): energy usage in the library
+- [Bannicq](https://github.com/Bannicq): the application code, for Danfoss LX
+- [kylerk](https://github.com/kylerk): the identity host, for nJoy / WarmlyYours
+- [jackmcintyre](https://github.com/jackmcintyre): the DNS record check of the local connection
+- [ViPeR5000](https://github.com/ViPeR5000): the Portuguese translation
+- [Floriszz](https://github.com/Floriszz) and [hawknewton](https://github.com/hawknewton)
+
+And to [jfmoots](https://github.com/jfmoots), [carrel-gr](https://github.com/carrel-gr), [patricknitsch](https://github.com/patricknitsch), [Floriszz](https://github.com/Floriszz) and [jackmcintyre](https://github.com/jackmcintyre) for testing the local connection on their own thermostats.
 
 <!-- Absolute links, so they also work on the HACS page. -->
 [docs-apps]: https://github.com/robbinjanssen/home-assistant-ojmicroline-thermostat/blob/main/docs/apps.md

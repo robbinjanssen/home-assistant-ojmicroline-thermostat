@@ -122,10 +122,13 @@ WG5_STEP_SCHEMA = probatio.Schema(
 
 
 def _app_step_schema(apps: Mapping[str, Any]) -> probatio.Schema:
-    """Return the schema of the step that asks which app is used."""
+    """Return the schema of the step that asks which app is used.
+
+    The first app, OJ Microline's own, is chosen by default.
+    """
     return probatio.Schema(
         {
-            probatio.Required(CONF_APP, default=APP_OTHER): SelectSelector(
+            probatio.Required(CONF_APP, default=next(iter(apps))): SelectSelector(
                 SelectSelectorConfig(
                     options=[*apps, APP_OTHER],
                     translation_key=CONF_APP,

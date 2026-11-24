@@ -69,6 +69,11 @@ work on a branch.
 - **Name clash**: the integration package and the library are both called
   `ojmicroline_thermostat`. pylint ignores the module for that reason; keep the
   `ignored-modules` setting.
+- **Documentation**: the README is also the page HACS shows, so keep it short:
+  what the integration does, installation and configuration. Details go in
+  `docs/` (apps, energy, schedule, local connection). Link from the README to
+  the docs with absolute GitHub URLs, because HACS does not resolve relative
+  links; within `docs/`, link relatively.
 - **Sessions**: the coordinator calls the WD5/WG4 API directly with the session
   ID. Wrap such calls in `_async_with_session`, which logs in again and retries
   once when the API rejects the session (HTTP 401).
@@ -102,8 +107,8 @@ work on a branch.
     in the next, for a reason that is not known. The WD5 gateway ran
     against OWD5 thermostats of four testers, with the relay and in local
     only. Neither is called experimental any more, which was the
-    maintainer's choice. The README tells what the local connection ran on
-    and what was never tested; keep that list up to date.
+    maintainer's choice. `docs/local-connection.md` tells what the local
+    connection ran on and what was never tested; keep that list up to date.
   - `endpoint_for()` tells which device gateway the thermostats of an
     account look for, by WG4 application code or WD5 customer ID. The option
     is only offered when it knows one; add a brand there once its hostname

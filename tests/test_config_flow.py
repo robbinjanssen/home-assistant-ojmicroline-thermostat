@@ -65,6 +65,30 @@ def _suggested_values(result: ConfigFlowResult) -> dict[str, object]:
     }
 
 
+@pytest.mark.parametrize(
+    ("model", "step_id", "app"),
+    [
+        ("WD5 series", "wd5_app", "ojmicroline"),
+        ("WG4 series", "wg4_app", "mythermostat"),
+    ],
+)
+async def test_app_step_chooses_oj_microline(
+    hass: HomeAssistant, model: str, step_id: str, app: str
+) -> None:
+    """Test the app step chooses OJ Microline's own app by default."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"model": model}
+    )
+    assert result["step_id"] == step_id
+    data_schema = result["data_schema"]
+    assert data_schema is not None
+
+    assert data_schema({}) == {"app": app}
+
+
 @pytest.mark.usefixtures("mock_wg4_api")
 async def test_create_wg4_entry(hass: HomeAssistant) -> None:
     """Test creating an entry for a WG4-series account."""

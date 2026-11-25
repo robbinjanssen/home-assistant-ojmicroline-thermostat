@@ -55,6 +55,7 @@ from .const import (
 )
 from .helpers import (
     current_temperature,
+    is_wd5,
     target_temperature,
     thermostat_name,
     wd5_date,
@@ -477,8 +478,16 @@ class OJMicrolineThermostat(OJMicrolineEntity, ClimateEntity):
         """
         thermostat = self.thermostat
         if thermostat.schedule is None:
-            msg = "The schedule can only be set on WD5-series thermostats."
+            msg = "This thermostat has no schedule that can be changed."
             raise ServiceValidationError(msg)
+        if not is_wd5(thermostat):
+            # The thermostat itself checks the events, with its own rules.
+            await self.coordinator.async_change_wg4_schedule(
+                thermostat,
+                [WEEKDAYS.index(day) for day in days],
+                [(event[ATTR_TIME], event[ATTR_TEMPERATURE]) for event in events],
+            )
+            return
 
         def edit(schedule: dict[str, Any]) -> dict[str, Any]:
             return set_days(

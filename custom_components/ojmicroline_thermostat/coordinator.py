@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
@@ -31,7 +31,9 @@ from ojmicroline_thermostat import (
     OJMicrolineAuthError,
     OJMicrolineError,
     OJMicrolineResultsError,
+    OJMicrolineScheduleError,
     OJMicrolineUnauthorizedError,
+    OJMicrolineUnconfirmedError,
     Thermostat,
     WG4LocalAPI,
 )
@@ -631,6 +633,64 @@ class OJMicrolineDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Thermosta
         except OJMicrolineError as error:
             raise HomeAssistantError(str(error)) from error
         await self.async_request_delayed_refresh()
+
+    async def async_change_wg4_schedule(
+        self,
+        thermostat: Thermostat,
+        days: list[int],
+        events: list[tuple[time, float]],
+    ) -> None:
+        """Change some days of a WG4 thermostat's schedule, through the gateway.
+
+        Only the local connection can change the schedule of a WG4
+        thermostat: how the cloud would take one is not known. The thermostat
+        reports the schedule it took over through the gateway, so the
+        coordinator data follows by itself.
+
+        Args:
+        ----
+            thermostat: The thermostat.
+            days: The days to change, 0 for Monday to 6 for Sunday.
+            events: The events of each of those days: time and temperature
+                in °C.
+
+        Raises:
+        ------
+            ServiceValidationError: There is no local connection, or the
+                events do not fit the rules of the thermostat.
+            HomeAssistantError: The thermostat did not take the schedule over,
+                or did not confirm that it kept it.
+
+        """
+        api = None if self.local is None else self.local.api
+        if not isinstance(api, WG4LocalAPI):
+            msg = (
+                "The schedule of a WG4 thermostat can only be changed through "
+                "the local connection."
+            )
+            raise ServiceValidationError(msg)
+        if not api.can_set_schedule(thermostat.serial_number):
+            msg = (
+                "The schedule can only be changed while the thermostat is "
+                "connected to Home Assistant."
+            )
+            raise ServiceValidationError(msg)
+        try:
+            await api.set_schedule(
+                thermostat,
+                days,
+                [(moment, round(temperature * 100)) for moment, temperature in events],
+            )
+        except OJMicrolineScheduleError as error:
+            raise ServiceValidationError(str(error)) from error
+        except OJMicrolineUnconfirmedError as error:
+            msg = (
+                "The thermostat accepted the schedule, but did not confirm that "
+                "it kept it. Check its schedule before trying again."
+            )
+            raise HomeAssistantError(msg) from error
+        except OJMicrolineError as error:
+            raise HomeAssistantError(str(error)) from error
 
     async def async_request_delayed_refresh(self) -> None:
         """Refresh shortly after a change; the API returns stale data right away.

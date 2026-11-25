@@ -240,7 +240,7 @@
         },
         "set_schedule": {
             "name": "Set schedule",
-            "description": "Set the events of one or more weekdays in the thermostat group's weekly schedule (WD5 series). Up to 6 events per day, on the quarter hour, at least 15 minutes apart; a time earlier than the previous one is after midnight (03:00 at the latest).",
+            "description": "Set the events of one or more weekdays in the weekly schedule. WD5 series: the schedule of the thermostat's group; up to 6 events per day, on the quarter hour, at least 15 minutes apart; a time earlier than the previous one is after midnight (03:00 at the latest). WG4 series, through the local connection only: the thermostat's own schedule; up to 6 events per day, on the quarter hour, in order within the day; the thermostat confirms within about a minute and a half.",
             "fields": {
                 "days": {
                     "name": "Days",
@@ -248,7 +248,7 @@
                 },
                 "events": {
                     "name": "Events",
-                    "description": "The day's events in order, each with a time (HH:MM) and a temperature (5-40 °C)."
+                    "description": "The day's events in order, each with a time (HH:MM) and a temperature in °C, within the limits of the thermostat."
                 }
             }
         }

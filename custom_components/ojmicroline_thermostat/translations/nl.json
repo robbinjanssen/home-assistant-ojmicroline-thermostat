@@ -238,7 +238,7 @@
         },
         "set_schedule": {
             "name": "Schema instellen",
-            "description": "Stel de momenten in van één of meer weekdagen in het weekschema van de thermostaatgroep (WD5-serie). Tot 6 momenten per dag, per kwartier, minstens 15 minuten uit elkaar; een tijd vóór de vorige valt na middernacht (uiterlijk 03:00).",
+            "description": "Stel de momenten in van één of meer weekdagen in het weekschema. WD5-serie: het schema van de thermostaatgroep; tot 6 momenten per dag, per kwartier, minstens 15 minuten uit elkaar; een tijd vóór de vorige valt na middernacht (uiterlijk 03:00). WG4-serie, alleen via de lokale verbinding: het eigen schema van de thermostaat; tot 6 momenten per dag, per kwartier, op volgorde binnen de dag; de thermostaat bevestigt binnen ongeveer anderhalve minuut.",
             "fields": {
                 "days": {
                     "name": "Dagen",
@@ -246,7 +246,7 @@
                 },
                 "events": {
                     "name": "Momenten",
-                    "description": "De momenten van de dag op volgorde, elk met een tijd (UU:MM) en een temperatuur (5-40 °C)."
+                    "description": "De momenten van de dag op volgorde, elk met een tijd (UU:MM) en een temperatuur in °C, binnen de grenzen van de thermostaat."
                 }
             }
         }

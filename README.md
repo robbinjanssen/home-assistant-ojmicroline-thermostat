@@ -30,8 +30,11 @@ The thermostat needs to be connected to the internet, unless you use the
 | Changes show up within seconds | ✓ | ✓ | every minute |
 | [Energy statistics][docs-energy] | ✓ | ✓ | |
 | [Power and energy price][docs-energy] | | ✓ | |
-| [Weekly schedule, card and vacation][docs-schedule] | ✓ | | |
+| [Weekly schedule and card][docs-schedule] | ✓ | ✓ ¹ | |
+| [Vacation][docs-schedule] | ✓ | | |
 | [Local connection][docs-local], without OJ's cloud | ✓ | ✓ | |
+
+¹ Changing the schedule of a WG4-series thermostat needs the [local connection][docs-local].
 
 ## Installation
 
@@ -76,7 +79,7 @@ thermostats are polled every minute.
 
 - [Apps and login settings][docs-apps]: hosts, customer IDs and application codes per app.
 - [Energy][docs-energy]: energy statistics, the energy dashboard, power and energy price.
-- [Schedule and vacation][docs-schedule]: the schedule card and the `set_schedule`, `set_vacation` and `cancel_vacation` actions.
+- [Schedule and vacation][docs-schedule]: the schedule card, the weekly schedule of WG4-series thermostats, and the `set_schedule`, `set_vacation` and `cancel_vacation` actions.
 - [Local connection][docs-local]: keep control when your internet or OJ's cloud is down.
 
 ## Contributing

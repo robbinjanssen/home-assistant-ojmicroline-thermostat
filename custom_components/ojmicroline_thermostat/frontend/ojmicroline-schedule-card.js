@@ -1,11 +1,13 @@
 /**
  * OJ Microline schedule card.
  *
- * Shows the weekly schedule of an OJ Microline (WD5-series) thermostat from
- * its schedule sensor, highlighting the event that is active right now.
- * Tap a day to edit it; saving calls the ojmicroline_thermostat.set_schedule
- * action on the thermostat's climate entity. Bundled with and loaded by the
- * OJ Microline Thermostat integration.
+ * Shows the weekly schedule of an OJ Microline thermostat (WD5 series, or WG4
+ * series) from its schedule sensor, highlighting the event that is active
+ * right now. Tap a day to edit it; saving calls the
+ * ojmicroline_thermostat.set_schedule action on the thermostat's climate
+ * entity. Temperatures show in the unit of Home Assistant; the sensor and the
+ * action use °C. Bundled with and loaded by the OJ Microline Thermostat
+ * integration.
  *
  *   type: custom:ojmicroline-schedule-card
  *   entity: sensor.bathroom_schedule
@@ -27,6 +29,9 @@ const MAX_EVENTS = 6;
 const DAY_SECONDS = 86400;
 // 2024-01-01 was a Monday; used to get localized weekday names.
 const MONDAY = Date.UTC(2024, 0, 1, 12);
+// The limits of a thermostat when its climate entity does not tell, in °C.
+const MIN_CELSIUS = 5;
+const MAX_CELSIUS = 40;
 
 const TEXTS = {
   en: {
@@ -43,6 +48,8 @@ const TEXTS = {
     nextDay: "next day",
     noClimate: "Thermostat not found; set climate_entity in the card.",
     hint: "Up to 6 events, on the quarter hour. A time earlier than the previous one is after midnight (03:00 at the latest).",
+    hintWg4: "Up to 6 events, on the quarter hour, in order within the day. The last temperature lasts until the first event of the next day.",
+    savingWg4: "Saving… the thermostat confirms within about a minute and a half.",
   },
   nl: {
     now: "Nu",
@@ -58,6 +65,8 @@ const TEXTS = {
     nextDay: "volgende dag",
     noClimate: "Thermostaat niet gevonden; stel climate_entity in op de kaart.",
     hint: "Tot 6 momenten, per kwartier. Een tijd vóór de vorige valt na middernacht (uiterlijk 03:00).",
+    hintWg4: "Tot 6 momenten, per kwartier, op volgorde binnen de dag. De laatste temperatuur geldt tot het eerste moment van de volgende dag.",
+    savingWg4: "Opslaan… de thermostaat bevestigt binnen ongeveer anderhalve minuut.",
   },
   pt: {
     now: "Agora",
@@ -73,6 +82,8 @@ const TEXTS = {
     nextDay: "dia seguinte",
     noClimate: "Termóstato não encontrado; defina climate_entity no cartão.",
     hint: "Até 6 eventos, a cada quarto de hora. Uma hora anterior à anterior é depois da meia-noite (até às 03:00).",
+    hintWg4: "Até 6 eventos, a cada quarto de hora, por ordem dentro do dia. A última temperatura mantém-se até ao primeiro evento do dia seguinte.",
+    savingWg4: "A guardar… o termóstato confirma em cerca de um minuto e meio.",
   },
 };
 
@@ -196,8 +207,65 @@ class OJMicrolineScheduleCard extends HTMLElement {
     );
   }
 
-  _formatTemperature(value) {
-    return `${new Intl.NumberFormat(this._language(), { maximumFractionDigits: 1 }).format(value)}°`;
+  /** Whether Home Assistant shows temperatures in Fahrenheit. */
+  _fahrenheit() {
+    const config = this._hass && this._hass.config;
+    return Boolean(
+      config && config.unit_system && config.unit_system.temperature === "°F",
+    );
+  }
+
+  /** A temperature of the schedule (°C) in the unit of Home Assistant. */
+  _shown(celsius) {
+    if (!this._fahrenheit()) return celsius;
+    return Math.round((celsius * 9) / 5 * 10 + 320) / 10;
+  }
+
+  /** A temperature in the unit of Home Assistant as °C, for the action. */
+  _celsius(value) {
+    const number = Number(value);
+    if (!this._fahrenheit()) return number;
+    return Math.round(((number - 32) * 5) / 9 * 100) / 100;
+  }
+
+  /**
+   * A temperature in °C, moved onto a limit of the thermostat when it is just
+   * outside it: the climate entity rounds the limits in Fahrenheit, so a value
+   * the input allows can be up to half a degree Fahrenheit past the real one.
+   */
+  _withinLimits(celsius) {
+    const state = this._hass.states[this._config.entity];
+    const { min_temperature: min, max_temperature: max } = state.attributes;
+    const margin = this._fahrenheit() ? 0.3 : 0;
+    if (typeof min === "number" && celsius < min && min - celsius <= margin) return min;
+    if (typeof max === "number" && celsius > max && celsius - max <= margin) return max;
+    return celsius;
+  }
+
+  _unit() {
+    return this._fahrenheit() ? "°F" : "°C";
+  }
+
+  /** The lowest and highest temperature in the unit of Home Assistant. */
+  _limits() {
+    const climate = this._climateEntity();
+    const state = climate && this._hass.states[climate];
+    const attributes = (state && state.attributes) || {};
+    return {
+      min: attributes.min_temp !== undefined ? attributes.min_temp : this._shown(MIN_CELSIUS),
+      max: attributes.max_temp !== undefined ? attributes.max_temp : this._shown(MAX_CELSIUS),
+      step: this._fahrenheit() ? 1 : 0.5,
+    };
+  }
+
+  /** Whether the schedule is of a WG4 thermostat, whose rules differ. */
+  _wg4() {
+    const state = this._hass && this._hass.states[this._config.entity];
+    return Boolean(state && state.attributes.series === "wg4");
+  }
+
+  _formatTemperature(celsius) {
+    return `${new Intl.NumberFormat(this._language(), { maximumFractionDigits: 1 }).format(this._shown(celsius))}°`;
   }
 
   /** The climate entity to call set_schedule on. */
@@ -239,13 +307,18 @@ class OJMicrolineScheduleCard extends HTMLElement {
 
   _startEdit(dayIndex) {
     const state = this._hass.states[this._config.entity];
-    const events = (state.attributes[DAYS[dayIndex]] || []).map((event) => ({
-      time: event.time,
-      temperature: event.temperature,
-    }));
+    // An event keeps its exact °C value unless its temperature is changed:
+    // shown in Fahrenheit, it is rounded.
+    const draftEvent = (time, celsius) => {
+      const shown = String(this._shown(celsius));
+      return { time, temperature: shown, shown, celsius };
+    };
+    const events = (state.attributes[DAYS[dayIndex]] || []).map((event) =>
+      draftEvent(event.time, event.temperature),
+    );
     this._draft = {
       day: dayIndex,
-      events: events.length ? events : [{ time: "07:00", temperature: 20 }],
+      events: events.length ? events : [draftEvent("07:00", 20)],
       days: new Set([dayIndex]),
       error: "",
       saving: false,
@@ -264,8 +337,8 @@ class OJMicrolineScheduleCard extends HTMLElement {
     if (events.length >= MAX_EVENTS) return;
     const last = events[events.length - 1];
     events.push({
+      ...last,
       time: formatMinutes(Math.min(minutesOf(last.time) + 60, 23 * 60 + 45)),
-      temperature: last.temperature,
     });
     this._render();
   }
@@ -295,7 +368,10 @@ class OJMicrolineScheduleCard extends HTMLElement {
           days: DAYS.filter((_, index) => draft.days.has(index)),
           events: draft.events.map((event) => ({
             time: event.time,
-            temperature: Number(event.temperature),
+            temperature:
+              String(event.temperature) === event.shown
+                ? event.celsius
+                : this._withinLimits(this._celsius(event.temperature)),
           })),
         },
         { entity_id: climate },
@@ -323,6 +399,8 @@ class OJMicrolineScheduleCard extends HTMLElement {
   }
 
   _nextDayFlags() {
+    // A WG4 day has no events after midnight.
+    if (this._wg4()) return this._draft.events.map(() => false);
     let previous = null;
     let nextDay = false;
     return this._draft.events.map((event) => {
@@ -416,6 +494,8 @@ class OJMicrolineScheduleCard extends HTMLElement {
     const longNames = this._dayNames("long");
     const shortNames = this._dayNames();
     const flags = this._nextDayFlags();
+    const limits = this._limits();
+    const wg4 = this._wg4();
     const rows = draft.events
       .map(
         (event, index) => `<div class="edit-row">
@@ -423,9 +503,10 @@ class OJMicrolineScheduleCard extends HTMLElement {
             value="${escapeHtml(event.time)}" ${draft.saving ? "disabled" : ""}>
           <span class="next-day" ${flags[index] ? "" : "hidden"}>${escapeHtml(texts.nextDay)}</span>
           <span class="spacer"></span>
-          <input type="number" min="5" max="40" step="0.5" data-field="temperature" data-index="${index}"
+          <input type="number" min="${escapeHtml(limits.min)}" max="${escapeHtml(limits.max)}"
+            step="${limits.step}" data-field="temperature" data-index="${index}"
             value="${escapeHtml(event.temperature)}" ${draft.saving ? "disabled" : ""}>
-          <span class="unit">°C</span>
+          <span class="unit">${escapeHtml(this._unit())}</span>
           <button class="icon" data-action="remove" data-index="${index}" title="${escapeHtml(texts.remove)}"
             ${draft.events.length <= 1 || draft.saving ? "disabled" : ""}>✕</button>
         </div>`,
@@ -443,9 +524,10 @@ class OJMicrolineScheduleCard extends HTMLElement {
       ${rows}
       <button class="text" data-action="add"
         ${draft.events.length >= MAX_EVENTS || draft.saving ? "disabled" : ""}>+ ${escapeHtml(texts.add)}</button>
-      <div class="hint">${escapeHtml(texts.hint)}</div>
+      <div class="hint">${escapeHtml(wg4 ? texts.hintWg4 : texts.hint)}</div>
       <div class="also">${escapeHtml(texts.alsoApply)}:</div>
       <div class="day-toggles">${days}</div>
+      ${draft.saving && wg4 ? `<div class="hint">${escapeHtml(texts.savingWg4)}</div>` : ""}
       ${draft.error ? `<div class="error">${escapeHtml(draft.error)}</div>` : ""}
       <div class="actions">
         <button class="text" data-action="cancel" ${draft.saving ? "disabled" : ""}>${escapeHtml(texts.cancel)}</button>
